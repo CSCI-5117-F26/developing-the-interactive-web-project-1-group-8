@@ -1,0 +1,13 @@
+schema: "classroom50/repo-config/v1"
+classroom: "developing-the-interactive-web"
+assignment: "project-1"
+secret: "coos6z1d"
+owner:
+  username: "nicholashinds"
+  id: 143462343
+  accepted_at: "2026-09-19T21:46:51Z"
+source:
+  owner: "CSCI-5117-F26"
+  owner_id: 324118398
+  repo: "Project-1"
+  branch: "main"
