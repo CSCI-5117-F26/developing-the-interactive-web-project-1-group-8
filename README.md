@@ -4,14 +4,17 @@ CSCI 5117, Fall 2026, [assignment description](https://canvas.umn.edu/courses/57
 
 ## App Info:
 
-* Team Name: TODO
-* App Name: TODO
+* Team Name: The Moneyed Monkeys 🦧
+* App Name: Game Master
 * App Link: <https://TODO.com/>
 
 ### Students
 
-* First Last, x500@umn.edu
-* ...
+* Nick Hinds, hinds084@umn.edu
+* Russell Shaver, shave083@umn.edu
+* Marko Krstulovic, krstu002@umn.edu
+* Pranshu Panda, pand068@umn.edu
+* Tayler Miller, mil00154@umn.edu
 
 
 ## Key Features
