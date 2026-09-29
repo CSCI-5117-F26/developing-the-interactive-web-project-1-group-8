@@ -4,32 +4,30 @@ CSCI 5117, Fall 2026, [assignment description](https://canvas.umn.edu/courses/57
 
 ## App Info:
 
-* Team Name: The Moneyed Monkeys 🦧
-* App Name: Game Master
-* App Link: <https://TODO.com/>
+- Team Name: The Moneyed Monkeys 🦧
+- App Name: Game Master
+- App Link: <https://TODO.com/>
 
 ### Students
 
-* Nick Hinds, hinds084@umn.edu
-* Russell Shaver, shave083@umn.edu
-* Marko Krstulovic, krstu002@umn.edu
-* Pranshu Panda, pand068@umn.edu
-* Tayler Miller, mil00154@umn.edu
-
+- Nick Hinds, hinds084@umn.edu
+- Russell Shaver, shave083@umn.edu
+- Marko Krstulovic, krstu002@umn.edu
+- Pranshu Panda, pand068@umn.edu
+- Tayler Miller, mil00154@umn.edu
 
 ## Key Features
 
 **Describe the most challenging features you implemented
 (one sentence per bullet, maximum 4 bullets):**
 
-* ...
+- ...
 
 ## Testing Notes
 
 **Is there anything special we need to know in order to effectively test your app? (optional):**
 
-* ...
-
+- ...
 
 ## Screenshots of Site
 
@@ -38,8 +36,7 @@ along with a very brief caption:**
 
 ![](https://media.giphy.com/media/o0vwzuFwCGAFO/giphy.gif)
 
-
-## Mock-up 
+## Mock-up
 
 There are a few tools for mock-ups. Paper prototypes (low-tech, but effective and cheap), Digital picture edition software (gimp / photoshop / etc.), or dedicated tools like moqups.com (I'm calling out moqups here in particular since it seems to strike the best balance between "easy-to-use" and "wants your money" -- the free teir isn't perfect, but it should be sufficient for our needs with a little "creative layout" to get around the page-limit)
 
@@ -47,16 +44,37 @@ In this space please either provide images (around 4) showing your prototypes, O
 
 **[Add images/photos that show your paper prototype (around 4)](https://stackoverflow.com/questions/10189356/how-to-add-screenshot-to-readmes-in-github-repository) along with a very brief caption:**
 
-![](https://media.giphy.com/media/26ufnwz3wDUli7GU0/giphy.gif)
+![](mockups/landing_page.jpg)
 
+Landing page description
+
+![](mockups/top_bar.jpg)
+
+Top bar description
+
+![](mockups/event_view.jpg)
+
+Event view description
+
+![](mockups/event_details.jpg)
+
+Event details description
+
+![](mockups/my_library.jpg)
+
+My library description
+
+![](mockups/add_game.jpg)
+
+Add game description
 
 ## External Dependencies
 
 **Document integrations with 3rd Party code or services here.
 Please do not document required libraries. or libraries that are mentioned in the product requirements**
 
-* Library or service name: description of use
-* ...
+- Library or service name: description of use
+- ...
 
 **If there's anything else you would like to disclose about how your project
 relied on external code, expertise, or anything else, please disclose that
