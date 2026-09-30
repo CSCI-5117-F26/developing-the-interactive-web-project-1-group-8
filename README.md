@@ -72,6 +72,10 @@ The Add game page offers two options for entering game details. The first is a m
 
 The My Events page offers a list of events that a user is hosting or attending. There is also an option to create a new event that they want to host. Each event card contains event info such as name, host username, date/time, location, status, and current attendance. These event cards are reused through the site. The cards also have buttons that allow signing up and viewing details depending on whether there is space and you are the host.
 
+![](mockups/profile_page.jpg)
+
+When selecting a user's profile from the search or an event listing, it brings up a simple page giving details about the user. Some of the currently proposed information includes a name, bio, profile pic, and upcoming events that they are hosting/attending. Additionally, if there user is not friends with the profile of the account it's viewing, the option will be present in the upper right corner.
+
 ## External Dependencies
 
 **Document integrations with 3rd Party code or services here.
