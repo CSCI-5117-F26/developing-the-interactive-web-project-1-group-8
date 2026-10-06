@@ -6,7 +6,7 @@ CSCI 5117, Fall 2026, [assignment description](https://canvas.umn.edu/courses/57
 
 - Team Name: The Moneyed Monkeys 🦧
 - App Name: Game Master
-- App Link: <https://TODO.com/>
+- App Link: <https://developing-the-interactive-web-project-1-ploc.onrender.com//>
 
 ### Students
 
@@ -50,7 +50,7 @@ Landing Page shows list of trending games and popular events. Here, we use "Even
 
 ![](mockups/top_bar.jpg)
 
-The Top Bar mock-up shows a common top menu bar. The menu bar shows the name of the app, allowing you to go to the home menu. Next to that is a lighter search bar (described in the previous mockup). Finally, if not logged in, the top right has a Login button, or a profile dropdown allowing access to various user features (such as user-associated events and games. 
+The Top Bar mock-up shows a common top menu bar. The menu bar shows the name of the app, allowing you to go to the home menu. Next to that is a lighter search bar (described in the previous mockup). Finally, if not logged in, the top right has a Login button, or a profile dropdown allowing access to various user features (such as user-associated events and games.
 
 ![](mockups/event_view.jpg)
 
