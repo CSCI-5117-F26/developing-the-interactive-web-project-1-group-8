@@ -1,0 +1,11 @@
+{
+  "configurations": [
+    {
+      "command": "uv run gunicorn server:app --reload --reload-extra-file \"./*/*\"",
+      "cwd": "${workspaceFolder}/src/developing_the_interactive_web_project_1_group_8",
+      "name": "Run flask",
+      "request": "launch",
+      "type": "node-terminal"
+    }
+  ]
+}
