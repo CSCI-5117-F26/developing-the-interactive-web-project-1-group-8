@@ -31,7 +31,7 @@ def event(event_id):
     """ Event page, where users can view details about a specific event """
     return render_template("event.html", event_id=event_id)
 
-@app.route("/account/<string:username>")
-def account(username):
-    """ Account page, where users can view details about a specific account """
-    return render_template("account.html", username=username)
+@app.route("/user/<string:username>")
+def user(username):
+    """ User page, where users can view details about a specific user """
+    return render_template("user.html", username=username)

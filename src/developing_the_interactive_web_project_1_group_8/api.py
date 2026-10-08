@@ -32,19 +32,19 @@ def disp():
     return jsonify({'data': name})
 
 
-# ---------- Accounts ----------
+# ---------- Users ----------
 
-@api.route('/account/create', methods=['GET','POST'])
-def accountCreate():
+@api.route('/user/create', methods=['GET','POST'])
+def userCreate():
     """
-    Create an account.
+    Create an user.
     
     Parameters:
-      username (str): The username for the new account.
-      password (str): The password for the new account.
+      username (str): The username for the new user.
+      password (str): The password for the new user.
 
     Returns:
-      A JSON response indicating success or failure of account creation.
+      A JSON response indicating success or failure of user creation.
     """
     username = request.args.get('username', type=str)
     password = request.args.get('password', type=str)
@@ -61,9 +61,9 @@ def accountCreate():
     if len(password) < 8:
         return jsonify({'error': 'Password must be at least 8 characters long'}), 400
 
-    # TODO: Add logic to create the account in the database
+    # TODO: Add logic to create the user in the database
 
-    return jsonify({'message': 'Account created successfully'}), 201
+    return jsonify({'message': 'User created successfully'}), 201
 
 
 # ---------- Search ----------
