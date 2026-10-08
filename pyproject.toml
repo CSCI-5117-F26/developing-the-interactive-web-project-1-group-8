@@ -13,6 +13,7 @@ dependencies = [
     "faker>=18.0.0",
     "psycopg>=3.0.0",
     "authlib>=1.8.0",
+    "requests>=2.34.2",
 ]
 
 [project.scripts]
