@@ -6,7 +6,7 @@ CSCI 5117, Fall 2026, [assignment description](https://canvas.umn.edu/courses/57
 
 - Team Name: The Moneyed Monkeys 🦧
 - App Name: Game Master
-- App Link: <https://developing-the-interactive-web-project-1-yf9y.onrender.com//>
+- App Link: <https://developing-the-interactive-web-project-1-yf9y.onrender.com/>
 
 ### Students
 
