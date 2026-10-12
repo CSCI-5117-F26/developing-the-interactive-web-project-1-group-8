@@ -8,6 +8,7 @@
 
   /* Backgrounds & Surfaces */
   --color-background: hsl(30, 27%, 96%);
+  --color-foreground: hsl(0, 0%, 0%);
   --color-surface: hsl(0, 0%, 100%);
   --color-surface-muted: hsl(18, 25%, 92%);
 
@@ -17,6 +18,13 @@
   --color-accent: hsl(352, 36%, 65%);
   --color-accent-soft: hsl(351, 37%, 89%);
   --color-muted: hsl(0, 0%, 59%);
+
+  /* Top Bar */
+  --color-topbar-background: var(--color-primary);
+  --color-topbar-text: hsl(213, 86%, 84%);
+  --color-topbar-hover: hsl(213, 42%, 20%);
+
+
 
   /* Typography */
   --color-text-primary: var(--color-primary);
@@ -43,17 +51,12 @@
   --color-pending-soft: var(--color-surface-muted);
 }
 
-
-
-
-
-
-
 /* --- Topbar Styles --- */
 #topbar {
   line-height: 1.5;
 
-  background-color: #ffd390;
+  background-color: var(--color-topbar-background);
+  color: var(--color-topbar-text);
   margin-bottom: 1em;
   -webkit-font-smoothing: antialiased;
   height: 2.5em;
@@ -62,6 +65,15 @@
   -moz-transition: height 0.5s;
   -ms-transition: height 0.5s;
   transition: height 0.5s;
+
+  .pure-menu-link:hover {
+    background-color: var(--color-topbar-hover);
+    color: var(--color-topbar-text);
+  }
+
+  a {
+    color: var(--color-topbar-text);
+  }
 
   .menu-3 {
     text-align: right;
@@ -77,7 +89,7 @@
     height: 30px;
     background-color: #f1f1f1;
     border: 1px solid #ccc;
-    border-radius: 15px;
+    border-radius: 8px;
     place-items: center;
 
     input[type="search"] {
@@ -91,11 +103,10 @@
     }
 
     button {
-      background-color: #f1f1f1;
+      background: none;
       border: none;
       cursor: pointer;
       padding: 6px 10px;
-      border-radius: 15px;
     }
   }
 

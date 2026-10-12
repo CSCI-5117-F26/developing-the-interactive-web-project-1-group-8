@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from developing_the_interactive_web_project_1_group_8.api import api
 
 app = Flask(__name__)
@@ -21,10 +21,12 @@ def register():
     """ Register page, where users can create a new account """
     return render_template("register.html")
 
-@app.route("/search/")
+@app.route("/search")
 def search():
     """ Search page, where users can search for events """
-    return render_template("search.html")
+    q = request.args.get('q', type=str)
+
+    return render_template("search.html", query=q)
 
 @app.route("/event/<int:event_id>")
 def event(event_id):

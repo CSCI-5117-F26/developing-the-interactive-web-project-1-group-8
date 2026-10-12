@@ -1,3 +1,4 @@
+{% block topbar %}
 <div id="topbar" class="pure-g">
   <div class="pure-u-1 pure-u-md-1-6">
     <div class="pure-menu" style="width: fit-content;">
@@ -6,9 +7,10 @@
   </div>
   <div class="pure-u-1 pure-u-md-2-3">
     <div class="pure-menu pure-menu-horizontal">
-      <form role="search" action="{{ url_for('search')}}" aria-label="Site search" class="pure-form pure-g">
+      <form role="search" action="{{ url_for('search')}}" method="GET" aria-label="Site search"
+        class="pure-form pure-g">
         <div id="search-container" class="pure-g">
-          <input type="search" id="search" autocomplete="off" placeholder="Search..." aria-label="Search" />
+          <input type="search" id="search" name="q" autocomplete="off" placeholder="Search..." aria-label="Search" />
           <button type="submit" class=" fa fa-search" aria-label="Submit search"></button>
         </div>
     </div>
@@ -31,17 +33,8 @@
     </div>
   </div>
 </div>
-
-
-<!-- 
-  <ul class="pure-menu-list">
-
-    <li class="pure-menu-item">
-
-    </li>
-
-    <li class="pure-menu-item">
-
-    </li>
-  </ul> -->
-</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='topbar.js') }}">
+</script>
+{% endblock %}
