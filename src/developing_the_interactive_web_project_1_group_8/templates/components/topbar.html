@@ -1,10 +1,47 @@
-<ul>
-  <li><a href="{{ url_for('index') }}" class="active">Game Master</a></li>
-  <li style="float:right">
-    {% if event_id %}
-    <a href="{{ url_for('user') }}">User</a>
-    {% else %}
-    <a href="{{ url_for('login') }}">Login</a>
-    {% endif %}
-  </li>
-</ul>
+<div id="topbar" class="pure-g">
+  <div class="pure-u-1 pure-u-md-1-6">
+    <div class="pure-menu" style="width: fit-content;">
+      <a href="{{ url_for('index') }}" class="pure-menu-link">Game Master</a>
+    </div>
+  </div>
+  <div class="pure-u-1 pure-u-md-2-3">
+    <div class="pure-menu pure-menu-horizontal">
+      <form role="search" action="{{ url_for('search')}}" aria-label="Site search" class="pure-form pure-g">
+        <div id="search-container" class="pure-g">
+          <input type="search" id="search" autocomplete="off" placeholder="Search..." aria-label="Search" />
+          <button type="submit" class=" fa fa-search" aria-label="Submit search"></button>
+        </div>
+    </div>
+    <div id="search-results-container">
+      <ul id="search-results"></ul>
+    </div>
+    </form>
+  </div>
+  <div class="pure-u-1 pure-u-md-1-6">
+    <div class="pure-menu pure-menu-horizontal menu-3">
+      <ul class="pure-menu-list">
+        <li class="pure-menu-item">
+          {% if event_id %}
+          <a class="pure-menu-link" href="{{ url_for('user') }}">User</a>
+          {% else %}
+          <a class="pure-menu-link" href="{{ url_for('login') }}">Login</a>
+          {% endif %}
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<!-- 
+  <ul class="pure-menu-list">
+
+    <li class="pure-menu-item">
+
+    </li>
+
+    <li class="pure-menu-item">
+
+    </li>
+  </ul> -->
+</div>
