@@ -34,7 +34,7 @@ def disp():
 
 # ---------- Users ----------
 
-@api.route('/user/create', methods=['GET','POST'])
+@api.route('/user/create', methods=['POST'])
 def userCreate():
     """
     Create an user.
@@ -67,3 +67,17 @@ def userCreate():
 
 
 # ---------- Search ----------
+
+@api.route('/query', methods=['GET'])
+def query():
+    """
+    Search for events based on a query string.
+    
+    Parameters:
+      query (str): The search query string.
+      limit (int): The maximum number of results to return.
+    """
+    query = request.args.get('query', type=str)
+    limit = request.args.get('limit', default=10, type=int)
+
+    return jsonify({'query': query, 'limit': limit, 'results': []})
