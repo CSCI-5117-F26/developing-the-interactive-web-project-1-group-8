@@ -34,4 +34,6 @@ def event(event_id):
 @app.route("/user/<string:username>")
 def user(username):
     """ User page, where users can view details about a specific user """
+    if not username:
+        return render_template("error.html", message="Username is required"), 400
     return render_template("user.html", username=username)

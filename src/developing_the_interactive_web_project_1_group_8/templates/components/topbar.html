@@ -1,0 +1,10 @@
+<ul>
+  <li><a href="{{ url_for('index') }}" class="active">Game Master</a></li>
+  <li style="float:right">
+    {% if event_id %}
+    <a href="{{ url_for('user') }}">User</a>
+    {% else %}
+    <a href="{{ url_for('login') }}">Login</a>
+    {% endif %}
+  </li>
+</ul>
