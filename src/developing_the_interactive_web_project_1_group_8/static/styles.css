@@ -1,3 +1,44 @@
-body {
-  background-color: red;
+:root {
+  /*
+  * This color palette was originally generated using 
+  * Coolors (#C6878F, #B79D94, #969696, #67697C, #253D5B) 
+  * and was later expanded with AI assistance because I 
+  * am colorblind and cannot select colors myself. - Nick
+  */
+
+  /* Backgrounds & Surfaces */
+  --color-background: hsl(30, 27%, 96%);
+  --color-surface: hsl(0, 0%, 100%);
+  --color-surface-muted: hsl(18, 25%, 92%);
+
+  /* Brand Colors */
+  --color-primary: hsl(213, 42%, 25%);
+  --color-secondary: hsl(15, 20%, 65%);
+  --color-accent: hsl(352, 36%, 65%);
+  --color-accent-soft: hsl(351, 37%, 89%);
+  --color-muted: hsl(0, 0%, 59%);
+
+  /* Typography */
+  --color-text-primary: var(--color-primary);
+  --color-text-secondary: hsl(234, 9%, 45%);
+  --color-text-inverse: var(--color-surface);
+
+  /* Borders */
+  --color-border: hsl(15, 15%, 89%);
+
+  /* Status: Success / Going */
+  --color-success: hsl(160, 39%, 35%);
+  --color-success-soft: hsl(148, 30%, 92%);
+
+  /* Status: Warning / Maybe */
+  --color-warning: hsl(27, 50%, 43%);
+  --color-warning-soft: hsl(30, 61%, 91%);
+
+  /* Status: Danger / Not Going */
+  --color-danger: hsl(355, 42%, 52%);
+  --color-danger-soft: hsl(354, 58%, 94%);
+
+  /* Status: Pending / Awaiting Response */
+  --color-pending: var(--color-text-secondary);
+  --color-pending-soft: var(--color-surface-muted);
 }
