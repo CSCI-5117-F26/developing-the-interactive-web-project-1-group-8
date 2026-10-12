@@ -1,10 +1,14 @@
 [project]
 name = "developing-the-interactive-web-project-1-group-8"
-version = "0.1.0"
-description = "Add your description here"
+version = "1.0.0"
+description = "CSCI 5117 Project 1: a social game scheduling website."
 readme = "README.md"
 authors = [
-    { name = "Nick Hinds", email = "nicholas@hinds.dev" }
+    { name = "Nick Hinds", email = "hinds084@umn.edu" },
+    { name = "Russell Shaver", email = "shave083@umn.edu" },
+    { name = "Marko Krstulovic", email = "krstu002@umn.edu" },
+    { name = "Pranshu Panda", email = "pand068@umn.edu" },
+    { name = "Tayler Miller", email = "mil00154@umn.edu" }
 ]
 requires-python = ">=3.14"
 dependencies = [
