@@ -44,6 +44,9 @@ In this space please either provide images (around 4) showing your prototypes, O
 
 **[Add images/photos that show your paper prototype (around 4)](https://stackoverflow.com/questions/10189356/how-to-add-screenshot-to-readmes-in-github-repository) along with a very brief caption:**
 
+<details>
+<summary><strong><em>Mock-up images + captions (click here)</em></strong></summary>
+
 ### Landing page
 
 ![](mockups/landing_page.jpg)
@@ -91,6 +94,8 @@ Selecting a user from search results or an event listing opens their Profile pag
 ![](mockups/event_details.jpg)
 
 Submitting a query in the top search bar opens the Event Search page. Users can search by text and filter results by game, date, location, duration, event capacity, and games played. Results are paginated and use the same "Event Details" cards as other pages. Clicking a card opens that event's detailed view.
+
+</details>
 
 ## External Dependencies
 
