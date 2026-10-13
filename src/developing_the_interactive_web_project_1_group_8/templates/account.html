@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Account{% endblock %}
+{% block content %}
+<h1>Signed in</h1>
+<p>Hello {{ user.display_name }}.</p>
+<p>Auth0 user ID is {{ user.sub }}.</p>
+{% endblock %}
