@@ -16,6 +16,25 @@ def setup():
     # I'm not _actually_ convinced this is required, but the docs said to do it!
     atexit.register(pool.close)
 
+def get_event(id):
+  with psycopg.connect(os.environ['DATABASE_URL'], row_factory=dict_row) as conn:
+    with conn.cursor() as cur:
+      cur.execute("select * from events where id = %s", (id,))
+      return cur.fetchone()
+  # with pool.connection() as conn, conn.cursor() as curr:
+  #   curr.execute("select * from events where id = %s", (id,))
+  #   return curr.fetchone()
+
+def get_all_events():
+  with psycopg.connect(os.environ['DATABASE_URL'], row_factory=dict_row) as conn:
+    with conn.cursor() as cur:
+      cur.execute("select * from events")
+      return cur.fetchall()
+  # with pool.connection() as conn, conn.cursor() as curr:
+  #   curr.execute("select * from events ")
+  #   return curr.fetchall()
+
+
 
 def setup_db():
     with pool.connection() as conn:

@@ -1,0 +1,83 @@
+.event-tile {
+    background-color: white;
+    width: 22rem;
+    height: 12rem;
+    border-radius: 1rem;
+    box-shadow: 0.2rem;
+    padding: 1rem;
+    font-family:Verdana, Geneva, Tahoma, sans-serif;
+    font-size: 0.9rem;
+}
+
+.event-header-container {
+    display: flex;
+    gap: 0.5rem;
+    height: 7rem;
+}
+
+.event-header-game-info {
+    width: 6rem;
+}
+
+.event-game-image {
+    width: 5rem;
+    height: 5rem;
+    background-color: gray;
+}
+
+.event-game-name {
+    font-size: 0.8rem;
+    color: dimgray;
+}
+
+.event-info-header {
+    width: 8rem
+}
+
+.event-name {
+    font-weight: bold;
+    font-size: 1rem;
+    height: 2rem;
+}
+
+.event-date-time {
+    height: 2rem;
+}
+
+.event-location {
+    height: 2rem;
+}
+
+.event-status-container {
+    display: flex;
+    height: 2rem;
+}
+
+.event-status-circle {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 0.25rem;
+    background-color: green;
+    margin: 0.25rem;
+}
+
+.event-buttons-container {
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.event-button {
+    background-color: darkcyan;
+    border: none;
+    border-radius: 2rem;
+    color: whitesmoke;
+    padding: 1rem;
+    text-align: center;
+    text-decoration: none;
+    font-size: 1.5rem;
+    font-weight: bolder;
+    margin: 1vh;
+    cursor: pointer;
+}

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 :root {
   /*
   * This color palette was originally generated using 
@@ -41,4 +42,8 @@
   /* Status: Pending / Awaiting Response */
   --color-pending: var(--color-text-secondary);
   --color-pending-soft: var(--color-surface-muted);
+=======
+body {
+  background-color: white;
+>>>>>>> origin/events
 }

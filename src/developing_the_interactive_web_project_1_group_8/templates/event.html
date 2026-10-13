@@ -1,7 +1,31 @@
-<!doctype html>
-<title>Hello from Flask</title>
-{% if event_id %}
-<h1>Event {{ event_id }}!</h1>
-{% else %}
-<h1>Hello, World!</h1>
-{% endif %}
+{% extends "base.html" %}
+
+{% block title %} {{ event.name }} {% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='event_grid.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='event_tile.css') }}">
+{% endblock %}
+
+{% block content %}
+<h1>{{ event.name }}</h1>
+
+<h2>{{ event.time }}</h2>
+<h2>{{ event.address }}</h2>
+
+<div class="event-status-container">
+    {% if event.status == "scheduled" %}
+        <div class="event-status-circle"></div>
+    {% elif event.status == "pending" %}
+        <div class="event-status-circle" style="background-color: orange;"></div>
+    {% else %}
+        <div class="event-status-circle" style="background-color: red;"></div>
+    {% endif %}
+    <div>{{event.status}}</div>
+</div>
+
+<h2>?/{{event.max_attendees}} Going</h2>
+
+<p>{{event.description}}</p>
+
+{% endblock %}
