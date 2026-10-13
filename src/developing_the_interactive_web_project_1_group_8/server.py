@@ -69,9 +69,9 @@ def is_safe_avatar_url(url):
 
 @app.route("/")
 def index():
-    """ Dashboard page, where users can explore for new events """
+    """Dashboard page, where users can explore for new events"""
     # Restore After demo day
-    #return render_template("index.html")
+    # return render_template("index.html")
     return redirect("/myevents")
 
 
@@ -217,23 +217,32 @@ def settings():
     )
 
 
+@app.route("/myevents")
+def my_events():
+    """Page with many events"""
+    events = database.get_all_events()
+    # print(events)
+    return render_template("my_events.html", events=events)
+
+
 @app.route("/search")
 def search():
-    """ Search page, where users can search for events """
-    q = request.args.get('q', type=str)
+    """Search page, where users can search for events"""
+    q = request.args.get("q", type=str)
 
     return render_template("search.html", query=q)
 
 
 @app.route("/event/<int:event_id>")
 def event(event_id):
-    """ Event page, where users can view details about a specific event """
+    """Event page, where users can view details about a specific event"""
     # print(database.get_event(event_id))
     return render_template("event.html", event=database.get_event(event_id))
 
-@app.route("/user/<string:username>")
-def user(username):
-    """ User page, where users can view details about a specific user """
-    if not username:
-        return render_template("error.html", message="Username is required"), 400
-    return render_template("user.html", username=username)
+
+# @app.route("/user/<string:username>")
+# def user(username):
+#     """ User page, where users can view details about a specific user """
+#     if not username:
+#         return render_template("error.html", message="Username is required"), 400
+#     return render_template("user.html", username=username)

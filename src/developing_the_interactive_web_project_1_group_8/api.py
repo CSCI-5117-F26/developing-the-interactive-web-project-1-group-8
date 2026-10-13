@@ -10,7 +10,8 @@ api = Blueprint("api", __name__, template_folder="templates")
 
 # ---------- Events ----------
 
-@api.route('/api/event/create', methods=['POST'])
+
+@api.route("/api/event/create", methods=["POST"])
 def disp():
     """
     Create a new event.
@@ -32,7 +33,8 @@ def disp():
 
 # ---------- Users ----------
 
-@api.route('/api/user/create', methods=['GET','POST'])
+
+@api.route("/api/user/create", methods=["GET", "POST"])
 def userCreate():
     """
     Create an user.
