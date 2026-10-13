@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Profile settings{% endblock %}
+{% block content %}
+<section class="profile-content page-panel">
+  <h1>Profile settings</h1>
+  <p><a href="{{ url_for('user', user_id=user.id) }}">View my public profile</a></p>
+
+  {% if errors %}
+  <div>
+    <p>Please correct these fields:</p>
+    <ul>
+      {% for error in errors %}
+      <li>{{ error }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <form class="pure-form pure-form-stacked" method="post" action="{{ url_for('settings') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="display_name">Display name</label>
+    <input class="pure-input-1" id="display_name" name="display_name" type="text" value="{{ values.display_name }}" maxlength="80" required>
+
+    <label for="bio">Biography</label>
+    <textarea class="pure-input-1" id="bio" name="bio" rows="6" maxlength="4000">{{ values.bio }}</textarea>
+    <p id="bio-help">Up to 4000 characters</p>
+
+    <label for="profile_pic">Avatar URL</label>
+    <input class="pure-input-1" id="profile_pic" name="profile_pic" type="url" value="{{ values.profile_pic }}" maxlength="2048">
+    <p id="avatar-help">Use an HTTPS image URL, or leave blank for the default avatar</p>
+
+    <button class="pure-button pure-button-primary" type="submit">Save profile</button>
+  </form>
+
+  {% if can_restore_avatar %}
+  <form class="pure-form" method="post" action="{{ url_for('settings') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="restore_avatar">
+    <p><button class="pure-button" type="submit">Restore Auth0 avatar</button></p>
+  </form>
+  {% endif %}
+</section>
+{% endblock %}

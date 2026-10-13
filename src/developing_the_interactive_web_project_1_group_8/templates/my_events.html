@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %} My Events {% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='event_grid.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='event_tile.css') }}">
+{% endblock %}
+
+{% block content %}
+<h1>My Events</h1>
+
+<div class="event-grid">
+    {% for event in events %}
+    {% include "components/event_tile.html"%}
+    {% endfor %}
+</div>
+{% endblock %}
