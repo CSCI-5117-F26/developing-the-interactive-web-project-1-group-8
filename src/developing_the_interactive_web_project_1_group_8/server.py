@@ -2,25 +2,23 @@ from flask import (
     Flask,
     render_template,
     redirect,
-    request,
     url_for,
     session,
 )
 import os
-import secrets
+from urllib.parse import urlencode
 from dotenv import load_dotenv
 from flask_wtf.csrf import CSRFProtect
-from auth0_server_python.auth_types import LogoutOptions
+from authlib.integrations.flask_client import OAuth
 
 from developing_the_interactive_web_project_1_group_8.api import api
 from developing_the_interactive_web_project_1_group_8.decorators import requires_auth
-from developing_the_interactive_web_project_1_group_8.auth import create_auth0
+from developing_the_interactive_web_project_1_group_8.db import get_or_create_user, get_user
 
 load_dotenv()
 app = Flask(__name__)
 
-# Majority of the Auth0 code is based on the new Auth0 docs:
-# https://auth0.com/docs/quickstart/webapp/python
+# Auth0 code based on https://docs.authlib.org/en/stable/oauth2/client/web/flask.html
 app.config.update(
     SECRET_KEY=os.environ["AUTH0_SECRET"],
     SESSION_COOKIE_SECURE=os.environ["APP_BASE_URL"].startswith("https://"),
@@ -28,10 +26,24 @@ app.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
 )
 
+oauth = OAuth(app)
+auth0 = oauth.register(
+    name="auth0",
+    client_id=os.environ["AUTH0_CLIENT_ID"],
+    client_secret=os.environ["AUTH0_CLIENT_SECRET"],
+    client_kwargs={
+        "scope": "openid profile email",
+    },
+    server_metadata_url=(
+        f"https://{os.environ['AUTH0_DOMAIN']}/.well-known/openid-configuration"
+    ),
+)
+
 # https://flask-wtf.readthedocs.io/en/0.15.x/csrf/
 CSRFProtect(app)
 
 app.register_blueprint(api)
+
 
 @app.route("/")
 def index():
@@ -42,51 +54,46 @@ def index():
 @app.route("/login")
 async def login():
     """Login page, where users can log in to their account"""
-    session.setdefault("auth0_browser_id", secrets.token_urlsafe(32))
-    auth0 = create_auth0()
-    return redirect(await auth0.start_interactive_login())
+    return auth0.authorize_redirect(os.environ["AUTH0_REDIRECT_URI"])
 
 
 @app.route("/callback")
 async def callback():
-    auth0 = create_auth0()
-    try:
-        result = await auth0.complete_interactive_login(request.url)
-        user_info = result["state_data"]["user"]
-    except Exception as e:
-        session.clear()
-        return f"Authentication error: {str(e)}", 400
+    token = auth0.authorize_access_token()
+    user_info = token["userinfo"]
+    user = get_or_create_user(user_info)
 
-    # Clear any old session data but keep auth0_browser_id
-    temp_browser_id = session["auth0_browser_id"]
     session.clear()
-    session["auth0_browser_id"] = temp_browser_id
-
     session["profile"] = {
-        "sub": user_info["sub"],
-        "display_name": user_info["name"],
+        "id": user["id"],
+        "sub": user["auth0_sub"],
+        "display_name": user["display_name"],
     }
-
     return redirect(url_for("account"))
 
 
 @app.route("/logout", methods=["POST"])
 @requires_auth
-async def logout():
-    """Logout and redirect to Auth0 logout"""
-    auth0 = create_auth0()
-    logout_url = await auth0.logout(LogoutOptions(return_to=url_for("index", _external=True)))
+def logout():
     session.clear()
-    return redirect(logout_url)
+    # https://auth0.com/docs/authenticate/login/logout/redirect-users-after-logout
+    parameters = urlencode(
+        {
+            "client_id": os.environ["AUTH0_CLIENT_ID"],
+            "returnTo": url_for("index", _external=True),
+        }
+    )
+    return redirect(f"https://{os.environ['AUTH0_DOMAIN']}/v2/logout?{parameters}")
 
 
 @app.route("/account")
 @requires_auth
-async def account():
-    auth0 = create_auth0()
-    if await auth0.get_user() is None:
+def account():
+    user = get_user(session["profile"]["id"])
+    if user is None:
         session.clear()
         return redirect(url_for("index"))
+
     return render_template("account.html", user=session["profile"])
 
 

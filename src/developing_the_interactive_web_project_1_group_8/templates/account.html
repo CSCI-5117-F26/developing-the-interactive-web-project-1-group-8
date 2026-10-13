@@ -3,5 +3,6 @@
 {% block content %}
 <h1>Signed in</h1>
 <p>Hello {{ user.display_name }}.</p>
+<p>Local user ID is {{ user.id }}.</p>
 <p>Auth0 user ID is {{ user.sub }}.</p>
 {% endblock %}
