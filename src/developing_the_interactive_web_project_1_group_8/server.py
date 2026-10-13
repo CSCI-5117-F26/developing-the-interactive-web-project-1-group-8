@@ -153,24 +153,40 @@ def settings():
     values = {
         "display_name": current_user["display_name"],
         "bio": current_user["bio"] or "",
+        "profile_pic": current_user["profile_pic"] or "",
     }
     errors = []
+    can_restore_avatar = is_safe_avatar_url(current_user["auth0_avatar_url"])
 
     if request.method == "POST":
-        values = {
-            "display_name": request.form.get("display_name", "").strip(),
-            "bio": request.form.get("bio", ""),
-        }
-        if not 1 <= len(values["display_name"]) <= 80:
-            errors.append("Display name must be between 1 and 80 characters.")
-        if len(values["bio"]) > 4000:
-            errors.append("Biography must be 4,000 characters or fewer.")
+        if request.form.get("action") == "restore_avatar":
+            values["profile_pic"] = current_user["auth0_avatar_url"] or ""
+            if not can_restore_avatar:
+                errors.append("No valid Auth0 avatar is available to restore.")
+        else:
+            values = {
+                "display_name": request.form.get("display_name", "").strip(),
+                "bio": request.form.get("bio", ""),
+                "profile_pic": request.form.get("profile_pic", "").strip(),
+            }
+            if not 1 <= len(values["display_name"]) <= 80:
+                errors.append("Display name must be between 1 and 80 characters.")
+            if len(values["bio"]) > 4000:
+                errors.append("Biography must be 4,000 characters or fewer.")
+            if values["profile_pic"] and (
+                len(values["profile_pic"]) > 2048
+                or not is_safe_avatar_url(values["profile_pic"])
+            ):
+                errors.append(
+                    "Avatar must be an HTTPS URL of 2,048 characters or fewer, without a username or password."
+                )
 
         if not errors:
             updated_user = update_profile(
                 current_user["id"],
                 values["display_name"],
                 values["bio"],
+                values["profile_pic"] or None,
             )
             if updated_user is None:
                 session.clear()
@@ -183,11 +199,18 @@ def settings():
             flash("Profile saved.")
             return redirect(url_for("settings"))
 
+    avatar_url = current_user["profile_pic"]
+
+    if not is_safe_avatar_url(avatar_url):
+        avatar_url = url_for("static", filename="avatar-default.svg")
+
     return render_template(
         "settings.html",
         user=current_user,
         values=values,
         errors=errors,
+        avatar_url=avatar_url,
+        can_restore_avatar=can_restore_avatar,
     )
 
 
