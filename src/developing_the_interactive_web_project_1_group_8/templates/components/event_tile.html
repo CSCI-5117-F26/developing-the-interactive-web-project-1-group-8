@@ -1,11 +1,34 @@
-<article>
-  <aside>
-    <h1>{{name}}</h1>
-    <p>{{host_name}}</p>
-    <p>{{game_name}}</p>
-    <p>{{date}}</p>
-    <p>{{location}}</p>
-    <hr>
-    <footer>{{description}}</footer>
-  </aside>
-</article>
+
+  <div class="event-tile">
+    <div class="event-header-container">
+      <div class="event-header-game-info">
+        <div class="event-game-image"></div>
+        <div class="event-game-name">Game Name</div>
+      </div>
+      <div class="event-info-header">
+        <div class="event-name">{{event.name}}</div>
+        <div class="event-date-time">{{event.time}}</div>
+        <div class="event-location">{{event.address}}</div>
+      </div>
+      <div>
+        <div class="event-status-container">
+          <div class="event-status-circle"></div>
+          <div>Status</div>
+        </div>
+        <div>6/7 Going</div>
+      </div>
+    </div>
+    <div class="event-buttons-container">
+      <a href="/poo" class="event-button">RSVP</a>
+      <a href="/poo" class="event-button">Details</a>
+    </div>
+  <!-- <h1>{{event.name}}</h1>
+  <p>{{host_name}}</p>
+  <p>{{game_name}}</p>
+  <p>{{date}}</p>
+  <p>{{location}}</p>
+  <hr>
+  <footer>{{description}}</footer> -->
+</div>
+</body>
+</html>
