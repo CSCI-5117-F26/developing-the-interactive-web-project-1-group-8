@@ -33,3 +33,14 @@ def get_or_create_user(user_info):
         return conn.execute(
             "SELECT * FROM users WHERE auth0_sub = %s", (user_info["sub"],)
         ).fetchone()
+
+
+def get_public_user(user_id):
+    with pool.connection() as conn:
+        return conn.execute(
+            """
+            SELECT id, display_name, bio, profile_pic
+            FROM users WHERE id = %s
+            """,
+            (user_id,),
+        ).fetchone()

@@ -1,12 +1,7 @@
-from flask import (
-    Flask,
-    render_template,
-    redirect,
-    url_for,
-    session,
-)
+from flask import Flask, render_template, redirect, url_for, session, abort
+import validators
 import os
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 from dotenv import load_dotenv
 from flask_wtf.csrf import CSRFProtect
 from authlib.integrations.flask_client import OAuth
@@ -16,6 +11,7 @@ from developing_the_interactive_web_project_1_group_8.decorators import requires
 from developing_the_interactive_web_project_1_group_8.db import (
     get_or_create_user,
     get_user,
+    get_public_user,
 )
 
 load_dotenv()
@@ -46,6 +42,18 @@ auth0 = oauth.register(
 CSRFProtect(app)
 
 app.register_blueprint(api)
+
+
+# https://nandgator.github.io/pyvalidators/stable/api/url/
+def is_safe_avatar_url(url):
+    if not url or validators.url(url) is not True:
+        return False
+
+    # https://docs.python.org/3/library/urllib.parse.html
+    parsed = urlsplit(url)
+    return (
+        parsed.scheme == "https" and parsed.username is None and parsed.password is None
+    )
 
 
 @app.route("/")
@@ -80,6 +88,7 @@ async def callback():
 def logout():
     session.clear()
     # https://auth0.com/docs/authenticate/login/logout/redirect-users-after-logout
+    # https://docs.python.org/3/library/urllib.parse.html
     parameters = urlencode(
         {
             "client_id": os.environ["AUTH0_CLIENT_ID"],
@@ -97,7 +106,29 @@ def account():
         session.clear()
         return redirect(url_for("index"))
 
-    return render_template("account.html", user=session["profile"])
+    # Ensure session profile is up to date with database
+    session["profile"] = {
+        "id": user["id"],
+        "sub": user["auth0_sub"],
+        "display_name": user["display_name"],
+    }
+
+    return render_template("account.html", user=user)
+
+
+@app.route("/user/<int:user_id>")
+def user(user_id):
+    profile = get_public_user(user_id)
+
+    if profile is None:
+        abort(404)
+
+    avatar_url = profile["profile_pic"]
+
+    if not is_safe_avatar_url(avatar_url):
+        avatar_url = url_for("static", filename="default-avatar.svg")
+
+    return render_template("user.html", user=profile, avatar_url=avatar_url)
 
 
 @app.route("/search")
@@ -110,9 +141,3 @@ def search():
 def event(event_id):
     """Event page, where users can view details about a specific event"""
     return render_template("event.html", event_id=event_id)
-
-
-@app.route("/user/<string:username>")
-def user(username):
-    """User page, where users can view details about a specific user"""
-    return render_template("user.html", username=username)
