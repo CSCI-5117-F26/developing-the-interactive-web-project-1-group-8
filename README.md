@@ -13,7 +13,7 @@ CSCI 5117, Fall 2026, [assignment description](https://canvas.umn.edu/courses/57
 - Nick Hinds, hinds084@umn.edu
 - Russell Shaver, shave083@umn.edu
 - Marko Krstulovic, krstu002@umn.edu
-- Pranshu Panda, pand068@umn.edu
+- Pranshu Panda, panda068@umn.edu
 - Tayler Miller, mil00154@umn.edu
 
 ## Key Features
