@@ -13,7 +13,10 @@ from authlib.integrations.flask_client import OAuth
 
 from developing_the_interactive_web_project_1_group_8.api import api
 from developing_the_interactive_web_project_1_group_8.decorators import requires_auth
-from developing_the_interactive_web_project_1_group_8.db import get_or_create_user, get_user
+from developing_the_interactive_web_project_1_group_8.db import (
+    get_or_create_user,
+    get_user,
+)
 
 load_dotenv()
 app = Flask(__name__)
