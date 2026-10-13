@@ -1,3 +1,48 @@
-body {
-  background-color: red;
+/* Code adapted from 
+   https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/CSS_layout/Flexbox
+   https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-x
+   https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_scroll_snap/Basic_concepts */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 10px 20px;
+  border-bottom: 1px solid #ccc;
 }
+
+
+body {
+  margin: 0;
+  background-color: #f4f1ea;
+}
+
+.row {
+  height: 260px;
+  padding: 10px 20px;
+  border-bottom: 1px solid #ccc;
+}
+
+.row h2 {
+  margin: 0 0 10px 0;
+  font-size: 1.2rem;
+}
+
+.carousel {
+  display: flex;
+  gap: 15px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 10px;
+}
+
+.carousel article {
+  width: 220px;
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  background-color: white;
+  border: 1px solid #bbb;
+  border-radius: 12px;
+  padding: 10px;
+}
+

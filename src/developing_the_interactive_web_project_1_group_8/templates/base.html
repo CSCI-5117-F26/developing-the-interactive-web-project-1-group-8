@@ -11,6 +11,16 @@
 </head>
 
 <body>
+  <header class="topbar">
+    <a href="/" class="brand">Game Master</a>
+
+    <form action="/search/" method="get">
+      <input type="search" name="q" placeholder="Search events" />
+    </form>
+
+    <a href="/login">Login</a>
+  </header>
+
   <main>{% block content %}{% endblock %}</main>
 </body>
 

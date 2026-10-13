@@ -1,11 +1,6 @@
 <article>
-  <aside>
-    <h1>{{name}}</h1>
-    <p>{{host_name}}</p>
-    <p>{{game_name}}</p>
-    <p>{{date}}</p>
-    <p>{{location}}</p>
-    <hr>
-    <footer>{{description}}</footer>
-  </aside>
+  <h3>{{ event.name }}</h3>
+  <p>Host: {{ event.host_name }}</p>
+  <p>Game: {{ event.game_name }}</p>
+  <p>{{ event.date }} · {{ event.location }}</p>
 </article>

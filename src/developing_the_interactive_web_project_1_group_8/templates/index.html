@@ -1,5 +1,15 @@
-{% extends "base.html" %} {% block content %}
-<body>
-  <p>hello</p>
-</body>
+{% extends "base.html" %}
+{% block content %}
+
+{% for title, events in sections %}
+  <section class="row">
+    <h2>{{ title }}</h2>
+    <div class="carousel">
+      {% for event in events %}
+        {% include "components/event_tile.html" %}
+      {% endfor %}
+    </div>
+  </section> 
+{% endfor %}
+
 {% endblock %}

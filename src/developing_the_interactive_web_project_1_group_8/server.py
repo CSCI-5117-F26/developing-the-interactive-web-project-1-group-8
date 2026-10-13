@@ -9,7 +9,23 @@ app.register_blueprint(api)
 @app.route("/")
 def index():
     """ Dashboard page, where users can explore for new events """
-    return render_template("index.html")
+    data = [
+        {"name": "Event 1", "host_name": "host1", "game_name": "Game 1", "date": "Oct 14", "location": "Place 1"},
+        {"name": "Event 2", "host_name": "host2", "game_name": "Game 2", "date": "Oct 15", "location": "Place 2"},
+        {"name": "Event 3", "host_name": "host3", "game_name": "Game 3", "date": "Oct 16", "location": "Place 3"},
+        {"name": "Event 4", "host_name": "host4", "game_name": "Game 4", "date": "Oct 17", "location": "Place 4"},
+        {"name": "Event 5", "host_name": "host5", "game_name": "Game 5", "date": "Oct 18", "location": "Place 5"},
+        {"name": "Event 6", "host_name": "host6", "game_name": "Game 6", "date": "Oct 19", "location": "Place 6"},
+        {"name": "Event 7", "host_name": "host7", "game_name": "Game 7", "date": "Oct 20", "location": "Place 7"},
+    ]
+
+    sections = [
+        ("Events from Popular Games", data),
+        ("Events from Games You've Played", data),
+        ("Events in the Next Week", data),
+        ("Friend Events!", data),
+    ]
+    return render_template("index.html", sections=sections)
 
 @app.route("/login")
 def login():
