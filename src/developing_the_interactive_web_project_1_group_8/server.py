@@ -1,4 +1,5 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, redirect
+import database
 from developing_the_interactive_web_project_1_group_8.api import api
 
 app = Flask(__name__)
@@ -9,7 +10,9 @@ app.register_blueprint(api)
 @app.route("/")
 def index():
     """ Dashboard page, where users can explore for new events """
-    return render_template("index.html")
+    # Restore After demo day
+    #return render_template("index.html")
+    return redirect("/myevents")
 
 @app.route("/login")
 def login():
@@ -29,7 +32,15 @@ def search():
 @app.route("/event/<int:event_id>")
 def event(event_id):
     """ Event page, where users can view details about a specific event """
-    return render_template("event.html", event_id=event_id)
+    # print(database.get_event(event_id))
+    return render_template("event.html", event=database.get_event(event_id))
+
+@app.route("/myevents")
+def my_events():
+    """ Page with many events """
+    events = database.get_all_events()
+    # print(events)
+    return render_template("my_events.html", events=events)
 
 @app.route("/user/<string:username>")
 def user(username):

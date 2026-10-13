@@ -12,23 +12,21 @@
       </div>
       <div>
         <div class="event-status-container">
+          {% if event.status == "scheduled" %}
           <div class="event-status-circle"></div>
-          <div>Status</div>
+          {% elif event.status == "pending" %}
+          <div class="event-status-circle" style="background-color: orange;"></div>
+          {% else %}
+          <div class="event-status-circle" style="background-color: red;"></div>
+          {% endif %}
+          <div>{{event.status}}</div>
         </div>
-        <div>6/7 Going</div>
+        <div>?/{{event.max_attendees}} Going</div>
       </div>
     </div>
     <div class="event-buttons-container">
-      <a href="/poo" class="event-button">RSVP</a>
-      <a href="/poo" class="event-button">Details</a>
+      <a href="{{ url_for('event', event_id=event.id) }}" class="event-button">RSVP</a>
+      <a href="{{ url_for('event', event_id=event.id) }}" class="event-button">Details</a>
     </div>
-  <!-- <h1>{{event.name}}</h1>
-  <p>{{host_name}}</p>
-  <p>{{game_name}}</p>
-  <p>{{date}}</p>
-  <p>{{location}}</p>
-  <hr>
-  <footer>{{description}}</footer> -->
 </div>
-</body>
-</html>
+

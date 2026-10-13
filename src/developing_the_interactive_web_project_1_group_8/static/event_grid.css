@@ -1,0 +1,7 @@
+.event-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+    gap: 1rem;
+    padding: 1rem;
+    background-color: whitesmoke;
+}
