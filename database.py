@@ -130,7 +130,3 @@ def setup_db():
       )
       conn.commit()
 
-if __name__ == "__main__":
-  import dotenv
-
-  setup()
