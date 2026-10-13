@@ -17,26 +17,6 @@ def setup():
     atexit.register(pool.close)
 
 
-def get_event(id):
-    with psycopg.connect(os.environ["DATABASE_URL"], row_factory=dict_row) as conn:
-        with conn.cursor() as cur:
-            cur.execute("select * from events where id = %s", (id,))
-            return cur.fetchone()
-    # with pool.connection() as conn, conn.cursor() as curr:
-    #   curr.execute("select * from events where id = %s", (id,))
-    #   return curr.fetchone()
-
-
-def get_all_events():
-    with psycopg.connect(os.environ["DATABASE_URL"], row_factory=dict_row) as conn:
-        with conn.cursor() as cur:
-            cur.execute("select * from events")
-            return cur.fetchall()
-    # with pool.connection() as conn, conn.cursor() as curr:
-    #   curr.execute("select * from events ")
-    #   return curr.fetchall()
-
-
 def setup_db():
     with pool.connection() as conn:
         with conn.cursor() as cur:
@@ -45,13 +25,10 @@ def setup_db():
                 CREATE TABLE IF NOT EXISTS users (
                     id SERIAL PRIMARY KEY,
                     auth0_sub TEXT UNIQUE NOT NULL,
-                    display_name VARCHAR(80) NOT NULL,
-                    username VARCHAR(30) UNIQUE,
-                    email TEXT,
-                    password_hash VARCHAR(255),
+                    display_name VARCHAR(80) UNIQUE NOT NULL,
+                    email TEXT NOT NULL,
                     bio TEXT DEFAULT '',
-                    profile_pic TEXT,
-                    auth0_avatar_url TEXT,
+                    auth0_avatar_pic TEXT,
                     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
                 );
@@ -63,7 +40,7 @@ def setup_db():
                 CREATE TABLE IF NOT EXISTS events (
                     id SERIAL PRIMARY KEY,
                     name VARCHAR(255) NOT NULL,
-                    gameID INTEGER NOT NULL,
+                    gameID INTEGER REFERENCES games(id) NOT NULL,
                     hostID INTEGER REFERENCES users(id) ON DELETE CASCADE NOT NULL,
                     calendarID INTEGER,
                     address VARCHAR(255) NOT NULL,
@@ -72,7 +49,8 @@ def setup_db():
                     max_attendees INTEGER NOT NULL,
                     description VARCHAR(4095) NOT NULL,
                     status VARCHAR(255) NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
                 """
             )
@@ -104,9 +82,9 @@ def setup_db():
             cur.execute(
                 """
                 CREATE TABLE IF NOT EXISTS event_calendars (
-                    id SERIAL,
+                    event_id INTEGER REFERENCES events(id) ON DELETE CASCADE,
                     user_available INTEGER REFERENCES users(id) ON DELETE CASCADE,
-                    PRIMARY KEY (id, user_available),
+                    PRIMARY KEY (event_id, user_available),
                     time_available tsrange NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
@@ -116,9 +94,9 @@ def setup_db():
             cur.execute(
                 """
                 CREATE TABLE IF NOT EXISTS event_participation (
-                    id SERIAL,
+                    event_id INTEGER REFERENCES events(id) ON DELETE CASCADE,
                     user_interested INTEGER REFERENCES users(id) ON DELETE CASCADE,
-                    PRIMARY KEY (id, user_interested),
+                    PRIMARY KEY (event_id, user_interested),
                     is_host BOOLEAN NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
