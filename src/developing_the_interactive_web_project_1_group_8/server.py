@@ -219,8 +219,10 @@ def settings():
 
 @app.route("/search")
 def search():
-    """Search page, where users can search for events"""
-    return render_template("search.html")
+    """ Search page, where users can search for events """
+    q = request.args.get('q', type=str)
+
+    return render_template("search.html", query=q)
 
 
 @app.route("/event/<int:event_id>")
@@ -229,9 +231,9 @@ def event(event_id):
     # print(database.get_event(event_id))
     return render_template("event.html", event=database.get_event(event_id))
 
-@app.route("/myevents")
-def my_events():
-    """ Page with many events """
-    events = database.get_all_events()
-    # print(events)
-    return render_template("my_events.html", events=events)
+@app.route("/user/<string:username>")
+def user(username):
+    """ User page, where users can view details about a specific user """
+    if not username:
+        return render_template("error.html", message="Username is required"), 400
+    return render_template("user.html", username=username)
