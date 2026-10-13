@@ -24,7 +24,13 @@
     <a class="pure-menu-link" href="{{ url_for('login') }}">Log in / Register</a>
     {% endif %}
   </nav>
-  <main>{% block content %}{% endblock %}</main>
+  <main>
+    <!-- https://flask.palletsprojects.com/en/stable/patterns/flashing/ -->
+    {% for message in get_flashed_messages() %}
+    <p>{{ message }}</p>
+    {% endfor %}
+    {% block content %}{% endblock %}
+  </main>
 </body>
 
 </html>

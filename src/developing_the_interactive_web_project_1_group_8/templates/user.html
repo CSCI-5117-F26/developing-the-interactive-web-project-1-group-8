@@ -10,6 +10,10 @@
   <p>No biography yet.</p>
   {% endif %}
 
+  {% if session.get('profile') and session['profile']['id'] == user.id %}
+  <p><a class="pure-button" href="{{ url_for('settings') }}">Edit my profile</a></p>
+  {% endif %}
+
   {% if session.get('profile') %}
   <h2>Friends</h2>
   <h2>Registered events</h2>

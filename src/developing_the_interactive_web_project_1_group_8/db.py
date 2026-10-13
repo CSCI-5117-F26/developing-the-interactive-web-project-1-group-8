@@ -44,3 +44,17 @@ def get_public_user(user_id):
             """,
             (user_id,),
         ).fetchone()
+
+
+def update_profile(user_id, display_name, bio):
+    with pool.connection() as conn:
+        return conn.execute(
+            """
+            UPDATE users
+            SET display_name = %s, bio = %s,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+            RETURNING id, auth0_sub, display_name
+            """,
+            (display_name, bio, user_id),
+        ).fetchone()

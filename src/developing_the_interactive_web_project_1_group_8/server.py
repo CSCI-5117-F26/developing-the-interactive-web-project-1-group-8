@@ -1,4 +1,13 @@
-from flask import Flask, render_template, redirect, url_for, session, abort
+from flask import (
+    Flask,
+    render_template,
+    redirect,
+    url_for,
+    session,
+    abort,
+    flash,
+    request,
+)
 import validators
 import os
 from urllib.parse import urlencode, urlsplit
@@ -12,6 +21,7 @@ from developing_the_interactive_web_project_1_group_8.db import (
     get_or_create_user,
     get_user,
     get_public_user,
+    update_profile,
 )
 
 load_dotenv()
@@ -129,6 +139,56 @@ def user(user_id):
         avatar_url = url_for("static", filename="default-avatar.svg")
 
     return render_template("user.html", user=profile, avatar_url=avatar_url)
+
+
+@app.route("/account/settings", methods=["GET", "POST"])
+@requires_auth
+def settings():
+    current_user = get_user(session["profile"]["id"])
+
+    if current_user is None:
+        session.clear()
+        return redirect(url_for("index"))
+
+    values = {
+        "display_name": current_user["display_name"],
+        "bio": current_user["bio"] or "",
+    }
+    errors = []
+
+    if request.method == "POST":
+        values = {
+            "display_name": request.form.get("display_name", "").strip(),
+            "bio": request.form.get("bio", ""),
+        }
+        if not 1 <= len(values["display_name"]) <= 80:
+            errors.append("Display name must be between 1 and 80 characters.")
+        if len(values["bio"]) > 4000:
+            errors.append("Biography must be 4,000 characters or fewer.")
+
+        if not errors:
+            updated_user = update_profile(
+                current_user["id"],
+                values["display_name"],
+                values["bio"],
+            )
+            if updated_user is None:
+                session.clear()
+                return redirect(url_for("index"))
+            session["profile"] = {
+                "id": updated_user["id"],
+                "sub": updated_user["auth0_sub"],
+                "display_name": updated_user["display_name"],
+            }
+            flash("Profile saved.")
+            return redirect(url_for("settings"))
+
+    return render_template(
+        "settings.html",
+        user=current_user,
+        values=values,
+        errors=errors,
+    )
 
 
 @app.route("/search")
