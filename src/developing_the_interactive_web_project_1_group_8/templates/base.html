@@ -10,24 +10,11 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
   <title>{% block title %}Project{% endblock %}</title>
   {% block head %}{% endblock %}
-  {% block scripts %}{% endblock %}
 </head>
 
 <body>
   {% include 'components/topbar.html' %}
-  <nav class="pure-menu">
-    <a class="pure-menu-link" href="{{ url_for('index') }}">Home</a>
-    {% if session.get('profile') %}
-    <a class="pure-menu-link" href="{{ url_for('account') }}">Account</a>
-    <a class="pure-menu-link" href="{{ url_for('user', user_id=session['profile']['id']) }}">My profile</a>
-    <form method="post" action="{{ url_for('logout') }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="pure-button" type="submit">Log out</button>
-    </form>
-    {% else %}
-    <a class="pure-menu-link" href="{{ url_for('login') }}">Log in / Register</a>
-    {% endif %}
-  </nav>
+
   <main>
     <!-- https://flask.palletsprojects.com/en/stable/patterns/flashing/ -->
     {% for message in get_flashed_messages() %}

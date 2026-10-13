@@ -15,9 +15,9 @@
           {% if event.status == "scheduled" %}
           <div class="event-status-circle"></div>
           {% elif event.status == "pending" %}
-          <div class="event-status-circle" style="background-color: orange;"></div>
+          <div class="event-status-circle" style="background-color: var(--color-warning);"></div>
           {% else %}
-          <div class="event-status-circle" style="background-color: red;"></div>
+          <div class="event-status-circle" style="background-color: var(--color-danger);"></div>
           {% endif %}
           <div>{{event.status}}</div>
         </div>

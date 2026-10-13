@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ user.display_name }}{% endblock %}
 {% block content %}
-<section class="profile-content">
+<section class="profile-content page-panel">
   <img class="pure-img" src="{{ avatar_url }}" width="128" height="128">
   <h1>{{ user.display_name }}</h1>
   {% if user.bio %}
@@ -14,10 +14,6 @@
   <p><a class="pure-button" href="{{ url_for('settings') }}">Edit my profile</a></p>
   {% endif %}
 
-  {% if session.get('profile') %}
-  <h2>Friends</h2>
-  <h2>Registered events</h2>
-  <h2>Hosted events</h2>
-  {% endif %}
+
 </section>
 {% endblock %}
