@@ -18,9 +18,9 @@ dependencies = [
     "psycopg[binary,pool]>=3.0.0",
     "authlib>=1.8.0",
     "requests>=2.34.2",
-    "auth0-server-python>=1.0.0b1,<2",
     "python-dotenv>=1.2.4",
-    "markupsafe>=3.0.4",
+    "flask-wtf>=1.3.0",
+    "validators>=0.36.0",
 ]
 
 [project.scripts]

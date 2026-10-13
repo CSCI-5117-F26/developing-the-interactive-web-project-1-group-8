@@ -1,0 +1,51 @@
+{% block topbar %}
+<div id="topbar" class="topbar-content">
+  <div >
+    <div class="pure-menu" style="width: fit-content;">
+      <a href="{{ url_for('index') }}" class="pure-menu-link">Game Master</a>
+    </div>
+  </div>
+  <div >
+    <div class="pure-menu pure-menu-horizontal">
+      <form role="search" action="{{ url_for('search')}}" method="GET" aria-label="Site search"
+        class="pure-form topbar-search">
+        <div id="search-container" >
+          <input type="search" id="search" name="q" autocomplete="off" placeholder="Search..." aria-label="Search" />
+          <button type="submit" class=" fa fa-search" aria-label="Submit search"></button>
+        </div>
+        <div id="search-results-container">
+      <ul id="search-results"></ul>
+    </div>
+      </form>
+    </div>
+  </div>
+  <div >
+    <div class="pure-menu pure-menu-horizontal menu-3">
+      <ul class="pure-menu-list">
+        <li class="pure-menu-item">
+          {% if session.get('profile') %}
+          <a class="pure-menu-link" href="{{ url_for('user', user_id=session['profile']['id']) }}">My profile</a>
+          {% else %}
+          <a class="pure-menu-link" href="{{ url_for('login') }}">Login</a>
+          {% endif %}
+        </li>
+        {% if session.get('profile') %}
+        <li class="pure-menu-item">
+          <a class="pure-menu-link" href="{{ url_for('account') }}">Account</a>
+        </li>
+        <li class="pure-menu-item">
+          <form method="post" action="{{ url_for('logout') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="pure-button" type="submit">Log out</button>
+          </form>
+        </li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='topbar.js') }}">
+</script>
+{% endblock %}

@@ -4,24 +4,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/pure-min.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/grids-responsive-min.css" />
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
   <title>{% block title %}Project{% endblock %}</title>
+  {% block head %}{% endblock %}
 </head>
 
 <body>
-  <header class="topbar">
-    <a href="/" class="brand">Game Master</a>
+  {% include 'components/topbar.html' %}
 
-    <form action="/search/" method="get">
-      <input type="search" name="q" placeholder="Search events" />
-    </form>
-
-    <a href="/login">Login</a>
-  </header>
-
-  <main>{% block content %}{% endblock %}</main>
+  <main>
+    <!-- https://flask.palletsprojects.com/en/stable/patterns/flashing/ -->
+    {% for message in get_flashed_messages() %}
+    <p>{{ message }}</p>
+    {% endfor %}
+    {% block content %}{% endblock %}
+  </main>
 </body>
 
 </html>

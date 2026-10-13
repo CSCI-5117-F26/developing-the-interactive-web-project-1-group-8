@@ -1,26 +1,158 @@
-/* Code adapted from 
-   https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/CSS_layout/Flexbox
-   https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-x
-   https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_scroll_snap/Basic_concepts */
+:root {
+  /*
+  * This color palette was originally generated using 
+  * Coolors (#C6878F, #B79D94, #969696, #67697C, #253D5B) 
+  * and was later expanded with AI assistance because I 
+  * am colorblind and cannot select colors myself. - Nick
+  */
 
-.topbar {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  padding: 10px 20px;
-  border-bottom: 1px solid #ccc;
+  /* Backgrounds & Surfaces */
+  --color-background: hsl(30, 27%, 96%);
+  --color-foreground: hsl(0, 0%, 0%);
+  --color-surface: hsl(0, 0%, 100%);
+  --color-surface-muted: hsl(18, 25%, 92%);
+
+  /* Brand Colors */
+  --color-primary: hsl(213, 42%, 25%);
+  --color-secondary: hsl(15, 20%, 65%);
+  --color-accent: hsl(352, 36%, 65%);
+  --color-accent-soft: hsl(351, 37%, 89%);
+  --color-muted: hsl(0, 0%, 59%);
+
+  /* Top Bar */
+  --color-topbar-background: var(--color-primary);
+  --color-topbar-text: hsl(213, 86%, 84%);
+  --color-topbar-hover: hsl(213, 42%, 20%);
+
+  /* Typography */
+  --color-text-primary: var(--color-primary);
+  --color-text-secondary: hsl(234, 9%, 45%);
+  --color-text-inverse: var(--color-surface);
+
+  /* Borders */
+  --color-border: hsl(15, 15%, 89%);
+
+  /* Status: Success / Going */
+  --color-success: hsl(160, 39%, 35%);
+  --color-success-soft: hsl(148, 30%, 92%);
+
+  /* Status: Warning / Maybe */
+  --color-warning: hsl(27, 50%, 43%);
+  --color-warning-soft: hsl(30, 61%, 91%);
+
+  /* Status: Danger / Not Going */
+  --color-danger: hsl(355, 42%, 52%);
+  --color-danger-soft: hsl(354, 58%, 94%);
+
+  /* Status: Pending / Awaiting Response */
+  --color-pending: var(--color-text-secondary);
+  --color-pending-soft: var(--color-surface-muted);
 }
 
+/* --- Topbar Styles --- */
+#topbar {
+  line-height: 1.5;
+
+  background-color: var(--color-topbar-background);
+  color: var(--color-topbar-text);
+  margin-bottom: 1em;
+  -webkit-font-smoothing: antialiased;
+  padding: 12px 24px;
+
+  .pure-menu-link:hover {
+    background-color: var(--color-topbar-hover);
+    color: var(--color-topbar-text);
+  }
+
+  a {
+    color: var(--color-topbar-text);
+  }
+
+  .menu-3 {
+    text-align: right;
+  }
+
+  #search-container {
+    display: grid;
+    grid-template-columns: minmax(250px, 7fr) 30px;
+    margin: 0.25em;
+    /* align-items: center; */
+    justify-content: center;
+    width: 100%;
+    height: 30px;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    place-items: center;
+
+    input[type="search"] {
+      box-sizing: border-box;
+      height: 30px;
+      width: 100%;
+      /* padding: 6px; */
+      font-size: 17px;
+      border: none;
+      background: none;
+    }
+
+    button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px 10px;
+    }
+  }
+}
 
 body {
   margin: 0;
-  background-color: #f4f1ea;
+}
+
+main {
+  box-sizing: border-box;
+  max-width: 1120px;
+  margin: 30px auto;
+  padding: 0 22px;
+}
+
+.topbar-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+}
+
+.topbar-search {
+  width: 100%;
+  margin: 0;
+}
+
+#topbar #search-container {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+}
+
+#topbar .menu-3 {
+  width: auto;
+  white-space: nowrap;
+}
+
+.page-panel {
+  box-sizing: border-box;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.profile-content {
+  max-width: 680px;
 }
 
 .row {
-  height: 260px;
+  height: 300px;
   padding: 10px 20px;
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .row h2 {
@@ -36,13 +168,9 @@ body {
   padding-bottom: 10px;
 }
 
-.carousel article {
-  width: 220px;
+.carousel .event-tile {
   flex-shrink: 0;
   scroll-snap-align: start;
-  background-color: white;
-  border: 1px solid #bbb;
-  border-radius: 12px;
-  padding: 10px;
 }
+
 

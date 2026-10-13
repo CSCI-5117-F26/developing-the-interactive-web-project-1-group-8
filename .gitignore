@@ -14,4 +14,9 @@ wheels/
 
 # .env
 .env
-uv.lock
+
+# uv format
+.ruff_cache
+
+# Prettier
+.prettierignore

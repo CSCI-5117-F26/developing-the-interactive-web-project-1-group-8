@@ -1,4 +1,11 @@
 {% extends "base.html" %}
+
+{% block title %} Dashboard {% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='event_tile.css') }}">
+{% endblock %}
+
 {% block content %}
 
 {% for title, events in sections %}
