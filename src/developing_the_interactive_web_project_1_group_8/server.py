@@ -9,14 +9,13 @@ from flask import (
     request,
 )
 import developing_the_interactive_web_project_1_group_8.database as database
-import validators
 import os
 from urllib.parse import urlencode, urlsplit
 from dotenv import load_dotenv
 from flask_wtf.csrf import CSRFProtect
 from authlib.integrations.flask_client import OAuth
 
-from developing_the_interactive_web_project_1_group_8.api import api
+from developing_the_interactive_web_project_1_group_8.api import api, is_safe_avatar_url, get_user_photo
 from developing_the_interactive_web_project_1_group_8.decorators import requires_auth
 from developing_the_interactive_web_project_1_group_8.db import (
     get_or_create_user,
@@ -54,19 +53,6 @@ CSRFProtect(app)
 
 app.register_blueprint(api)
 
-
-# https://nandgator.github.io/pyvalidators/stable/api/url/
-def is_safe_avatar_url(url):
-    if not url or validators.url(url) is not True:
-        return False
-
-    # https://docs.python.org/3/library/urllib.parse.html
-    parsed = urlsplit(url)
-    return (
-        parsed.scheme == "https" and parsed.username is None and parsed.password is None
-    )
-
-
 @app.route("/")
 def index():
     """Dashboard page, where users can explore for new events"""
@@ -97,6 +83,7 @@ async def callback():
         "id": user["id"],
         "sub": user["auth0_sub"],
         "display_name": user["display_name"],
+        "photo": user["profile_pic"],
     }
     return redirect(url_for("account"))
 
@@ -129,6 +116,7 @@ def account():
         "id": user["id"],
         "sub": user["auth0_sub"],
         "display_name": user["display_name"],
+        "photo": user["profile_pic"],
     }
 
     return render_template("account.html", user=user)
@@ -203,6 +191,7 @@ def settings():
                 "id": updated_user["id"],
                 "sub": updated_user["auth0_sub"],
                 "display_name": updated_user["display_name"],
+                "photo": updated_user["profile_pic"],
             }
             flash("Profile saved.")
             return redirect(url_for("settings"))
