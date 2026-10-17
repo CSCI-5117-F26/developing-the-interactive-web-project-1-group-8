@@ -1,3 +1,6 @@
+import datetime
+from collections import OrderedDict
+import random
 from faker import Faker
 import psycopg
 from psycopg_pool import ConnectionPool
@@ -42,8 +45,52 @@ def generate_fake_users(num_users=10):
             bio=user["bio"],
             profile_pic=user["profile_pic"],
         )
+        user["user_id"] = e["id"]
         users.append(user)
 
+    #have the shitgoblins follow eachother
+    for user in users:
+        i = fake.random_int(min=0, max=3)
+        for _ in range(i):
+            other_user = random.choice(users)
+            if other_user != user:
+                db.follow_user(
+                    user.get("user_id"),
+                    other_user.get("user_id"),
+                )
+              
+
+
+        stati = ["cancelled", "scheduled","pending"]
+    # make them create events, goddamn it
+    for user in users:
+        i = fake.random_choices(elements=OrderedDict([(0,0.4), (1,0.3), (2,0.2), (3,0.1)]), length=1)[0]
+        for _ in range(i):
+            ev = {
+                "name": fake.sentence(nb_words=4),
+                "gameID": fake.random_int(min=1, max=1000),
+                "description": fake.text(max_nb_chars=200),
+                "date": fake.date_this_year(),
+                "time": fake.date_time(),
+                "location": fake.address(),
+                "duration": fake.time_delta().days,
+                "max_attendees": fake.random_int(min=1, max=100),
+                "status": random.choice(stati),
+            }
+            db.create_event(
+                name=ev["name"],
+                gameID=ev["gameID"],
+                hostID=user.get("user_id"),
+                calendarID=None,
+                address=ev["location"],
+                time=ev["time"],
+                expected_duration=ev["duration"],
+                max_attendees=ev["max_attendees"],
+                description=ev["description"],
+                status=ev["status"],
+            )
+            # Create a fake event for each user
+            pass
 
     return users
 

@@ -143,9 +143,6 @@ def user(user_id):
         ("Events Going To", going_events)
     ]
 
-
-    is_following = False
-    is_blocked = False
     if "profile" in session:
         current_user_id = session["profile"]["id"]
         profile["is_following"] = db.is_following(current_user_id, user_id)
@@ -213,11 +210,6 @@ def settings():
             }
             flash("Profile saved.")
             return redirect(url_for("settings"))
-
-    avatar_url = current_user["profile_pic"]
-
-    if not is_safe_avatar_url(avatar_url):
-        avatar_url = url_for("static", filename="avatar-default.svg")
 
     return render_template(
         "settings.html",

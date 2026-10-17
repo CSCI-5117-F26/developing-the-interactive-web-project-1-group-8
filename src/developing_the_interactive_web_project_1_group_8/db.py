@@ -48,7 +48,6 @@ def get_public_user(user_id):
         ).fetchone()
 
 
-
 # ---------- Profile ----------
 def update_profile(user_id, display_name, bio, profile_pic):
     with pool.connection() as conn:
@@ -103,6 +102,19 @@ def get_user_events_attending(user_id):
                 (user_id,),
             )
             return cur.fetchall()
+
+def create_event(name, gameID, hostID, calendarID, address, time, expected_duration, max_attendees, description, status):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO events (name, gameID, hostID, calendarID, address, time, expected_duration, max_attendees, description, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING *
+                """,
+                (name, gameID, hostID, calendarID, address, time, expected_duration, max_attendees, description, status),
+            )
+            return cur.fetchone()
 
 
 # ---------- Follow ----------
