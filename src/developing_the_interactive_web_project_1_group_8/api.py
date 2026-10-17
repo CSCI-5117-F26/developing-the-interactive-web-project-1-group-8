@@ -1,5 +1,6 @@
 import validators
 from urllib.parse import urlencode, urlsplit
+from developing_the_interactive_web_project_1_group_8 import db
 from developing_the_interactive_web_project_1_group_8.db import get_public_user
 import psycopg
 import faker
@@ -108,3 +109,22 @@ def get_user_photo(user_id):
 
 
 # ---------- Search ----------
+
+@api.route("/api/search", methods=["GET"])
+def search():
+    """
+    Search for users or events.
+
+    Parameters:
+      query (str): The search query.
+    """
+    query = request.args.get("q", type=str)
+
+    if not query:
+        return jsonify({"error": "Search query is required"}), 400
+
+    # search users, events, games ( ? )
+    r = db.search_events(query)
+    print(r)
+
+    return jsonify(r), 200

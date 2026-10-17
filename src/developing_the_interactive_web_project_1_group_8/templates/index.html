@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %} Dashboard {% endblock %}
+{% block title %} Dashboard - GameMaster {% endblock %}
 
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='event_tile.css') }}">
@@ -9,14 +9,14 @@
 {% block content %}
 
 {% for title, events in sections %}
-  <section class="row">
-    <h2>{{ title }}</h2>
-    <div class="carousel">
-      {% for event in events %}
-        {% include "components/event_tile.html" %}
-      {% endfor %}
-    </div>
-  </section> 
+<section class="row">
+  <h2>{{ title }}</h2>
+  <div class="carousel">
+    {% for event in events %}
+    {% include "components/event_tile.html" %}
+    {% endfor %}
+  </div>
+</section>
 {% endfor %}
 
 {% endblock %}

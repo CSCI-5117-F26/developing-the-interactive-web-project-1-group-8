@@ -1,5 +1,22 @@
-{% extends "base.html" %} {% block content %}
-<section class="page-panel">
-  <p>lel</p>
-</section>
+{% extends "base.html" %}
+{% block title %} {{request.args.get('q','')}} - GameMaster Search {% endblock %}
+
+{% block content %}
+<div class="pure-g">
+  <div class="pure-u-1-4 search-filter">
+    <p>henlo</p>
+  </div>
+  <div class="pure-u-3-4 search-results">
+    <h3>Search Results for "{{request.args.get('q','')}}"</h3>
+    {% if results %}
+    <div class="event-grid">
+      {% for event in results %}
+      {% include "components/event_tile.html"%}
+      {% endfor %}
+    </div>
+    {% else %}
+    <p>No results found.</p>
+    {% endif %}
+  </div>
+</div>
 {% endblock %}

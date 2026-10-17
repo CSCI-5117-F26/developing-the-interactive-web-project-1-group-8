@@ -8,13 +8,13 @@ from flask import (
     flash,
     request,
 )
-import developing_the_interactive_web_project_1_group_8.database as database
 import os
 from urllib.parse import urlencode, urlsplit
 from dotenv import load_dotenv
 from flask_wtf.csrf import CSRFProtect
 from authlib.integrations.flask_client import OAuth
 
+from developing_the_interactive_web_project_1_group_8 import db
 from developing_the_interactive_web_project_1_group_8.api import api, is_safe_avatar_url, get_user_photo
 from developing_the_interactive_web_project_1_group_8.decorators import requires_auth
 from developing_the_interactive_web_project_1_group_8.db import (
@@ -56,7 +56,7 @@ app.register_blueprint(api)
 @app.route("/")
 def index():
     """Dashboard page, where users can explore for new events"""
-    events = database.get_all_events()
+    events = db.get_all_events()
     sections = [
         ("Events from Popular Games", events),
         ("Events from Games You've Played", events),

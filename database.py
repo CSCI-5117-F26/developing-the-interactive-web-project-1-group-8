@@ -27,14 +27,6 @@ def get_event(id):
     #   return curr.fetchone()
 
 
-def get_all_events():
-    with psycopg.connect(os.environ["DATABASE_URL"], row_factory=dict_row) as conn:
-        with conn.cursor() as cur:
-            cur.execute("select * from events")
-            return cur.fetchall()
-    # with pool.connection() as conn, conn.cursor() as curr:
-    #   curr.execute("select * from events ")
-    #   return curr.fetchall()
 
 
 def setup_db():

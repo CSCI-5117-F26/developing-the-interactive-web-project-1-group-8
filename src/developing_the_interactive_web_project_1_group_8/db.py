@@ -58,3 +58,21 @@ def update_profile(user_id, display_name, bio, profile_pic):
             """,
             (display_name, bio, profile_pic, user_id),
         ).fetchone()
+
+def get_all_events():
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("select * from events")
+            return cur.fetchall()
+
+
+def search_events(name_query):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT * FROM events
+                WHERE LOWER(name) LIKE LOWER(%s)
+                """, 
+                (f"%{name_query}%",))
+            return cur.fetchall()
