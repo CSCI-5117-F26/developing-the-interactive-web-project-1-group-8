@@ -128,13 +128,15 @@ def user(user_id):
     if profile is None:
         abort(404, "This user does not appear to exist.")
     profile["followers"] =  db.get_follower_count(user_id)
+    profile["is_following"] = False
+    profile["is_blocked"] = False
 
-    events = db.get_all_events()
+    events = db.get_user_events(user_id)
+    going_events = db.get_user_events_attending(user_id)
+    followers = db.get_following(user_id)
     sections = [
-        ("Events from Popular Games", events),
-        ("Events from Games You've Played", events),
-        ("Events in the Next Week", events),
-        ("Friend Events!", events),
+        ("Hosted Events", events),
+        ("Events Going To", going_events)
     ]
 
 
@@ -142,10 +144,10 @@ def user(user_id):
     is_blocked = False
     if "profile" in session:
         current_user_id = session["profile"]["id"]
-        is_following = db.is_following(current_user_id, user_id)
-        is_blocked = db.is_blocked(current_user_id, user_id)
+        profile["is_following"] = db.is_following(current_user_id, user_id)
+        profile["is_blocked"] = db.is_blocked(current_user_id, user_id)
 
-    return render_template("user.html", sections=sections, user=profile, is_following=is_following, is_blocked=is_blocked)
+    return render_template("user.html", sections=sections, following=followers, user=profile)
 
 
 @app.route("/account/settings", methods=["GET", "POST"])

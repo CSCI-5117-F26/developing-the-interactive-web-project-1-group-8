@@ -1,3 +1,53 @@
+.tile {
+  display: flex;
+  text-wrap: nowrap;
+  flex-direction: column;
+  background-color: var(--color-surface);
+  box-sizing: content-box;
+  width: 24em;
+  height: 14rem;
+  border-radius: 1rem;
+
+  padding: 1rem;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+  font-size: 0.9rem;
+
+  h3 {
+    font-size: 1.2rem;
+    margin: 0;
+    padding: 0.5em 0;
+    max-width: 12em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tile-row {
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
+    width: 22em;
+    text-overflow: ellipsis;
+    max-height: 11rem;
+  }
+
+  .footer {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    margin-top: auto;
+  }
+}
+
+.user-tile {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+
+
 .event-tile {
   background-color: var(--color-surface);
   box-sizing: border-box;

@@ -1,32 +1,30 @@
-
-  <div class="event-tile">
-    <div class="event-header-container">
-      <div class="event-header-game-info">
-        <div class="event-game-image"></div>
-        <div class="event-game-name">Game Name</div>
-      </div>
-      <div class="event-info-header">
-        <div class="event-name">{{event.name}}</div>
-        <div class="event-date-time">{{event.time}}</div>
-        <div class="event-location">{{event.address}}</div>
-      </div>
-      <div>
-        <div class="event-status-container">
-          {% if event.status == "scheduled" %}
-          <div class="event-status-circle"></div>
-          {% elif event.status == "pending" %}
-          <div class="event-status-circle" style="background-color: var(--color-warning);"></div>
-          {% else %}
-          <div class="event-status-circle" style="background-color: var(--color-danger);"></div>
-          {% endif %}
-          <div>{{event.status}}</div>
-        </div>
-        <div>?/{{event.max_attendees}} Going</div>
-      </div>
+<div class="event-tile">
+  <div class="event-header-container">
+    <div class="event-header-game-info">
+      <div class="event-game-image"></div>
+      <div class="event-game-name">Game Name</div>
     </div>
-    <div class="event-buttons-container">
-      <a href="{{ url_for('event', event_id=event.id) }}" class="event-button">RSVP</a>
-      <a href="{{ url_for('event', event_id=event.id) }}" class="event-button">Details</a>
+    <div class="event-info-header">
+      <div class="event-name">{{event.name}}</div>
+      <div class="event-date-time">{{event.time}}</div>
+      <div class="event-location">{{event.address}}</div>
     </div>
+    <div>
+      <div class="event-status-container">
+        {% if event.status == "scheduled" %}
+        <div class="event-status-circle"></div>
+        {% elif event.status == "pending" %}
+        <div class="event-status-circle" style="background-color: var(--color-warning);"></div>
+        {% else %}
+        <div class="event-status-circle" style="background-color: var(--color-danger);"></div>
+        {% endif %}
+        <div>{{event.status}}</div>
+      </div>
+      <div>?/{{event.max_attendees}} Going</div>
+    </div>
+  </div>
+  <div class="event-buttons-container">
+    <a href="{{ url_for('event', event_id=event.id) }}" class="event-button">RSVP</a>
+    <a href="{{ url_for('event', event_id=event.id) }}" class="event-button">Details</a>
+  </div>
 </div>
-

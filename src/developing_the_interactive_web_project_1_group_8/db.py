@@ -77,22 +77,45 @@ def get_event(id):
         with conn.cursor() as cur:
             cur.execute("select * from events where id = %s", (id,))
             return cur.fetchone()
-    # with pool.connection() as conn, conn.cursor() as curr:
-    #   curr.execute("select * from events where id = %s", (id,))
-    #   return curr.fetchone()
 
-
-# ---------- Follow ----------
-
-def get_friends(user_id):
+def get_user_events(user_id):
     with pool.connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT u.id, u.display_name, u.profile_pic
+                SELECT * FROM events
+                WHERE hostID = %s
+                """,
+                (user_id,),
+            )
+            return cur.fetchall()
+
+def get_user_events_attending(user_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT e.*
+                FROM events e
+                JOIN event_participation ea ON e.id = ea.id
+                WHERE ea.id = %s
+                """,
+                (user_id,),
+            )
+            return cur.fetchall()
+
+
+# ---------- Follow ----------
+
+def get_following(user_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT u.id, u.display_name, u.profile_pic, u.bio
                 FROM users u
-                JOIN pending_friends pf ON u.id = pf.followed
-                WHERE pf.follower = %s
+                JOIN friends f ON u.id = f.followed
+                WHERE f.follower = %s
                 """,
                 (user_id,),
             )

@@ -4,7 +4,7 @@
 
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='event_grid.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='event_tile.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='tile.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='user.css') }}">
 {% endblock %}
 
@@ -27,8 +27,6 @@
     <p>No biography yet.</p>
     {% endif %}
     {% endif %}
-
-
   </div>
 
 
@@ -38,18 +36,18 @@
         aria-hidden="true"></i></a>
     {% endif %}
 
-    {% if session.get('profile') and session['profile']['id'] != user.id and not is_blocked %}
+    {% if session.get('profile') and session['profile']['id'] != user.id and not user.is_blocked %}
     <button class="profile-button pure-button" id="follow-button" data-csrf-token="{{ csrf_token() }}"
-      data-action="{% if is_following %}unfollow{% else %}follow{% endif %}" data-user-id="{{ user.id }}">
-      {% if is_following %}Unfollow <i class="fa fa-user-times" aria-hidden="true"></i>{% else %}Follow <i
+      data-action="{% if user.is_following %}unfollow{% else %}follow{% endif %}" data-user-id="{{ user.id }}">
+      {% if user.is_following %}Unfollow <i class="fa fa-user-times" aria-hidden="true"></i>{% else %}Follow <i
         class="fa fa-user-plus" aria-hidden="true"></i>{% endif %}</button>
     {% endif %}
 
     {% if session.get('profile') and session['profile']['id'] != user.id %}
     <button class="profile-button pure-button" id="block-button" data-csrf-token="{{ csrf_token() }}"
-      data-action="{% if is_blocked %}unblock{% else %}block{% endif %}" data-user-id="{{ user.id }}">
-      {% if is_blocked %}Unblock <i class="fa fa-unlock" aria-hidden="true"></i>{% else %}Block <i class="fa fa-ban"
-        aria-hidden="true"></i>{% endif %}</button>
+      data-action="{% if user.is_blocked %}unblock{% else %}block{% endif %}" data-user-id="{{ user.id }}">
+      {% if user.is_blocked %}Unblock <i class="fa fa-unlock" aria-hidden="true"></i>{% else %}Block <i
+        class="fa fa-ban" aria-hidden="true"></i>{% endif %}</button>
     {% endif %}
   </div>
 
@@ -72,5 +70,13 @@
   </div>
 </section>
 {% endfor %}
+<section class="row">
+  <h2>Following</h2>
+  <div class="carousel">
+    {% for user in following %}
+    {% include "components/user_tile.html" %}
+    {% endfor %}
+  </div>
+</section>
 {% endif %}
 {% endblock %}
