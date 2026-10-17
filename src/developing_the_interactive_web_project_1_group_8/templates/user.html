@@ -8,24 +8,60 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='user.css') }}">
 {% endblock %}
 
+{% block scripts %}
+<script src="{{ url_for('static', filename='user.js') }}"></script>
+{% endblock %}
+
 {% block content %}
 <section class="profile-content page-panel">
-  <img class="user-ico" src="{{ avatar_url }}" width="128" height="128">
-  <div>
+  <img class="user-ico" src="{{ user.profile_pic }}" width="128" height="128">
+  <div class="profile-desc">
     <h1>{{ user.display_name }}</h1>
+    <h2>{{ user.followers }} followers</h2>
+    {% if is_blocked %}
+    <p>This user is blocked.</p>
+    {% else %}
     {% if user.bio %}
     <p class="profile-bio">{{ user.bio }}</p>
     {% else %}
     <p>No biography yet.</p>
     {% endif %}
+    {% endif %}
+
+
   </div>
 
-  {% if session.get('profile') and session['profile']['id'] == user.id %}
-  <a class="profile-edit pure-button" href="{{ url_for('settings') }}"><i class="fa fa-cog fa-fw"
-      aria-hidden="true"></i></a>
-  {% endif %}
+
+  <div class="profile-actions">
+    {% if session.get('profile') and session['profile']['id'] == user.id %}
+    <a class="profile-edit pure-button" href="{{ url_for('settings') }}"><i class="fa fa-cog fa-fw"
+        aria-hidden="true"></i></a>
+    {% endif %}
+
+    {% if session.get('profile') and session['profile']['id'] != user.id and not is_blocked %}
+    <button class="profile-button pure-button" id="follow-button" data-csrf-token="{{ csrf_token() }}"
+      data-action="{% if is_following %}unfollow{% else %}follow{% endif %}" data-user-id="{{ user.id }}">
+      {% if is_following %}Unfollow <i class="fa fa-user-times" aria-hidden="true"></i>{% else %}Follow <i
+        class="fa fa-user-plus" aria-hidden="true"></i>{% endif %}</button>
+    {% endif %}
+
+    {% if session.get('profile') and session['profile']['id'] != user.id %}
+    <button class="profile-button pure-button" id="block-button" data-csrf-token="{{ csrf_token() }}"
+      data-action="{% if is_blocked %}unblock{% else %}block{% endif %}" data-user-id="{{ user.id }}">
+      {% if is_blocked %}Unblock <i class="fa fa-unlock" aria-hidden="true"></i>{% else %}Block <i class="fa fa-ban"
+        aria-hidden="true"></i>{% endif %}</button>
+    {% endif %}
+  </div>
+
+
 </section>
 
+{% if is_blocked %}
+<section class="page-panel">
+  <h2>This user is blocked.</h2>
+  <p>You will not see any events from this user, and they will not be able to see any of your events.</p>
+</section>
+{% else %}
 {% for title, events in sections %}
 <section class="row">
   <h2>{{ title }}</h2>
@@ -36,4 +72,5 @@
   </div>
 </section>
 {% endfor %}
+{% endif %}
 {% endblock %}

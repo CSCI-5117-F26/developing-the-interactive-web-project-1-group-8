@@ -83,6 +83,7 @@ def get_event(id):
 
 
 # ---------- Follow ----------
+
 def get_friends(user_id):
     with pool.connection() as conn:
         with conn.cursor() as cur:
@@ -102,7 +103,7 @@ def follow_user(follower_id, followed_id):
         with conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO pending_friends (follower, followed)
+                INSERT INTO friends (follower, followed)
                 VALUES (%s, %s)
                 ON CONFLICT (follower, followed) DO NOTHING
                 """,
@@ -115,15 +116,56 @@ def unfollow_user(follower_id, followed_id):
         with conn.cursor() as cur:
             cur.execute(
                 """
-                DELETE FROM pending_friends
+                DELETE FROM friends
                 WHERE follower = %s AND followed = %s
                 """,
                 (follower_id, followed_id),
             )
             return cur.rowcount > 0  # Returns True if a row was deleted
 
+def is_following(follower_id, followed_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT 1 FROM friends
+                WHERE follower = %s AND followed = %s
+                """,
+                (follower_id, followed_id),
+            )
+            return cur.fetchone() is not None
+
+
+def get_followers(user_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT u.id, u.display_name, u.profile_pic
+                FROM users u
+                JOIN friends f ON u.id = f.follower
+                WHERE f.followed = %s
+                """,
+                (user_id,),
+            )
+            return cur.fetchall()
+
+def get_follower_count(user_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT COUNT(*) AS follower_count
+                FROM friends
+                WHERE followed = %s
+                """,
+                (user_id,),
+            )
+            result = cur.fetchone()
+            return result["follower_count"] if result else 0
 
 # ---------- Block ----------
+
 def get_blocked_users(user_id):
     with pool.connection() as conn:
         with conn.cursor() as cur:
@@ -163,6 +205,17 @@ def unblock_user(blocking_id, blocked_id):
             )
             return cur.rowcount > 0  # Returns True if a row was deleted
 
+def is_blocked(blocking_id, blocked_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT 1 FROM blocked
+                WHERE blocking = %s AND blocked = %s
+                """,
+                (blocking_id, blocked_id),
+            )
+            return cur.fetchone() is not None
 
 # ---------- Search ----------
 

@@ -128,5 +128,16 @@ def setup_db():
                 );
                 """
             )
+
+            cur.execute(
+                """
+                CREATE OR REPLACE VIEW user_follower_counts AS
+                SELECT u.id AS user_id,
+                    count(f.followed) AS follower_count
+                FROM (users u
+                    LEFT JOIN friends f ON ((f.followed = u.id)))
+                GROUP BY u.id;
+                """
+            )
             conn.commit()
 setup()

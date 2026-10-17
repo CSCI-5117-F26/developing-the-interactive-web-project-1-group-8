@@ -6,7 +6,7 @@ from flask import (
     session,
     abort,
     flash,
-    request,
+    request, jsonify,
 )
 import os
 from urllib.parse import urlencode, urlsplit
@@ -125,14 +125,9 @@ def account():
 @app.route("/user/<int:user_id>")
 def user(user_id):
     profile = get_public_user(user_id)
-
     if profile is None:
-        abort(404)
-
-    avatar_url = profile["profile_pic"]
-
-    if not is_safe_avatar_url(avatar_url):
-        avatar_url = url_for("static", filename="default-avatar.svg")
+        abort(404, "This user does not appear to exist.")
+    profile["followers"] =  db.get_follower_count(user_id)
 
     events = db.get_all_events()
     sections = [
@@ -142,7 +137,15 @@ def user(user_id):
         ("Friend Events!", events),
     ]
 
-    return render_template("user.html", sections=sections, user=profile, avatar_url=avatar_url)
+
+    is_following = False
+    is_blocked = False
+    if "profile" in session:
+        current_user_id = session["profile"]["id"]
+        is_following = db.is_following(current_user_id, user_id)
+        is_blocked = db.is_blocked(current_user_id, user_id)
+
+    return render_template("user.html", sections=sections, user=profile, is_following=is_following, is_blocked=is_blocked)
 
 
 @app.route("/account/settings", methods=["GET", "POST"])
@@ -237,9 +240,16 @@ def search():
 
 @app.route("/event/<int:event_id>")
 def event(event_id):
-    """Event page, where users can view details about a specific event"""
+    """
+    Event page, where users can view details about a specific event
+    
+    """
+
+    event = db.get_event(event_id)
+    if event is None:
+        abort(404,"This event does appear to exist.")
     # print(db.get_event(event_id))
-    return render_template("event.html", event=db.get_event(event_id))
+    return render_template("event.html", event=event)
 
 
 # @app.route("/user/<string:username>")
@@ -248,3 +258,11 @@ def event(event_id):
 #     if not username:
 #         return render_template("error.html", message="Username is required"), 400
 #     return render_template("user.html", username=username)
+
+
+
+
+# ---------- Error Handlers ----------
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template("error.html", message=e.description), 404

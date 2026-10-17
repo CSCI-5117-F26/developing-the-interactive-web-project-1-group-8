@@ -1,10 +1,11 @@
+from developing_the_interactive_web_project_1_group_8.decorators import requires_auth
 import validators
 from urllib.parse import urlencode, urlsplit
 from developing_the_interactive_web_project_1_group_8 import db
-from developing_the_interactive_web_project_1_group_8.db import get_public_user
+from developing_the_interactive_web_project_1_group_8.db import get_public_user, get_user
 import psycopg
 import faker
-from flask import Flask, jsonify, Blueprint, request, render_template, abort, url_for
+from flask import Flask, jsonify, Blueprint, request, render_template, abort, url_for, session, redirect
 
 # this module holds all of the api endpoints
 
@@ -108,6 +109,7 @@ def get_user_photo(user_id):
 
 # ---------- Follow ----------
 @api.route("/api/user/<int:user_id>/follow", methods=["POST"])
+@requires_auth
 def follow_user(user_id):
     """
     Follow a user.
@@ -115,12 +117,118 @@ def follow_user(user_id):
     Parameters:
       user_id (int): The ID of the user to follow.
     """
+
+    current_user = get_user(session["profile"]["id"])
+
+    if current_user is None:
+        session.clear()
+        return redirect(url_for("index"))
+    
+    current_user_id = current_user["id"]
+
+    if current_user_id == user_id:
+        return jsonify({"error": "You cannot follow yourself"}), 400
+    if db.is_following(current_user_id, user_id):
+        return jsonify({"error": "You are already following this user"}), 400
+
+    try:
+        db.follow_user(current_user_id, user_id)
+        return jsonify({"message": "User followed successfully"}), 200
+    except psycopg.errors.UniqueViolation:
+        return jsonify({"error": "You are already following this user"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
     
 
+@api.route("/api/user/<int:user_id>/unfollow", methods=["POST"])
+@requires_auth
+def unfollow_user(user_id):
+    """
+    Unfollow a user.
+
+    Parameters:
+      user_id (int): The ID of the user to unfollow.
+    """
+
+    current_user = get_user(session["profile"]["id"])
+
+    if current_user is None:
+        session.clear()
+        return redirect(url_for("index"))
+    
+    current_user_id = current_user["id"]
+
+    if current_user_id == user_id:
+        return jsonify({"error": "You cannot unfollow yourself"}), 400
+
+    try:
+        db.unfollow_user(current_user_id, user_id)
+        return jsonify({"message": "User unfollowed successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # ---------- Block ----------
 
+@api.route("/api/user/<int:user_id>/block", methods=["POST"])
+@requires_auth
+def block_user(user_id):
+    """
+    Block a user.
 
+    Parameters:
+      user_id (int): The ID of the user to block.
+    """
+
+    current_user = get_user(session["profile"]["id"])
+
+    if current_user is None:
+        session.clear()
+        return redirect(url_for("index"))
+    
+    current_user_id = current_user["id"]
+
+    if current_user_id == user_id:
+        return jsonify({"error": "You cannot block yourself"}), 400
+
+    try:
+        db.block_user(current_user_id, user_id)
+        if db.is_following(current_user_id, user_id):
+            db.unfollow_user(current_user_id, user_id)
+        if db.is_following(user_id, current_user_id):
+            db.unfollow_user(user_id, current_user_id)
+        return jsonify({"message": "User blocked successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    
+
+@api.route("/api/user/<int:user_id>/unblock", methods=["POST"])
+@requires_auth
+def unblock_user(user_id):
+    """
+    Unblock a user.
+
+    Parameters:
+      user_id (int): The ID of the user to unblock.
+    """
+
+    current_user = get_user(session["profile"]["id"])
+
+    if current_user is None:
+        session.clear()
+        return redirect(url_for("index"))
+    
+    current_user_id = current_user["id"]
+
+    if current_user_id == user_id:
+        return jsonify({"error": "You cannot unblock yourself"}), 400
+
+    try:
+        db.unblock_user(current_user_id, user_id)
+        return jsonify({"message": "User unblocked successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
 # ---------- Search ----------
 
 @api.route("/api/search", methods=["GET"])
