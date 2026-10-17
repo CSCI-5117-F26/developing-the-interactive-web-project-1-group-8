@@ -12,6 +12,8 @@ pool = ConnectionPool(
 atexit.register(pool.close)
 
 
+# ---------- User ----------
+
 def get_user(user_id):
     with pool.connection() as conn:
         return conn.execute("SELECT * FROM users WHERE id = %s", (user_id,)).fetchone()
@@ -46,6 +48,8 @@ def get_public_user(user_id):
         ).fetchone()
 
 
+
+# ---------- Profile ----------
 def update_profile(user_id, display_name, bio, profile_pic):
     with pool.connection() as conn:
         return conn.execute(
@@ -56,9 +60,11 @@ def update_profile(user_id, display_name, bio, profile_pic):
             WHERE id = %s
             RETURNING id, auth0_sub, display_name, bio, profile_pic
             """,
-            (display_name, bio, profile_pic, user_id),
+            (display_name, bio, profile_pic, user_id,),
         ).fetchone()
 
+
+# ---------- Event ----------
 def get_all_events():
     with pool.connection() as conn:
         with conn.cursor() as cur:
@@ -76,6 +82,89 @@ def get_event(id):
     #   return curr.fetchone()
 
 
+# ---------- Follow ----------
+def get_friends(user_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT u.id, u.display_name, u.profile_pic
+                FROM users u
+                JOIN pending_friends pf ON u.id = pf.followed
+                WHERE pf.follower = %s
+                """,
+                (user_id,),
+            )
+            return cur.fetchall()
+
+def follow_user(follower_id, followed_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO pending_friends (follower, followed)
+                VALUES (%s, %s)
+                ON CONFLICT (follower, followed) DO NOTHING
+                """,
+                (follower_id, followed_id),
+            )
+            return cur.rowcount > 0  # Returns True if a row was inserted
+
+def unfollow_user(follower_id, followed_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                DELETE FROM pending_friends
+                WHERE follower = %s AND followed = %s
+                """,
+                (follower_id, followed_id),
+            )
+            return cur.rowcount > 0  # Returns True if a row was deleted
+
+
+# ---------- Block ----------
+def get_blocked_users(user_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT u.id, u.display_name, u.profile_pic
+                FROM users u
+                JOIN blocked b ON u.id = b.blocked
+                WHERE b.blocking = %s
+                """,
+                (user_id,),
+            )
+            return cur.fetchall()
+
+def block_user(blocking_id, blocked_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO blocked (blocking, blocked)
+                VALUES (%s, %s)
+                ON CONFLICT (blocking, blocked) DO NOTHING
+                """,
+                (blocking_id, blocked_id),
+            )
+            return cur.rowcount > 0  # Returns True if a row was inserted
+
+def unblock_user(blocking_id, blocked_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                DELETE FROM blocked
+                WHERE blocking = %s AND blocked = %s
+                """,
+                (blocking_id, blocked_id),
+            )
+            return cur.rowcount > 0  # Returns True if a row was deleted
+
+
+# ---------- Search ----------
 
 def search_events(name_query):
     with pool.connection() as conn:

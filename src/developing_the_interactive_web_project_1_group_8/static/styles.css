@@ -56,6 +56,15 @@ body {
   margin: 0;
 }
 
+main {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  /* max-width: 1120px; */
+  /* margin: 30px auto; */
+  padding: 0 40px;
+}
+
 /* --- Topbar Styles --- */
 #topbar {
   line-height: 1.5;
@@ -143,14 +152,7 @@ body {
 
 
 
-main {
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-  /* max-width: 1120px; */
-  /* margin: 30px auto; */
-  padding: 0 22px;
-}
+
 
 .page-panel {
   box-sizing: border-box;

@@ -106,6 +106,19 @@ def get_user_photo(user_id):
     return avatar_url
 
 
+# ---------- Follow ----------
+@api.route("/api/user/<int:user_id>/follow", methods=["POST"])
+def follow_user(user_id):
+    """
+    Follow a user.
+
+    Parameters:
+      user_id (int): The ID of the user to follow.
+    """
+    
+
+
+# ---------- Block ----------
 
 
 # ---------- Search ----------
