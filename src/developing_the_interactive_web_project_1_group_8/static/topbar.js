@@ -1,7 +1,7 @@
 console.log( "topbar.js loaded" );
 
 const searchInput = document.getElementById( "search" );
-
+const searchForm = document.getElementById( "search-form" );
 var delayTimer;
 
 // the timer is implemented to avoid making too many API calls while the user is typing
@@ -27,4 +27,17 @@ searchInput.addEventListener( "input", function ( event ) {
       } );
     delayTimer = null;
   }, 500 ); // Delay of 500 milliseconds
+} );
+
+
+searchForm.addEventListener( "submit", function ( event ) {
+  event.preventDefault();
+
+  const query = searchInput.value.trim();
+  if ( query == "" ) {
+    return;
+  }
+
+  event.target.submit(); // Submit the form if the query is not empty
+
 } );

@@ -8,6 +8,7 @@
 
   /* Backgrounds & Surfaces */
   --color-background: hsl(30, 27%, 96%);
+  --color-background-outset: hsl(180, 12%, 91%);
   --color-foreground: hsl(0, 0%, 0%);
   --color-surface: hsl(0, 0%, 100%);
   --color-surface-muted: hsl(18, 25%, 92%);
@@ -48,6 +49,11 @@
   /* Status: Pending / Awaiting Response */
   --color-pending: var(--color-text-secondary);
   --color-pending-soft: var(--color-surface-muted);
+}
+
+body {
+  background-color: var(--color-background);
+  margin: 0;
 }
 
 /* --- Topbar Styles --- */
@@ -113,9 +119,6 @@
   }
 
   #menuLink1 {
-    img {
-      border-radius: 50%;
-    }
 
     padding: 0.25em;
     display: flex;
@@ -138,30 +141,29 @@
   } */
 }
 
-body {
-  margin: 0;
-}
+
 
 main {
-
+  display: flex;
+  flex-direction: column;
   box-sizing: border-box;
-  max-width: 1120px;
+  /* max-width: 1120px; */
   /* margin: 30px auto; */
   padding: 0 22px;
 }
 
 .page-panel {
   box-sizing: border-box;
-  max-width: 860px;
+  max-width: 1260px;
   margin: 0 auto;
   padding: 20px;
 }
 
-.profile-content {
-  max-width: 680px;
-}
+
 
 .row {
+
+
   height: 300px;
   padding: 10px 20px;
   border-bottom: 1px solid var(--color-border);
@@ -183,4 +185,9 @@ main {
 .carousel .event-tile {
   flex-shrink: 0;
   scroll-snap-align: start;
+}
+
+
+.user-ico {
+  border-radius: 50%;
 }

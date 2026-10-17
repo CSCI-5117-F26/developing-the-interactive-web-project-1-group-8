@@ -7,12 +7,12 @@
   </div>
   <div class="pure-u-1 pure-u-md-1-3">
     <div class="pure-menu pure-menu-horizontal">
-      <form role="search" action="{{ url_for('search')}}" method="GET" aria-label="Site search"
+      <form id="search-form" role="search" action="{{ url_for('search')}}" method="GET" aria-label="Site search"
         class="pure-form pure-g">
         <div id="search-container" class="pure-g">
           <input type="search" id="search" name="q" value="{{request.args.get('q','')}}" autocomplete="off"
             placeholder="Search..." aria-label="Search" />
-          <button type="submit" class=" fa fa-search" aria-label="Submit search"></button>
+          <button type="submit" class="fa fa-search" aria-label="Submit search"></button>
         </div>
         <!-- <div id="search-results-container">
           <ul id="search-results"></ul>
@@ -29,7 +29,7 @@
         <li class="pure-menu-item pure-menu-has-children">
 
           <a id="menuLink1" class="pure-menu-link">
-            <img class="pure-img" src="{{ session['profile']['photo'] }}" width="32" height="32">
+            <img class="user-ico pure-img" src="{{ session['profile']['profile_pic'] }}" width="32" height="32">
           </a>
           <ul class="accountDetails pure-menu-children">
             <li class="pure-menu-item">

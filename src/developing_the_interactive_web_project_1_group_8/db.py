@@ -54,7 +54,7 @@ def update_profile(user_id, display_name, bio, profile_pic):
             SET display_name = %s, bio = %s, profile_pic = %s,
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = %s
-            RETURNING id, auth0_sub, display_name
+            RETURNING id, auth0_sub, display_name, bio, profile_pic
             """,
             (display_name, bio, profile_pic, user_id),
         ).fetchone()
@@ -64,6 +64,17 @@ def get_all_events():
         with conn.cursor() as cur:
             cur.execute("select * from events")
             return cur.fetchall()
+
+
+def get_event(id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("select * from events where id = %s", (id,))
+            return cur.fetchone()
+    # with pool.connection() as conn, conn.cursor() as curr:
+    #   curr.execute("select * from events where id = %s", (id,))
+    #   return curr.fetchone()
+
 
 
 def search_events(name_query):

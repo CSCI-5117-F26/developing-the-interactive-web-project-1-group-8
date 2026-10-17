@@ -17,18 +17,6 @@ def setup():
     atexit.register(pool.close)
 
 
-def get_event(id):
-    with psycopg.connect(os.environ["DATABASE_URL"], row_factory=dict_row) as conn:
-        with conn.cursor() as cur:
-            cur.execute("select * from events where id = %s", (id,))
-            return cur.fetchone()
-    # with pool.connection() as conn, conn.cursor() as curr:
-    #   curr.execute("select * from events where id = %s", (id,))
-    #   return curr.fetchone()
-
-
-
-
 def setup_db():
     with pool.connection() as conn:
         with conn.cursor() as cur:

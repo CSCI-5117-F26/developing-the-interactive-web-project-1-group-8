@@ -1,10 +1,17 @@
 {% extends "base.html" %}
 {% block title %} {{request.args.get('q','')}} - GameMaster Search {% endblock %}
 
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='event_grid.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='event_tile.css') }}">
+{% endblock %}
+
 {% block content %}
 <div class="pure-g">
   <div class="pure-u-1-4 search-filter">
     <p>henlo</p>
+    <p>imagine filters here</p>
+    <p>thank</p>
   </div>
   <div class="pure-u-3-4 search-results">
     <h3>Search Results for "{{request.args.get('q','')}}"</h3>
@@ -15,7 +22,8 @@
       {% endfor %}
     </div>
     {% else %}
-    <p>No results found.</p>
+    <p>No results found :(</p>
+    <p>Try searching for something else, or <a href="{{ url_for('index') }}">go back to the dashboard</a>.</p>
     {% endif %}
   </div>
 </div>

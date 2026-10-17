@@ -83,7 +83,7 @@ async def callback():
         "id": user["id"],
         "sub": user["auth0_sub"],
         "display_name": user["display_name"],
-        "photo": user["profile_pic"],
+        "profile_pic": user["profile_pic"] or None,
     }
     return redirect(url_for("account"))
 
@@ -116,7 +116,7 @@ def account():
         "id": user["id"],
         "sub": user["auth0_sub"],
         "display_name": user["display_name"],
-        "photo": user["profile_pic"],
+        "profile_pic": user["profile_pic"] or None,
     }
 
     return render_template("account.html", user=user)
@@ -134,7 +134,15 @@ def user(user_id):
     if not is_safe_avatar_url(avatar_url):
         avatar_url = url_for("static", filename="default-avatar.svg")
 
-    return render_template("user.html", user=profile, avatar_url=avatar_url)
+    events = db.get_all_events()
+    sections = [
+        ("Events from Popular Games", events),
+        ("Events from Games You've Played", events),
+        ("Events in the Next Week", events),
+        ("Friend Events!", events),
+    ]
+
+    return render_template("user.html", sections=sections, user=profile, avatar_url=avatar_url)
 
 
 @app.route("/account/settings", methods=["GET", "POST"])
@@ -167,8 +175,8 @@ def settings():
             }
             if not 1 <= len(values["display_name"]) <= 80:
                 errors.append("Display name must be between 1 and 80 characters.")
-            if len(values["bio"]) > 4000:
-                errors.append("Biography must be 4,000 characters or fewer.")
+            if len(values["bio"]) > 200:
+                errors.append("Biography must be 200 characters or fewer.")
             if values["profile_pic"] and (
                 len(values["profile_pic"]) > 2048
                 or not is_safe_avatar_url(values["profile_pic"])
@@ -182,16 +190,17 @@ def settings():
                 current_user["id"],
                 values["display_name"],
                 values["bio"],
-                values["profile_pic"] or None,
+                values["profile_pic"],
             )
             if updated_user is None:
                 session.clear()
                 return redirect(url_for("index"))
+            
             session["profile"] = {
                 "id": updated_user["id"],
                 "sub": updated_user["auth0_sub"],
                 "display_name": updated_user["display_name"],
-                "photo": updated_user["profile_pic"],
+                "profile_pic": updated_user["profile_pic"],
             }
             flash("Profile saved.")
             return redirect(url_for("settings"))
@@ -206,7 +215,6 @@ def settings():
         user=current_user,
         values=values,
         errors=errors,
-        avatar_url=avatar_url,
         can_restore_avatar=can_restore_avatar,
     )
 
@@ -214,7 +222,7 @@ def settings():
 @app.route("/myevents")
 def my_events():
     """Page with many events"""
-    events = database.get_all_events()
+    events = db.get_all_events()
     # print(events)
     return render_template("my_events.html", events=events)
 
@@ -224,14 +232,14 @@ def search():
     """Search page, where users can search for events"""
     q = request.args.get("q", type=str)
 
-    return render_template("search.html", query=q)
+    return render_template("search.html", query=q, results=db.search_events(q))
 
 
 @app.route("/event/<int:event_id>")
 def event(event_id):
     """Event page, where users can view details about a specific event"""
-    # print(database.get_event(event_id))
-    return render_template("event.html", event=database.get_event(event_id))
+    # print(db.get_event(event_id))
+    return render_template("event.html", event=db.get_event(event_id))
 
 
 # @app.route("/user/<string:username>")
