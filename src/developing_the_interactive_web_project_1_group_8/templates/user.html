@@ -64,18 +64,30 @@
 <section class="row">
   <h2>{{ title }}</h2>
   <div class="carousel">
+    {% if events|length == 0 %}
+    <div class="no-events">
+      <p>Nothing to show ;(</p>
+    </div>
+    {% else %}
     {% for event in events %}
     {% include "components/event_tile.html" %}
     {% endfor %}
+    {% endif %}
   </div>
 </section>
 {% endfor %}
 <section class="row">
   <h2>Following</h2>
   <div class="carousel">
+    {% if following|length == 0 %}
+    <div class="no-events">
+      <p>Nothing to show ;(</p>
+    </div>
+    {% else %}
     {% for user in following %}
     {% include "components/user_tile.html" %}
     {% endfor %}
+    {% endif %}
   </div>
 </section>
 {% endif %}

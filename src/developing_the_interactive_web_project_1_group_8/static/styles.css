@@ -164,9 +164,9 @@ main {
 
 
 .row {
-
-
-  height: 300px;
+  display: flex;
+  flex-direction: column;
+  height: 20em;
   padding: 10px 20px;
   border-bottom: 1px solid var(--color-border);
 }
@@ -178,10 +178,33 @@ main {
 
 .carousel {
   display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  column-gap: 15px;
   gap: 15px;
+  height: inherit;
+  padding: 10px;
+  border-radius: 16px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   padding-bottom: 10px;
+  background-color: var(--color-surface-muted);
+}
+
+.carosel::-webkit-scrollbar {
+  height: 8px;
+  border-radius: 4px;
+
+}
+
+.no-events {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  background-color: var(--color-surface-muted);
+  border-radius: 16px;
 }
 
 .carousel .event-tile {

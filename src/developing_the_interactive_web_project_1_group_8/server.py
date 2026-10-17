@@ -131,6 +131,10 @@ def user(user_id):
     profile["is_following"] = False
     profile["is_blocked"] = False
 
+    if db.is_blocked(user_id, session["profile"]["id"]):
+        # this is deception, we don't want to tell the user that they are blocked, we just want to make it look like the user doesn't exist
+        abort(403, "This user does not appear to exist.")
+
     events = db.get_user_events(user_id)
     going_events = db.get_user_events_attending(user_id)
     followers = db.get_following(user_id)
@@ -268,3 +272,8 @@ def event(event_id):
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template("error.html", message=e.description), 404
+
+@app.errorhandler(403)
+def forbidden(e):
+    return render_template("error.html", message=e.description), 404
+
