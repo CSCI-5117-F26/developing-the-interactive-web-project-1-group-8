@@ -192,6 +192,8 @@ def settings():
             check_exists = db.get_public_user(values["display_name"])
             if check_exists and check_exists["id"] != current_user["id"]:
                 errors.append("Display name is already in use. Choose a unique display name.")
+            if first_time and current_user["display_name"] == values["display_name"]:
+                errors.append("You must select a non-temporary Username.")
             if len(values["bio"]) > 4000:
                 errors.append("Biography must be 4,000 characters or fewer.")
             if values["profile_pic"] and (
