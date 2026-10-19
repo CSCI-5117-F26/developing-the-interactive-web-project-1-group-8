@@ -6,7 +6,7 @@
 <p>Hello {{ user.display_name }}.</p>
 <p>Local user ID is {{ user.id }}.</p>
 <p>Auth0 user ID is {{ user.auth0_sub }}.</p>
-<p><a href="{{ url_for('user', user_id=user.id) }}">View my profile</a></p>
+<p><a href="{{ url_for('user', username=user.display_name) }}">View my profile</a></p>
 <p><a href="{{ url_for('settings') }}">Edit my profile</a></p>
 </section>
 {% endblock %}

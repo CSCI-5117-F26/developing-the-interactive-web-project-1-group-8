@@ -4,6 +4,7 @@ import os
 import atexit
 from dotenv import load_dotenv
 import http.client
+import random
 
 
 load_dotenv()
@@ -33,15 +34,16 @@ def get_or_create_user(user_info):
   picture = user_info.get("picture")
   email = user_info.get("email")
   login_sub = user_info.get("sub")
+  temp_display_name = "temp-user-" + str(random.randrange(0, 10000))
 
   with pool.connection() as conn:
     conn.execute(
       """
-      INSERT INTO users (auth0_sub, email, bio, auth0_avatar_url)
-      VALUES (%s, %s, %s, %s)
+      INSERT INTO users (display_name, auth0_sub, email, bio, auth0_avatar_url, setup_complete)
+      VALUES (%s, %s, %s, %s, %s, %s)
       ON CONFLICT (auth0_sub) DO NOTHING
       """,
-      (login_sub, email, "", picture),
+      (temp_display_name, login_sub, email, "", picture, False),
     )
     return conn.execute(
         "SELECT * FROM users WHERE auth0_sub = %s", (login_sub,)
@@ -52,7 +54,7 @@ def get_public_user(username):
   with pool.connection() as conn:
     return conn.execute(
       """
-      SELECT display_name, email, bio, profile_pic
+      SELECT id, display_name, email, bio, profile_pic, setup_complete
       FROM users WHERE display_name = %s
       """,
     (username,),
@@ -74,17 +76,17 @@ def update_auth0_img(img_url, auth0_id):
   res = cnxn.getresponse()
   data = res.read()
 
-def update_profile(id, display_name, bio, profile_pic):
+def update_profile(id, display_name, bio, profile_pic, first_time_update):
   with pool.connection() as conn:
     return conn.execute(
       """
       UPDATE users
-      SET display_name = %s, bio = %s, profile_pic = %s,
+      SET display_name = %s, bio = %s, profile_pic = %s, setup_complete = %s,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = %s
       RETURNING id, auth0_sub, display_name
       """,
-    (display_name, bio, profile_pic, id),
+    (display_name, bio, profile_pic, first_time_update, id),
     ).fetchone()
 
 

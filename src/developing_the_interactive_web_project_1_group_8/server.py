@@ -88,18 +88,18 @@ async def callback():
     user_info = token["userinfo"]
     user_exists = db.get_sub(user_info["sub"])
     user = db.get_or_create_user(user_info)
-    username_filled = db.get_public_user(user["display_name"])
 
     session.clear()
     session["profile"] = {
         "id": user["id"],
         "sub": user["auth0_sub"],
         "display_name": user["display_name"],
+        "setup": user["setup_complete"],
     }
-    if user_exists and username_filled:
+    if user_exists and user["setup_complete"]:
         return redirect(url_for("account"))
     else:
-        return redirect(url_for("settings", first_time=True))
+        return redirect(url_for("settings"))
 
 
 @app.route("/logout", methods=["POST"])
@@ -130,14 +130,15 @@ def account():
         "id": user["id"],
         "sub": user["auth0_sub"],
         "display_name": user["display_name"],
+        "setup": user["setup_complete"],
     }
 
     return render_template("account.html", user=user)
 
 
-@app.route("/user/<int:user_id>")
-def user(user_id):
-    profile = db.get_user(user_id)
+@app.route("/user/<string:username>")
+def user(username):
+    profile = db.get_public_user(username)
 
     if profile is None:
         abort(404)
@@ -153,8 +154,8 @@ def user(user_id):
 @app.route("/account/settings", methods=["GET", "POST"])
 @requires_auth
 def settings():
-    first_time = request.args.get('first_time', False)
     current_user = db.get_user(session["profile"]["id"])
+    first_time = not current_user["setup_complete"]
 
     if current_user is None:
         session.clear()
@@ -189,7 +190,7 @@ def settings():
             if not 1 <= len(values["display_name"]) <= 80:
                 errors.append("Display name must be between 1 and 80 characters.")
             check_exists = db.get_public_user(values["display_name"])
-            if check_exists:
+            if check_exists and check_exists["id"] != current_user["id"]:
                 errors.append("Display name is already in use. Choose a unique display name.")
             if len(values["bio"]) > 4000:
                 errors.append("Biography must be 4,000 characters or fewer.")
@@ -202,11 +203,13 @@ def settings():
                 )
 
         if not errors:
+            display_name_update = values["display_name"] != current_user["display_name"] if first_time else True
             updated_user = db.update_profile(
                 current_user["id"],
                 values["display_name"],
                 values["bio"],
                 values["profile_pic"] or None,
+                display_name_update
             )
             if updated_user is None:
                 session.clear()

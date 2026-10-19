@@ -24,7 +24,7 @@
       <ul class="pure-menu-list">
         <li class="pure-menu-item">
           {% if session.get('profile') %}
-          <a class="pure-menu-link" href="{{ url_for('user', user_id=session['profile']['id']) }}">My profile</a>
+          <a class="pure-menu-link" href="{{ url_for('user', username=session['profile']['display_name']) }}">My profile</a>
           {% else %}
           <a class="pure-menu-link" href="{{ url_for('login') }}">Login</a>
           {% endif %}

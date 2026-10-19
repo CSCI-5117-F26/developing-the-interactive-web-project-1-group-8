@@ -3,7 +3,7 @@
 {% block content %}
 <section class="profile-content page-panel">
   <h1>Profile settings</h1>
-  <p><a href="{{ url_for('user', user_id=user.id) }}">View my public profile</a></p>
+  <p><a href="{{ url_for('user', username=user.display_name) }}">View my public profile</a></p>
 
   {% if errors %}
   <div>
