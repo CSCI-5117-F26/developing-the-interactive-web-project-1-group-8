@@ -8,7 +8,6 @@ from flask import (
     flash,
     request,
 )
-import database
 import validators
 import os
 from urllib.parse import urlencode, urlsplit
@@ -18,12 +17,9 @@ from authlib.integrations.flask_client import OAuth
 
 from developing_the_interactive_web_project_1_group_8.api import api
 from developing_the_interactive_web_project_1_group_8.decorators import requires_auth
-from developing_the_interactive_web_project_1_group_8.db import (
-    get_or_create_user,
-    get_user,
-    get_public_user,
-    update_profile,
-)
+import developing_the_interactive_web_project_1_group_8.db as db
+
+db.setup()
 
 load_dotenv()
 app = Flask(__name__)
@@ -70,7 +66,7 @@ def is_safe_avatar_url(url):
 @app.route("/")
 def index():
     """Dashboard page, where users can explore for new events"""
-    events = database.get_all_events()
+    events = db.get_all_events()
     sections = [
         ("Events from Popular Games", events),
         ("Events from Games You've Played", events),
@@ -90,7 +86,9 @@ async def login():
 async def callback():
     token = auth0.authorize_access_token()
     user_info = token["userinfo"]
-    user = get_or_create_user(user_info)
+    user_exists = db.get_sub(user_info["sub"])
+    user = db.get_or_create_user(user_info)
+    username_filled = db.get_public_user(user["display_name"])
 
     session.clear()
     session["profile"] = {
@@ -98,7 +96,10 @@ async def callback():
         "sub": user["auth0_sub"],
         "display_name": user["display_name"],
     }
-    return redirect(url_for("account"))
+    if user_exists and username_filled:
+        return redirect(url_for("account"))
+    else:
+        return redirect(url_for("settings", first_time=True))
 
 
 @app.route("/logout", methods=["POST"])
@@ -119,7 +120,7 @@ def logout():
 @app.route("/account")
 @requires_auth
 def account():
-    user = get_user(session["profile"]["id"])
+    user = db.get_user(session["profile"]["id"])
     if user is None:
         session.clear()
         return redirect(url_for("index"))
@@ -136,7 +137,7 @@ def account():
 
 @app.route("/user/<int:user_id>")
 def user(user_id):
-    profile = get_public_user(user_id)
+    profile = db.get_user(user_id)
 
     if profile is None:
         abort(404)
@@ -152,17 +153,24 @@ def user(user_id):
 @app.route("/account/settings", methods=["GET", "POST"])
 @requires_auth
 def settings():
-    current_user = get_user(session["profile"]["id"])
+    first_time = request.args.get('first_time', False)
+    current_user = db.get_user(session["profile"]["id"])
 
     if current_user is None:
         session.clear()
         return redirect(url_for("index"))
-
-    values = {
-        "display_name": current_user["display_name"],
-        "bio": current_user["bio"] or "",
-        "profile_pic": current_user["profile_pic"] or "",
-    }
+    if first_time:
+        values = {
+            "display_name": "",
+            "bio": current_user["bio"] or "",
+            "profile_pic": current_user["profile_pic"] or "",
+        }
+    else:
+        values = {
+            "display_name": current_user["display_name"],
+            "bio": current_user["bio"] or "",
+            "profile_pic": current_user["profile_pic"] or "",
+        }
     errors = []
     can_restore_avatar = is_safe_avatar_url(current_user["auth0_avatar_url"])
 
@@ -177,8 +185,12 @@ def settings():
                 "bio": request.form.get("bio", ""),
                 "profile_pic": request.form.get("profile_pic", "").strip(),
             }
+            print(values)
             if not 1 <= len(values["display_name"]) <= 80:
                 errors.append("Display name must be between 1 and 80 characters.")
+            check_exists = db.get_public_user(values["display_name"])
+            if check_exists:
+                errors.append("Display name is already in use. Choose a unique display name.")
             if len(values["bio"]) > 4000:
                 errors.append("Biography must be 4,000 characters or fewer.")
             if values["profile_pic"] and (
@@ -190,7 +202,7 @@ def settings():
                 )
 
         if not errors:
-            updated_user = update_profile(
+            updated_user = db.update_profile(
                 current_user["id"],
                 values["display_name"],
                 values["bio"],
@@ -225,7 +237,7 @@ def settings():
 @app.route("/myevents")
 def my_events():
     """Page with many events"""
-    events = database.get_all_events()
+    events = db.get_all_events()
     # print(events)
     return render_template("my_events.html", events=events)
 
@@ -242,7 +254,7 @@ def search():
 def event(event_id):
     """Event page, where users can view details about a specific event"""
     # print(database.get_event(event_id))
-    return render_template("event.html", event=database.get_event(event_id))
+    return render_template("event.html", event=db.get_event(event_id))
 
 
 # @app.route("/user/<string:username>")

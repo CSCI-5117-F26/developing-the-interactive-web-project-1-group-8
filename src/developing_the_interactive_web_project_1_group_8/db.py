@@ -25,23 +25,26 @@ def get_user(user_id):
   with pool.connection() as conn:
     return conn.execute("SELECT * FROM users WHERE id = %s", (user_id,)).fetchone()
 
+def get_sub(login_sub):
+  with pool.connection() as conn:
+      return conn.execute("SELECT * FROM users WHERE auth0_sub = %s", (login_sub,)).fetchone()
 
 def get_or_create_user(user_info):
-  display_name = user_info.get("name")
   picture = user_info.get("picture")
   email = user_info.get("email")
+  login_sub = user_info.get("sub")
 
   with pool.connection() as conn:
     conn.execute(
       """
-      INSERT INTO users (auth0_sub, display_name, email, bio, auth0_avatar_url)
-      VALUES (%s, %s, %s, %s, %s)
+      INSERT INTO users (auth0_sub, email, bio, auth0_avatar_url)
+      VALUES (%s, %s, %s, %s)
       ON CONFLICT (auth0_sub) DO NOTHING
       """,
-      (user_info["sub"], display_name[:80], email, "", picture),
+      (login_sub, email, "", picture),
     )
     return conn.execute(
-        "SELECT * FROM users WHERE auth0_sub = %s", (user_info["sub"],)
+        "SELECT * FROM users WHERE auth0_sub = %s", (login_sub,)
     ).fetchone()
 
 
@@ -71,17 +74,17 @@ def update_auth0_img(img_url, auth0_id):
   res = cnxn.getresponse()
   data = res.read()
 
-def update_profile(display_name, bio, profile_pic):
+def update_profile(id, display_name, bio, profile_pic):
   with pool.connection() as conn:
     return conn.execute(
       """
       UPDATE users
       SET display_name = %s, bio = %s, profile_pic = %s,
         updated_at = CURRENT_TIMESTAMP
-      WHERE display_name = %s
+      WHERE id = %s
       RETURNING id, auth0_sub, display_name
       """,
-    (display_name, bio, profile_pic, display_name),
+    (display_name, bio, profile_pic, id),
     ).fetchone()
 
 
