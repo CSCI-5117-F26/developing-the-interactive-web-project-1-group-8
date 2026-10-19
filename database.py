@@ -29,6 +29,7 @@ def setup_db():
                     email TEXT NOT NULL,
                     bio TEXT DEFAULT '',
                     auth0_avatar_pic TEXT,
+                    completed_setup BOOLEAN NOT NULL
                     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
                 );
