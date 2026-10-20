@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/pure-min.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/grids-responsive-min.css" />
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
-  <title>{% block title %}Project{% endblock %}</title>
+  <title>{% block title %}{% endblock %}</title>
   {% block head %}{% endblock %}
 </head>
 
@@ -23,5 +23,6 @@
     {% block content %}{% endblock %}
   </main>
 </body>
+{% block scripts %}{% endblock %}
 
 </html>

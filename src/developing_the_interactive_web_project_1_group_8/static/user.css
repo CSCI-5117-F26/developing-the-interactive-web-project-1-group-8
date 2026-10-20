@@ -1,0 +1,50 @@
+.profile-edit {
+  width: 30px;
+  height: 30px;
+  /* font-size: 1.2em; */
+  border-radius: 50%;
+  cursor: pointer;
+  padding: 5px;
+  margin-left: auto;
+}
+
+.profile-button {
+  border: none;
+  padding: 0.5em 1em;
+  border-radius: 4px;
+  cursor: pointer;
+  height: fit-content;
+}
+
+.profile-content {
+  background-color: var(--color-background-outset);
+  display: flex;
+  column-gap: 20px;
+  border-radius: 8px;
+}
+
+.profile-bio {
+  flex: 1;
+  min-width: 0;
+  font-size: 1.1em;
+  line-height: 1.4em;
+  overflow-wrap: anywhere;
+}
+
+.profile-actions {
+  display: flex;
+  flex-direction: column;
+  row-gap: 10px;
+  align-items: center;
+}
+
+.profile-desc {
+  h1 {
+    margin: 0;
+  }
+
+  h2 {
+    font-size: 1.2em;
+    margin: 0;
+  }
+}

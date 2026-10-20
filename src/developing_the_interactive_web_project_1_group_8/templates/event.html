@@ -1,33 +1,33 @@
 {% extends "base.html" %}
 
-{% block title %} {{ event.name }} {% endblock %}
+{% block title %} {{ event.name }} - GameMaster {% endblock %}
 
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='event_grid.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='event_tile.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='tile.css') }}">
 {% endblock %}
 
 {% block content %}
 <section class="page-panel">
-<h1>{{ event.name }}</h1>
+    <h1>{{ event.name }}</h1>
 
-<h2>{{ event.time }}</h2>
-<h2>{{ event.address }}</h2>
+    <h2>{{ event.time }}</h2>
+    <h2>{{ event.address }}</h2>
 
-<div class="event-status-container">
-    {% if event.status == "scheduled" %}
+    <div class="event-status-container">
+        {% if event.status == "scheduled" %}
         <div class="event-status-circle"></div>
-    {% elif event.status == "pending" %}
+        {% elif event.status == "pending" %}
         <div class="event-status-circle" style="background-color: var(--color-warning);"></div>
-    {% else %}
+        {% else %}
         <div class="event-status-circle" style="background-color: var(--color-danger);"></div>
-    {% endif %}
-    <div>{{event.status}}</div>
-</div>
+        {% endif %}
+        <div>{{event.status}}</div>
+    </div>
 
-<h2>?/{{event.max_attendees}} Going</h2>
+    <h2>?/{{event.max_attendees}} Going</h2>
 
-<p>{{event.description}}</p>
+    <p>{{event.description}}</p>
 
 </section>
 {% endblock %}
