@@ -1,3 +1,4 @@
+from dotenv import load_dotenv
 import psycopg
 from psycopg_pool import ConnectionPool
 from psycopg.rows import dict_row
@@ -5,6 +6,7 @@ import os
 import atexit
 
 pool = None
+load_dotenv()
 
 
 def setup():
@@ -114,4 +116,27 @@ def setup_db():
                 );
                 """
             )
+
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS blocked (
+                    blocking INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                    blocked INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                    PRIMARY KEY (blocking, blocked),
+                    date_blocked TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                """
+            )
+
+            cur.execute(
+                """
+                CREATE OR REPLACE VIEW user_follower_counts AS
+                SELECT u.id AS user_id,
+                    count(f.followed) AS follower_count
+                FROM (users u
+                    LEFT JOIN friends f ON ((f.followed = u.id)))
+                GROUP BY u.id;
+                """
+            )
             conn.commit()
+setup()

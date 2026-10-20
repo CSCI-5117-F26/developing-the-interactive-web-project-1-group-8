@@ -1,3 +1,6 @@
+from datetime import timedelta
+from developing_the_interactive_web_project_1_group_8.CacheBackendPostgres import CacheBackendPostgres, PostgresCache, PostgresDict
+from boardgamegeek import BGGClient, CacheBackendMemory
 from psycopg_pool import ConnectionPool
 from psycopg.rows import dict_row
 import os
@@ -20,11 +23,22 @@ def setup():
   # I'm not _actually_ convinced this is required, but the docs said to do it!
   atexit.register(pool.close)
 
+
+bgg = BGGClient(
+    os.environ["BGG_API_KEY"],
+    cache=CacheBackendPostgres(pool=pool, ttl=timedelta(hours=20)),
+    requests_per_minute=1200
+)
+
 # User DB Functions
 
 def get_user(user_id):
   with pool.connection() as conn:
     return conn.execute("SELECT * FROM users WHERE id = %s", (user_id,)).fetchone()
+
+def get_id_for_username(username):
+  with pool.connection() as conn:
+    return conn.execute("SELECT id FROM users WHERE username = %s", (username,)).fetchone()
 
 def get_sub(login_sub):
   with pool.connection() as conn:
@@ -84,7 +98,7 @@ def update_profile(id, display_name, bio, profile_pic, first_time_update):
       SET display_name = %s, bio = %s, profile_pic = %s, setup_complete = %s,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = %s
-      RETURNING id, auth0_sub, display_name
+      RETURNING id, auth0_sub, display_name, bio, profile_pic
       """,
     (display_name, bio, profile_pic, first_time_update, id),
     ).fetchone()
@@ -136,6 +150,35 @@ def delete_event(event_id):
       (event_id,)
     )
     conn.commit()
+
+
+def get_user_events(username):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            user_id = cur.execute("SELECT id FROM users WHERE username = %s", (username,))
+            cur.execute(
+                """
+                SELECT * FROM events
+                WHERE hostID = %s
+                """,
+                (user_id,),
+            )
+            return cur.fetchall()
+
+def get_user_events_attending(username):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            user_id = cur.execute("SELECT id FROM users WHERE username = %s", (username,))
+            cur.execute(
+                """
+                SELECT e.*
+                FROM events e
+                JOIN event_participation ea ON e.id = ea.id
+                WHERE ea.id = %s
+                """,
+                (user_id,),
+            )
+            return cur.fetchall()
 
 def add_availability(time_info):
   user = time_info.get("username")
@@ -202,7 +245,21 @@ def remove_interest(participation_info):
       )
       conn.commit()
 
-# Friend functionalities
+# ---------- Follow ----------
+
+def get_following(user_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT u.id, u.display_name, u.profile_pic, u.bio
+                FROM users u
+                JOIN friends f ON u.id = f.followed
+                WHERE f.follower = %s
+                """,
+                (user_id,),
+            )
+            return cur.fetchall()
 
 def follow_user(follow_info):
   following_user = follow_info.get("current_user")
@@ -217,10 +274,74 @@ def follow_user(follow_info):
         """
         INSERT INTO friends (follower, followed)
         VALUES(%s, %s)
+        ON CONFLICT (follower, followed) DO NOTHING
         """,
         (following_id, followed_id)
       )
+      followed = cur.rowcount > 0  # Returns True if a row was inserted
       conn.commit()
+  return followed
+
+def unfollow_user(follow_info):
+    following_user = follow_info.get("current_user")
+    followed_user = follow_info.get("followed_user")
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            follower_id = cur.execute("SELECT id FROM users WHERE display_name = %s", (following_user,))
+            followed_id = cur.execute("SELECT id FROM users WHERE display_name = %s", (followed_user,))
+            cur.execute(
+                """
+                DELETE FROM friends
+                WHERE follower = %s AND followed = %s
+                """,
+                (follower_id, followed_id),
+            )
+            return cur.rowcount > 0  # Returns True if a row was deleted
+
+def is_following(follow_info):
+    following_user = follow_info.get("current_user")
+    followed_user = follow_info.get("followed_user")
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            follower_id = cur.execute("SELECT id FROM users WHERE display_name = %s", (following_user,))
+            followed_id = cur.execute("SELECT id FROM users WHERE display_name = %s", (followed_user,))
+            cur.execute(
+                """
+                SELECT 1 FROM friends
+                WHERE follower = %s AND followed = %s
+                """,
+                (follower_id, followed_id),
+            )
+            return cur.fetchone() is not None
+
+
+def get_followers(user_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT u.id, u.display_name, u.profile_pic
+                FROM users u
+                JOIN friends f ON u.id = f.follower
+                WHERE f.followed = %s
+                """,
+                (user_id,),
+            )
+            return cur.fetchall()
+
+def get_follower_count(user_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT COUNT(*) AS follower_count
+                FROM friends
+                WHERE followed = %s
+                """,
+                (user_id,),
+            )
+            result = cur.fetchone()
+            return result["follower_count"] if result else 0
 
 def get_friend_events(user):
   with pool.connection() as conn:
@@ -237,3 +358,70 @@ def get_friend_events(user):
         (user_id,)
       )
       return cur.fetchall()
+
+# ---------- Block ----------
+
+def get_blocked_users(user_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT u.id, u.display_name, u.profile_pic
+                FROM users u
+                JOIN blocked b ON u.id = b.blocked
+                WHERE b.blocking = %s
+                """,
+                (user_id,),
+            )
+            return cur.fetchall()
+
+def block_user(blocking_id, blocked_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO blocked (blocking, blocked)
+                VALUES (%s, %s)
+                ON CONFLICT (blocking, blocked) DO NOTHING
+                """,
+                (blocking_id, blocked_id),
+            )
+            return cur.rowcount > 0  # Returns True if a row was inserted
+
+def unblock_user(blocking_id, blocked_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                DELETE FROM blocked
+                WHERE blocking = %s AND blocked = %s
+                """,
+                (blocking_id, blocked_id),
+            )
+            return cur.rowcount > 0  # Returns True if a row was deleted
+
+def is_blocked(blocking_id, blocked_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT 1 FROM blocked
+                WHERE blocking = %s AND blocked = %s
+                """,
+                (blocking_id, blocked_id),
+            )
+            return cur.fetchone() is not None
+
+# ---------- Search ----------
+
+def search_events(name_query):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT * FROM events
+                WHERE LOWER(name) LIKE LOWER(%s)
+                """, 
+                (f"%{name_query}%",))
+            return cur.fetchall()
+

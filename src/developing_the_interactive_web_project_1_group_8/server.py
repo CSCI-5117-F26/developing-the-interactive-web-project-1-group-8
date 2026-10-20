@@ -6,7 +6,7 @@ from flask import (
     session,
     abort,
     flash,
-    request,
+    request, jsonify,
 )
 import validators
 import os
@@ -15,7 +15,8 @@ from dotenv import load_dotenv
 from flask_wtf.csrf import CSRFProtect
 from authlib.integrations.flask_client import OAuth
 
-from developing_the_interactive_web_project_1_group_8.api import api
+from developing_the_interactive_web_project_1_group_8 import db
+from developing_the_interactive_web_project_1_group_8.api import api, is_safe_avatar_url, get_user_photo
 from developing_the_interactive_web_project_1_group_8.decorators import requires_auth
 import developing_the_interactive_web_project_1_group_8.db as db
 
@@ -50,19 +51,6 @@ CSRFProtect(app)
 
 app.register_blueprint(api)
 
-
-# https://nandgator.github.io/pyvalidators/stable/api/url/
-def is_safe_avatar_url(url):
-    if not url or validators.url(url) is not True:
-        return False
-
-    # https://docs.python.org/3/library/urllib.parse.html
-    parsed = urlsplit(url)
-    return (
-        parsed.scheme == "https" and parsed.username is None and parsed.password is None
-    )
-
-
 @app.route("/")
 def index():
     """Dashboard page, where users can explore for new events"""
@@ -95,6 +83,7 @@ async def callback():
         "sub": user["auth0_sub"],
         "display_name": user["display_name"],
         "setup": user["setup_complete"],
+        "profile_pic": user["profile_pic"] or None,
     }
     if user_exists and user["setup_complete"]:
         return redirect(url_for("account"))
@@ -131,6 +120,7 @@ def account():
         "sub": user["auth0_sub"],
         "display_name": user["display_name"],
         "setup": user["setup_complete"],
+        "profile_pic": user["profile_pic"] or None,
     }
 
     return render_template("account.html", user=user)
@@ -139,16 +129,32 @@ def account():
 @app.route("/user/<string:username>")
 def user(username):
     profile = db.get_public_user(username)
+    profile_id = profile["id"]
 
     if profile is None:
-        abort(404)
+        abort(404, "This user does not appear to exist.")
+    profile["followers"] =  db.get_follower_count(profile_id)
+    profile["is_following"] = False
+    profile["is_blocked"] = False
 
-    avatar_url = profile["profile_pic"]
+    if db.is_blocked(profile_id, session["profile"]["id"]):
+        # this is deception, we don't want to tell the user that they are blocked, we just want to make it look like the user doesn't exist
+        abort(403, "This user does not appear to exist.")
 
-    if not is_safe_avatar_url(avatar_url):
-        avatar_url = url_for("static", filename="default-avatar.svg")
+    events = db.get_user_events(username)
+    going_events = db.get_user_events_attending(username)
+    followers = db.get_following(profile_id)
+    sections = [
+        ("Hosted Events", events),
+        ("Events Going To", going_events)
+    ]
 
-    return render_template("user.html", user=profile, avatar_url=avatar_url)
+    if "profile" in session:
+        current_user_id = session["profile"]["id"]
+        profile["is_following"] = db.is_following(current_user_id, profile_id)
+        profile["is_blocked"] = db.is_blocked(current_user_id, profile_id)
+
+    return render_template("user.html", sections=sections, following=followers, user=profile)
 
 
 @app.route("/account/settings", methods=["GET", "POST"])
@@ -194,8 +200,8 @@ def settings():
                 errors.append("Display name is already in use. Choose a unique display name.")
             if first_time and current_user["display_name"] == values["display_name"]:
                 errors.append("You must select a non-temporary Username.")
-            if len(values["bio"]) > 4000:
-                errors.append("Biography must be 4,000 characters or fewer.")
+            if len(values["bio"]) > 200:
+                errors.append("Biography must be 200 characters or fewer.")
             if values["profile_pic"] and (
                 len(values["profile_pic"]) > 2048
                 or not is_safe_avatar_url(values["profile_pic"])
@@ -216,25 +222,21 @@ def settings():
             if updated_user is None:
                 session.clear()
                 return redirect(url_for("index"))
+            
             session["profile"] = {
                 "id": updated_user["id"],
                 "sub": updated_user["auth0_sub"],
                 "display_name": updated_user["display_name"],
+                "profile_pic": updated_user["profile_pic"],
             }
             flash("Profile saved.")
             return redirect(url_for("settings"))
-
-    avatar_url = current_user["profile_pic"]
-
-    if not is_safe_avatar_url(avatar_url):
-        avatar_url = url_for("static", filename="avatar-default.svg")
 
     return render_template(
         "settings.html",
         user=current_user,
         values=values,
         errors=errors,
-        avatar_url=avatar_url,
         can_restore_avatar=can_restore_avatar,
     )
 
@@ -252,14 +254,21 @@ def search():
     """Search page, where users can search for events"""
     q = request.args.get("q", type=str)
 
-    return render_template("search.html", query=q)
+    return render_template("search.html", query=q, results=db.search_events(q))
 
 
 @app.route("/event/<int:event_id>")
 def event(event_id):
-    """Event page, where users can view details about a specific event"""
-    # print(database.get_event(event_id))
-    return render_template("event.html", event=db.get_event(event_id))
+    """
+    Event page, where users can view details about a specific event
+    
+    """
+
+    event = db.get_event(event_id)
+    if event is None:
+        abort(404,"This event does appear to exist.")
+    # print(db.get_event(event_id))
+    return render_template("event.html", event=event)
 
 
 # @app.route("/user/<string:username>")
@@ -268,3 +277,16 @@ def event(event_id):
 #     if not username:
 #         return render_template("error.html", message="Username is required"), 400
 #     return render_template("user.html", username=username)
+
+
+
+
+# ---------- Error Handlers ----------
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template("error.html", message=e.description), 404
+
+@app.errorhandler(403)
+def forbidden(e):
+    return render_template("error.html", message=e.description), 404
+
