@@ -182,6 +182,7 @@ class PostgresDict(BaseStorage):
 
     def keys(self):
         """Return a list of all keys in the cache"""
+        print(f"Fetching all keys from table {self.table_name}")
         with self.pool.connection() as con:
             result = con.execute(sql.SQL("""SELECT key FROM {0}""").format(sql.Identifier(self.table_name))).fetchall()
             return [decode(row[0]) for row in result]
@@ -189,12 +190,14 @@ class PostgresDict(BaseStorage):
 
     def items(self):
         """Return a list of all key-value pairs in the cache"""
+        print(f"Fetching all items from table {self.table_name}")
         with self.pool.connection() as con:
             result = con.execute(sql.SQL("""SELECT key, value FROM {0}""").format(sql.Identifier(self.table_name))).fetchall()
             return [(decode(row[0]), self.deserialize(decode(row[0]), row[1])) for row in result]
 
     def values(self):
         """Return a list of all values in the cache"""
+        print(f"Fetching all values from table {self.table_name}")
         with self.pool.connection() as con:
             result = con.execute(sql.SQL("""SELECT value FROM {0}""").format(sql.Identifier(self.table_name))).fetchall()
             return [self.deserialize(None, row[0]) for row in result]

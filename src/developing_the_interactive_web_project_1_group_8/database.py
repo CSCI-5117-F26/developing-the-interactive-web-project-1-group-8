@@ -135,4 +135,16 @@ def setup_db():
                 );
                 """
             )
+
+            cur.execute(
+                """
+                CREATE TABLE cached_bgg_data (
+                    id INT PRIMARY KEY,
+                    bgg_id INT NOT NULL UNIQUE,
+                    query_text CHAR NOT NULL,
+                    json_response CHAR NOT NULL,
+                    last_updated TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+            """
+            )
             conn.commit()

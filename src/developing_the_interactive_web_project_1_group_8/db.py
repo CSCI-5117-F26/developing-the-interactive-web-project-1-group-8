@@ -15,27 +15,11 @@ pool = ConnectionPool(
 atexit.register(pool.close)
 
 
-
-
 bgg = BGGClient(
     os.environ["BGG_API_KEY"],
-    cache=CacheBackendPostgres(pool=pool, ttl=timedelta(hours=1000000000)),
-    requests_per_minute=120
-    # cache=CacheBackendMemory(ttl=3600),
+    cache=CacheBackendPostgres(pool=pool, ttl=timedelta(hours=20)),
+    requests_per_minute=1200
 )
-
-
-for i in range(10):
-    
-    for game in ["Catan", "Terraforming Mars", "Gloomhaven"]:
-        try:
-            print(f"Fetching {game}...")
-            result = bgg.game(game)
-            # bgg.requests_session.
-            print(f"Fetched {game}: {result.name}")
-        except Exception as e:
-            print(f"Error fetching {game}: {e}")
-
 
 
 def get_user(user_id):
