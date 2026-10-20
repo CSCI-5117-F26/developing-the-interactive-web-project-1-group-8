@@ -1,3 +1,5 @@
+from developing_the_interactive_web_project_1_group_8.CacheBackendPostgres import CacheBackendPostgres
+from boardgamegeek import BGGClient, CacheBackendMemory
 from psycopg_pool import ConnectionPool
 from psycopg.rows import dict_row
 import os
@@ -10,6 +12,19 @@ pool = ConnectionPool(
     os.environ["DATABASE_URL"], open=True, kwargs={"row_factory": dict_row}
 )
 atexit.register(pool.close)
+
+# pg = CacheBackendPostgres(pool=pool, ttl=3600)
+
+
+
+bgg = BGGClient(
+    os.environ["BGG_API_KEY"],
+    # cache=CacheBackendPostgres(pool=pool, ttl=3600),
+    cache=CacheBackendMemory(ttl=3600),
+)
+
+game = bgg.game("Monopoly")
+print(game.name)
 
 
 def get_user(user_id):
