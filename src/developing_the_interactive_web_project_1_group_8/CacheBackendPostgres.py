@@ -4,6 +4,9 @@
    :classes-only:
    :nosignatures:
 """
+from datetime import timedelta, time
+from cmath import sqrt
+from psycopg import sql
 from psycopg import Connection
 from psycopg_pool.abc import CT
 import requests
@@ -15,14 +18,14 @@ from boardgamegeek.cache import CacheBackend, StrOrPath
 from psycopg_pool import ConnectionPool
 
 from logging import getLogger
-from typing import Iterable, List, Optional, Iterator
+from typing import Iterable, List, Optional, Iterator, Tuple
 
 
 from requests_cache._utils import get_valid_kwargs, decode, encode
 from requests_cache.serializers import SerializerType, pickle_serializer, utf8_encoder
 from requests_cache import BaseCache, BaseStorage, CachedSession
 
-DEFAULT_TTL_OFFSET = 3600
+DEFAULT_TTL_OFFSET = 67
 logger = getLogger(__name__)
 
 
@@ -42,14 +45,16 @@ class PostgresCache(BaseCache):
         pool: ConnectionPool[CT],
         namespace='http_cache',
         serializer: Optional[SerializerType] = None,
+        ttl: bool = True,
+        ttl_offset: timedelta = timedelta(hours=1),
         **kwargs,
     ):
         super().__init__(cache_name=namespace, **kwargs)
         skwargs = {'serializer': serializer, **kwargs} if serializer else kwargs
-        self.pool = pool
 
-        self.responses = PostgresDict(pool=self.pool, table_name="responses", **skwargs)
-        self.redirects = PostgresDict(pool=self.pool, lock=self.responses._lock, serializer=None, **kwargs)
+        self.pool = pool
+        self.responses = PostgresDict(pool=pool, table_name=namespace + "_responses", ttl=ttl, ttl_offset=timedelta(hours=1), **skwargs)
+        self.redirects = PostgresDict(pool=pool, lock=self.responses._lock, table_name=namespace + "_redirects", serializer=None, **kwargs)
 
 
 
@@ -63,15 +68,20 @@ class PostgresDict(BaseStorage):
 
     def __init__(
         self,
-        pool: ConnectionPool[CT],
+        pool: Optional[ConnectionPool[CT]] = None,
         serializer: Optional[SerializerType] = pickle_serializer,
+        ttl: bool = True,
+        ttl_offset: timedelta = timedelta(hours=1),
         **kwargs,
     ):
         super().__init__(serializer=serializer, **kwargs)
         connection_kwargs = get_valid_kwargs(ConnectionPool.__init__, kwargs)
-        self.pool = pool
+        self.pool = pool or ConnectionPool(**connection_kwargs)
         self._lock = kwargs.pop('lock', threading.RLock())
-        self.table_name = kwargs.pop('table_name', 'cache')
+        self.table_name = str(kwargs.pop('table_name', 'cache'))
+        
+        self.ttl = ttl
+        self.ttl_offset = ttl_offset
         
         self.init_db();
 
@@ -80,21 +90,16 @@ class PostgresDict(BaseStorage):
         self.close()
         with self.pool.connection() as conn:
             conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS %s (
-                    key BYTEA PRIMARY KEY,
-                    value BYTEA NOT NULL,
-                    expires TIMESTAMPTZ
-                );
-                """,
-                (self.table_name,),
-            )
+                sql.SQL(
+                    """CREATE TABLE IF NOT EXISTS {0} (
+                        key BYTEA PRIMARY KEY,
+                        value BYTEA NOT NULL,
+                        expires INT NOT NULL
+                    );""").format(sql.Identifier(self.table_name))
+                )
             
             conn.execute(
-                """
-                CREATE INDEX IF NOT EXISTS expires_idx ON %s(expires);
-                """,
-                (self.table_name,),
+                sql.SQL("""CREATE INDEX IF NOT EXISTS expires_idx ON {0}(expires);""").format(sql.Identifier(self.table_name))
                 )
             
             conn.commit()
@@ -108,16 +113,17 @@ class PostgresDict(BaseStorage):
 
     def __contains__(self, key) -> bool:
         with self.pool.connection() as con:
-            result = con.execute("""SELECT 1 FROM %s WHERE key = %s;""", (self.table_name,self._bkey(key),))
+            result = con.execute(sql.SQL("""SELECT 1 FROM {0} WHERE key = {1};""").format(sql.Identifier(self.table_name), sql.Literal(self._bkey(key))))
+            print(f"Checking if key {key} exists in table {self.table_name}: {result.fetchone() is not None}")
             return bool(result.fetchone())
 
     def __getitem__(self, key):
         with self.pool.connection() as con:
-            result = con.execute("""
-                        SELECT value FROM %s WHERE key = %s;
-                        """,
-                        (self.table_name,self._bkey(key),)
+            result = con.execute(sql.SQL("""
+                        SELECT value FROM {0} WHERE key = {1};
+                        """).format(sql.Identifier(self.table_name), sql.Literal(self._bkey(key)))
                     ).fetchone()
+            print(f"Getting item with key {key} from table {self.table_name}: {result != None}")
             if result is None:
                 raise KeyError
             return self.deserialize(key, result[0])
@@ -125,13 +131,13 @@ class PostgresDict(BaseStorage):
     def __setitem__(self, key, item):
         with self.pool.connection() as con:
             expires_delta = getattr(item, 'expires_delta', None)
+            print(f"Setting item with key {key} and expires_delta {expires_delta}")
             if expires_delta is not None:
                 con.execute(
-                        """
-                        INSERT INTO %s (key, value, expires) VALUES (%s, %s, %s)
+                        sql.SQL("""
+                        INSERT INTO {0} (key, value, expires) VALUES ({1}, {2}, {3})
                         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, expires = EXCLUDED.expires;
-                        """,
-                        (self.table_name, self._bkey(key), self.serialize(item), expires_delta,)
+                        """).format(sql.Identifier(self.table_name), sql.Literal(self._bkey(key)), sql.Literal(self.serialize(item)), sql.Literal(expires_delta),)
                     )
             return
 
@@ -141,7 +147,7 @@ class PostgresDict(BaseStorage):
         # if not self.connection.delete(self._bkey(key)):
         #     raise KeyError
         with self.pool.connection() as con:
-            result = con.execute("""DELETE FROM %s WHERE key = %s""", (self.table_name, self._bkey(key),))
+            result = con.execute(sql.SQL("""DELETE FROM {0} WHERE key = {1}""").format(sql.Identifier(self.table_name), sql.Literal(self._bkey(key))))
             if result.rowcount == 0:
                 raise KeyError
 
@@ -154,11 +160,22 @@ class PostgresDict(BaseStorage):
     def bulk_delete(self, keys: Iterable[str]):
         """Delete multiple keys from the cache, without raising errors for missing keys"""
         with self.pool.connection() as con:
-            con.execute("""DELETE FROM %s WHERE key = ANY(%s)""", (self.table_name, self._bkeys(keys),))
+            con.execute(sql.SQL("""DELETE FROM {0} WHERE key = ANY({1})""").format(sql.Identifier(self.table_name), sql.Literal(self._bkeys(keys))))
 
     def clear(self):
         self.bulk_delete(self.keys())
 
+    def count(self, expired: bool = True) -> int:
+        """Count number of responses, optionally excluding expired"""
+        print(f"Counting items in table {self.table_name}, expired={expired}")
+        if not expired:
+            with self.pool.connection() as con:
+                res = con.execute(sql.SQL("""SELECT COUNT(*) FROM {0} WHERE expires is null or expires > {1}""").format(sql.Identifier(self.table_name), sql.Literal(time()))).fetchone()
+                if res is None:
+                    return 0
+                return res[0]
+        return len(list(self.keys()))
+        
     def close(self):
         # self.connection.close()
         pass
@@ -166,17 +183,21 @@ class PostgresDict(BaseStorage):
     def keys(self):
         """Return a list of all keys in the cache"""
         with self.pool.connection() as con:
-            result = con.execute("""SELECT key FROM %s""", (self.table_name,)).fetchall()
+            result = con.execute(sql.SQL("""SELECT key FROM {0}""").format(sql.Identifier(self.table_name))).fetchall()
             return [decode(row[0]) for row in result]
 
 
     def items(self):
-        for k in self.keys():
-            yield (k, self[k])
+        """Return a list of all key-value pairs in the cache"""
+        with self.pool.connection() as con:
+            result = con.execute(sql.SQL("""SELECT key, value FROM {0}""").format(sql.Identifier(self.table_name))).fetchall()
+            return [(decode(row[0]), self.deserialize(decode(row[0]), row[1])) for row in result]
 
     def values(self):
-        for k in self.keys():
-            yield self[k]
+        """Return a list of all values in the cache"""
+        with self.pool.connection() as con:
+            result = con.execute(sql.SQL("""SELECT value FROM {0}""").format(sql.Identifier(self.table_name))).fetchall()
+            return [self.deserialize(None, row[0]) for row in result]
 
 
 
@@ -184,10 +205,10 @@ class CacheBackendPostgres(CacheBackend):
     """Cache HTTP requests in a PostgreSQL database"""
     cache: requests.Session
 
-    def __init__(self, pool: ConnectionPool[CT], ttl: int, fast_save: bool = True):
-        try:
-            int(ttl)
-        except ValueError as e:
-            raise BGGValueError from e
-
-        self.cache = CachedSession(backend=PostgresCache(pool=pool, ttl=ttl), fast_save=fast_save, allowable_codes=(200,))
+    def __init__(self, pool: ConnectionPool[CT], ttl: timedelta , fast_save: bool = True):
+        # try:
+        #     int(ttl)
+        # except ValueError as e:
+        #     raise BGGValueError from e
+        self.cache = CachedSession(backend=PostgresCache(namespace="bgg", pool=pool, ttl_offset=ttl),
+            expire_after=ttl, fast_save=fast_save, allowable_codes=(200,))
