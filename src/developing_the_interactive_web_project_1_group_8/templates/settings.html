@@ -3,7 +3,12 @@
 {% block content %}
 <section class="profile-content page-panel">
   <h1>Profile settings</h1>
-  <p><a href="{{ url_for('user', username=user.display_name) }}">View my public profile</a></p>
+  {% if session.get('profile').get('setup') %}
+    <p><a href="{{ url_for('user', username=user.username) }}">View my public profile</a></p>
+  {% else %}
+    <p><a href="{{ url_for('username') }}">Set Username</a></p>
+  {% endif %}
+  
 
   {% if errors %}
   <div>

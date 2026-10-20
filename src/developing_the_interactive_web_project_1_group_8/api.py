@@ -184,7 +184,7 @@ def unfollow_user(username):
 
 @api.route("/api/user/<string:username>/block", methods=["POST"])
 @requires_auth
-def block_user(user_id):
+def block_user(username):
     """
     Block a user.
 

@@ -27,7 +27,8 @@ def setup_db():
                 CREATE TABLE IF NOT EXISTS users (
                     id SERIAL PRIMARY KEY,
                     auth0_sub TEXT UNIQUE NOT NULL,
-                    display_name VARCHAR(80) UNIQUE NOT NULL,
+                    username VARCHAR(30) UNIQUE,
+                    display_name VARCHAR(80),
                     email TEXT NOT NULL,
                     bio TEXT DEFAULT '',
                     auth0_avatar_pic TEXT,

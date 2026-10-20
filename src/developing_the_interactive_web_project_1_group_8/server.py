@@ -17,7 +17,7 @@ from authlib.integrations.flask_client import OAuth
 
 from developing_the_interactive_web_project_1_group_8 import db
 from developing_the_interactive_web_project_1_group_8.api import api, is_safe_avatar_url, get_user_photo
-from developing_the_interactive_web_project_1_group_8.decorators import requires_auth
+from developing_the_interactive_web_project_1_group_8.decorators import requires_auth, requires_setup
 import developing_the_interactive_web_project_1_group_8.db as db
 
 db.setup()
@@ -88,7 +88,7 @@ async def callback():
     if user_exists and user["setup_complete"]:
         return redirect(url_for("account"))
     else:
-        return redirect(url_for("settings"))
+        return redirect(url_for("username"))
 
 
 @app.route("/logout", methods=["POST"])
@@ -108,6 +108,7 @@ def logout():
 
 @app.route("/account")
 @requires_auth
+@requires_setup
 def account():
     user = db.get_user(session["profile"]["id"])
     if user is None:
@@ -124,6 +125,51 @@ def account():
     }
 
     return render_template("account.html", user=user)
+
+@app.route("/username")
+@requires_auth
+def username():
+    return render_template("username.html")
+
+@app.route("/set-username", methods=["POST"])
+@requires_auth
+def set_username():
+    username = request.form.get("username").strip()
+    current_user = session["profile"]["id"]
+
+    errors = []
+
+    if not 3 <= len(username) <= 30:
+        errors.append("Username must be between 1 and 30 characters.")
+    check_exists = db.get_public_user(username)
+    if check_exists:
+        errors.append("Username is already in use. Choose a unique display name.")
+    if not errors:
+        updated_user = db.update_username(
+            current_user,
+            username
+        )
+        if updated_user is None:
+            session.clear()
+            return redirect(url_for("index"))
+                
+        session["profile"] = {
+            "id": updated_user["id"],
+            "sub": updated_user["auth0_sub"],
+            "display_name": updated_user["display_name"],
+            "profile_pic": updated_user["profile_pic"],
+            "username": updated_user["username"],
+            "setup": updated_user["setup_complete"]
+        }
+        flash("Username updated.")
+        return redirect(url_for("account"))
+    
+    return render_template(
+        "username.html",
+        username=username,
+        errors=errors,
+    )
+
 
 
 @app.route("/user/<string:username>")
@@ -159,19 +205,13 @@ def user(username):
 
 @app.route("/account/settings", methods=["GET", "POST"])
 @requires_auth
+@requires_setup
 def settings():
     current_user = db.get_user(session["profile"]["id"])
-    first_time = not current_user["setup_complete"]
 
     if current_user is None:
         session.clear()
         return redirect(url_for("index"))
-    if first_time:
-        values = {
-            "display_name": "",
-            "bio": current_user["bio"] or "",
-            "profile_pic": current_user["profile_pic"] or "",
-        }
     else:
         values = {
             "display_name": current_user["display_name"],
@@ -192,14 +232,11 @@ def settings():
                 "bio": request.form.get("bio", ""),
                 "profile_pic": request.form.get("profile_pic", "").strip(),
             }
-            print(values)
             if not 1 <= len(values["display_name"]) <= 80:
                 errors.append("Display name must be between 1 and 80 characters.")
             check_exists = db.get_public_user(values["display_name"])
             if check_exists and check_exists["id"] != current_user["id"]:
                 errors.append("Display name is already in use. Choose a unique display name.")
-            if first_time and current_user["display_name"] == values["display_name"]:
-                errors.append("You must select a non-temporary Username.")
             if len(values["bio"]) > 200:
                 errors.append("Biography must be 200 characters or fewer.")
             if values["profile_pic"] and (
@@ -211,13 +248,11 @@ def settings():
                 )
 
         if not errors:
-            display_name_update = values["display_name"] != current_user["display_name"] if first_time else True
             updated_user = db.update_profile(
                 current_user["id"],
                 values["display_name"],
                 values["bio"],
                 values["profile_pic"] or None,
-                display_name_update
             )
             if updated_user is None:
                 session.clear()
@@ -242,6 +277,7 @@ def settings():
 
 
 @app.route("/myevents")
+@requires_setup
 def my_events():
     """Page with many events"""
     events = db.get_all_events()

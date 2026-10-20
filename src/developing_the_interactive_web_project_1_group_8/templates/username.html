@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Setup - GameMaster{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='tile.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='user.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="profile-content page-panel">
+  <h1>Set a unique Username</h1>
+  <form class="pure-form pure-form-stacked" method="post" action="{{ url_for('set_username') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="username">Username</label>
+    <input class="pure-input-1" id="display_name" name="username" type="text" minlength="3"
+      maxlength="30" value="{{ username }}" required>
+
+    <button class="pure-button pure-button-primary" type="submit">Set Username</button>
+  </form>
+  {% if errors %}
+  <div>
+    <p>Please correct these errors:</p>
+    <ul>
+      {% for error in errors %}
+      <li>{{ error }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}
