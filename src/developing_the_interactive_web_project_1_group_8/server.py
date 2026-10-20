@@ -8,7 +8,7 @@ from flask import (
     flash,
     request,
 )
-import database
+import developing_the_interactive_web_project_1_group_8.database as database
 import validators
 import os
 from urllib.parse import urlencode, urlsplit

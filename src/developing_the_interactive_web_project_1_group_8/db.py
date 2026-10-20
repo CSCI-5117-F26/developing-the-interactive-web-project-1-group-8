@@ -1,3 +1,6 @@
+from datetime import timedelta
+from developing_the_interactive_web_project_1_group_8.CacheBackendPostgres import CacheBackendPostgres, PostgresCache, PostgresDict
+from boardgamegeek import BGGClient, CacheBackendMemory
 from psycopg_pool import ConnectionPool
 from psycopg.rows import dict_row
 import os
@@ -10,6 +13,13 @@ pool = ConnectionPool(
     os.environ["DATABASE_URL"], open=True, kwargs={"row_factory": dict_row}
 )
 atexit.register(pool.close)
+
+
+bgg = BGGClient(
+    os.environ["BGG_API_KEY"],
+    cache=CacheBackendPostgres(pool=pool, ttl=timedelta(hours=20)),
+    requests_per_minute=1200
+)
 
 
 def get_user(user_id):

@@ -1,11 +1,18 @@
+import os
 import psycopg
 import faker
 from flask import Flask, jsonify, Blueprint, request, render_template
-
+from boardgamegeek import BGGClient, CacheBackendSqlite
+from developing_the_interactive_web_project_1_group_8.CacheBackendPostgres import PostgresCache, CacheBackendPostgres
 # this module holds all of the api endpoints
 
 
 api = Blueprint("api", __name__, template_folder="templates")
+
+
+
+
+
 
 
 # ---------- Events ----------
