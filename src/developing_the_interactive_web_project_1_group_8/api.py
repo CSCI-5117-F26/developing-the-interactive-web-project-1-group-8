@@ -128,7 +128,7 @@ def follow_user(username):
       username (str): The username of the user to follow.
     """
 
-    current_user = db.get_user(session["profile"]["id"])
+    current_user = db.get_user_from_id(session["profile"]["id"])
     user_id = db.get_id_for_username(username)
 
     if current_user is None:
@@ -161,7 +161,7 @@ def unfollow_user(username):
       usernamt (str): The username of the user to unfollow.
     """
 
-    current_user = db.get_user(session["profile"]["id"])
+    current_user = db.get_user_from_id(session["profile"]["id"])
     
 
     if current_user is None:
@@ -192,7 +192,7 @@ def block_user(username):
       username (str): The username of the user to block.
     """
 
-    current_user = db.get_user(session["profile"]["id"])
+    current_user = db.get_user_from_id(session["profile"]["id"])
 
     if current_user is None:
         session.clear()
@@ -226,7 +226,7 @@ def unblock_user(username):
       user_id (int): The ID of the user to unblock.
     """
 
-    current_user = db.get_user(session["profile"]["id"])
+    current_user = db.get_user_from_id(session["profile"]["id"])
 
     if current_user is None:
         session.clear()

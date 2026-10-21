@@ -26,13 +26,13 @@ def setup():
     os.environ["BGG_API_KEY"],
     cache=CacheBackendPostgres(pool=pool, ttl=timedelta(hours=20)),
     requests_per_minute=1200
-)
+  )
   # I'm not _actually_ convinced this is required, but the docs said to do it!
   atexit.register(pool.close)
 
 # User DB Functions
 
-def get_user(user_id):
+def get_user_from_id(user_id):
   with pool.connection() as conn:
     return conn.execute("SELECT * FROM users WHERE id = %s", (user_id,)).fetchone()
 
@@ -108,7 +108,7 @@ def update_username(id, username):
     return conn.execute(
       """
       UPDATE users
-      SET username = %s, display_name = %s setup_complete = %s, updated_at = CURRENT_TIMESTAMP
+      SET username = %s, display_name = %s, setup_complete = %s, updated_at = CURRENT_TIMESTAMP
       WHERE id = %s
       RETURNING id, auth0_sub, display_name, bio, profile_pic, setup_complete, username
       """,

@@ -110,7 +110,7 @@ def logout():
 @requires_auth
 @requires_setup
 def account():
-    user = db.get_user(session["profile"]["id"])
+    user = db.get_user_from_id(session["profile"]["id"])
     if user is None:
         session.clear()
         return redirect(url_for("index"))
@@ -129,7 +129,15 @@ def account():
 @app.route("/username")
 @requires_auth
 def username():
-    return render_template("username.html")
+    current_user = db.get_user_from_id(session["profile"]["id"])
+
+    if current_user is None:
+        session.clear()
+        return redirect(url_for("index"))
+    elif current_user["setup_complete"]:
+        return redirect(url_for("account"))
+    else: 
+        return render_template("username.html")
 
 @app.route("/set-username", methods=["POST"])
 @requires_auth
@@ -175,10 +183,11 @@ def set_username():
 @app.route("/user/<string:username>")
 def user(username):
     profile = db.get_public_user(username)
-    profile_id = profile["id"]
 
     if profile is None:
         abort(404, "This user does not appear to exist.")
+        
+    profile_id = profile["id"]
     profile["followers"] =  db.get_follower_count(profile_id)
     profile["is_following"] = False
     profile["is_blocked"] = False
@@ -207,7 +216,7 @@ def user(username):
 @requires_auth
 @requires_setup
 def settings():
-    current_user = db.get_user(session["profile"]["id"])
+    current_user = db.get_user_from_id(session["profile"]["id"])
 
     if current_user is None:
         session.clear()
