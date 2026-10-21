@@ -156,7 +156,7 @@ main {
 
 .page-panel {
   box-sizing: border-box;
-  max-width: 1260px;
+  max-width: 80vw;
   margin: 0 auto;
   padding: 20px;
 }

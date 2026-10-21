@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %} {% if event %} {{ event.name }} {% else %} New Event {% endif %} {% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/event.css') }}">
+<script>
+    document.addEventListener("DOMContentLoaded", ()=>{
+        const checkbox = document.getElementById("checkbox-competitive");
+        const list = document.getElementById("competitive-list");
+
+        checkbox.addEventListener('change', function() {
+            console.log("checked");
+            console.log(checkbox.checked);
+            if (checkbox.checked) {
+                list.style.display = 'block';
+            } else {
+                list.style.display = 'none';
+            }
+        });
+    })
+</script>
+{% endblock %}
+
+{% block content %}
+<section class="page-panel">
+    {% if event %}
+    <form class="pure-form pure-form-stacked" action="/update-event/{{ event.id }}" method="post">
+    {% else %}
+    <form class="pure-form pure-form-stacked" action="/add-event" method="post">
+    {% endif %}
+        <fieldset>
+            <label for="name">Event Name</label>
+            <input id="event-name" type="text" value="{{ event.name }}" required 
+             pattern="^[a-zA-Z 0-9,.!]+$" name="name" class="pure-u-2-3"/>
+
+            <label for="gameid">GameID (This will change)</label>
+            <input id="event-gameid" type="text" value="{{ event.gameid }}" required 
+             pattern="^[0-9]+$" name="gameid" class="pure-u-2-3"/>
+
+            <label for="address">Location</label>
+            <input id="event-address" type="text" value="{{ event.address }}" required 
+             pattern="^[a-zA-Z 0-9,.!]+$" name="address" class="pure-u-2-3"/>
+
+            <label for="expected-duration">Expected duration in decimal format (This will change)</label>
+            <input id="event-expected" type="text" value="{{ event.expected_duration }}" required 
+             pattern="^[0-9.]+$" name="expected_duration" class="pure-u-1-5"/>
+
+            <label for="max_attendees">Maximum number of players</label>
+            <input id="event-max" type="text" value="{{ event.max_attendees }}" required 
+             pattern="^[0-9]+$" name="max_attendees" class="pure-u-1-5"/>
+
+            <label for="description">Description</label>
+            <textarea id="event-description" name="description"
+            class="pure-input-2-3" placeholder="Add description">{{ event.description }}</textarea>
+
+            <!-- ONLY RELEVANT IF WE USE PENDING STATUS IN ANY CAPACITY -->
+
+
+            <!-- <label for="status" >What is your events scheduling status?</label>
+            
+            <select id="event-status" name="status" required>
+            <option value="scheduled" selected>scheduled</option>
+            <option value="pending" 
+            {% if event.status == pending %} 
+            selected
+            {% endif %}
+            >pending</option> -->
+
+            <!-- <div id="time-section"
+            {% if event.time %} 
+            style="display: block;"
+            {% else %}
+            style="display: hidden;"
+            {% endif %}
+            ></div> -->
+            <label for="time">Event Time</label>
+            <input id="event-time" type="datetime-local" name="time" value="{{ event.time }}">
+        </select>
+            
+         
+        <div class="button-container">
+            <button type="submit" class="pure-button pure-button-primary"
+            >{% if event %} Update {% else %} Create {% endif %}</button>
+        </div>
+    </fieldset>
+</form>
+
+</section>
+
+{% endblock %}

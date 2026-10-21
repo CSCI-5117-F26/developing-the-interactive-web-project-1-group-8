@@ -249,6 +249,56 @@ def event(event_id):
     # print(db.get_event(event_id))
     return render_template("event.html", event=event)
 
+@app.route("/create-event")
+@requires_auth
+def create_event():
+    """Event form, where users can insert info about their event"""
+    # print(database.get_event(event_id))
+    return render_template("event_info.html", event=None)
+
+@app.post("/add-event")
+@requires_auth
+def add_event():
+    # with psycopg.connect(os.environ['DATABASE_URL']) as conn:
+    #     with conn.cursor() as cur:
+    #         timestamp = datetime.now(timezone.utc)
+    #         print(cur.execute("SELECT * FROM surveys"))
+    #         print(timestamp)
+    #         cur.execute("""INSERT INTO surveys (favoritegames, completion, brands,
+    #           playscompetitive, competitivegames, timestamp) values (
+    #           %s, %s, %s, %s, %s, %s)""",
+    #           (request.form.get("favoritegames"), request.form.get("completion"),
+    #            request.form.get("brands"), request.form.get("playscompetitive"),
+    #            request.form.get("competitivegames"), timestamp))
+    #         # rows = cur.fetchall()
+    #     conn.commit()
+    # db.add_event(request.form)
+    print(request.form)
+    
+    return redirect("/")
+
+@app.route("/edit-event/<int:event_id>")
+@requires_auth
+def edit_event(event_id):
+    """Event form, where users can edit info about their event"""
+    edited_event = database.get_event(event_id)
+    # TODO There should be a check as to whether edited_event.hostid == the
+    # userID of the session holder, 403 otherwise
+    print(session["profile"])
+    print(edited_event)
+    if (session["profile"]["id"] != edited_event["hostid"]):
+        return render_template("event_info.html", event=edited_event)
+    else:
+        # print(session["profile"]["user"])
+        return redirect("/event/" + event_id)
+
+@app.post("/update-event/<int:event_id>")
+@requires_auth
+def update_event(event_id):
+    
+    # db.update_event(event_id, request.form)
+    
+    return redirect("/")
 
 # @app.route("/user/<string:username>")
 # def user(username):

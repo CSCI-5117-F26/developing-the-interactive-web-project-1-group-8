@@ -3,31 +3,98 @@
 {% block title %} {{ event.name }} - GameMaster {% endblock %}
 
 {% block head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='event_grid.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='tile.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/event.css') }}">
 {% endblock %}
 
 {% block content %}
 <section class="page-panel">
-    <h1>{{ event.name }}</h1>
+    <!-- <div class="event-container"> -->
+        <div class="event-heading-container">
+            <div class="event-image">
 
-    <h2>{{ event.time }}</h2>
-    <h2>{{ event.address }}</h2>
+            </div>
+            <div class="event-heading-info-conatiner">
+                <div class="event-title">{{ event.name }}</div>
+                <div class="event-info-container">
+                    <div class="event-info">
+                        Game Name
+                    </div>
+                    <div class="event-status-container">
+                        {% if event.status == "scheduled" %}
+                            <div class="event-status-circle"></div>
+                        {% elif event.status == "pending" %}
+                            <div class="event-status-circle" 
+                            style="background-color: var(--color-warning);"></div>
+                        {% else %}
+                            <div class="event-status-circle" 
+                            style="background-color: var(--color-danger);"></div>
+                        {% endif %}
+                        <div class="status-text">{{event.status}}</div>
+                    </div>
+                </div>
+                <div class="event-info">
+                    Host
+                </div>
+                <div class="event-info-container">
+                    <div class="event-info">
+                        <!-- Date + Time if scheduled, Date range otherwise -->
+                        <div class="event-icon-container">
+                            <img class="event-icon" 
+                        src="{{ url_for('static', filename='images/calendar.svg') }}">
+                        {{ event.time }}
+                        </div>
+                        
+                    </div>
+                    <div class="event-info-left">
+                        <div class="event-icon-container">
+                            <img class="event-icon" 
+                        src="{{ url_for('static', filename='images/location.svg') }}">{{ event.address }} 
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="event-back-button-container">
+                <img src="{{ url_for('static', filename='images/x.svg') }}" 
+                class="event-back-button" alt="x" onclick="history.back()">
+            </div>
+        </div>
+        <div class="event-info">
+            ? out of {{event.max_attendees}} Maximum
+        </div>
+        <div class="description-label">
+            Description:
+        </div>
+        
+        <div class="description">{{event.description}}</div>
 
-    <div class="event-status-container">
-        {% if event.status == "scheduled" %}
-        <div class="event-status-circle"></div>
-        {% elif event.status == "pending" %}
-        <div class="event-status-circle" style="background-color: var(--color-warning);"></div>
-        {% else %}
-        <div class="event-status-circle" style="background-color: var(--color-danger);"></div>
-        {% endif %}
-        <div>{{event.status}}</div>
-    </div>
-
-    <h2>?/{{event.max_attendees}} Going</h2>
-
-    <p>{{event.description}}</p>
+        <div class="event-buttons-container">
+            <!-- If pending, calandar button, otherwise RSVP -->
+            <a class="event-button-href" href="/rsvp/{{ event.id }}">RSVP</a>
+            <button class="event-button" onclick="copyURL()" id="copyButton">Share</button>
+        </div>
+    <!-- </div> -->
 
 </section>
+
+<script>
+    function copyURL() {
+        const url = window.location.href;
+
+        navigator.clipboard.writeText(url)
+        .then(() => {
+            const button = document.getElementById("copyButton");
+            button.innerText = "Link Copied";
+            button.style.backgroundColor = "var(--color-topbar-hover)"
+            // button.style.backgroundColor = 
+            setTimeout(() => {
+                button.innerText = "Share";
+                button.style.backgroundColor = "var(--color-primary)"
+            }, 600);
+        })
+        .catch(err => {
+            console.error("Could not copy, ", err)
+        })
+        
+    }
+</script>
 {% endblock %}
