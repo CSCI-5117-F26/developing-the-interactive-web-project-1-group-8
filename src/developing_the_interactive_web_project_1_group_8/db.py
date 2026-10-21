@@ -12,8 +12,8 @@ import random
 
 load_dotenv()
 
-pool = None
-bgg = None
+pool: ConnectionPool
+bgg: BGGClient
 
 def setup():
   global pool

@@ -12,8 +12,8 @@
   <form class="pure-form pure-form-stacked" method="post" action="{{ url_for('set_username') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label for="username">Username</label>
-    <input class="pure-input-1" id="display_name" name="username" type="text" minlength="3"
-      maxlength="30" value="{{ username }}" required>
+    <input class="pure-input-1" id="username" name="username" type="text" minlength="3" maxlength="30"
+      value="{{ username }}" required>
 
     <button class="pure-button pure-button-primary" type="submit">Set Username</button>
   </form>

@@ -1,3 +1,5 @@
+from wtforms.validators import DataRequired, Length
+from wtforms import StringField
 from flask import (
     Flask,
     render_template,
@@ -81,8 +83,8 @@ async def callback():
     session["profile"] = {
         "id": user["id"],
         "sub": user["auth0_sub"],
-        "display_name": user["display_name"],
-        "setup": user["setup_complete"],
+        "username": user["username"],
+        "setup_complete": user["setup_complete"],
         "profile_pic": user["profile_pic"] or None,
     }
     if user_exists and user["setup_complete"]:
@@ -119,8 +121,8 @@ def account():
     session["profile"] = {
         "id": user["id"],
         "sub": user["auth0_sub"],
-        "display_name": user["display_name"],
-        "setup": user["setup_complete"],
+        "username": user["username"],
+        "setup_complete": user["setup_complete"],
         "profile_pic": user["profile_pic"] or None,
     }
 
@@ -157,6 +159,7 @@ def set_username():
             current_user,
             username
         )
+        
         if updated_user is None:
             session.clear()
             return redirect(url_for("index"))
@@ -167,7 +170,7 @@ def set_username():
             "display_name": updated_user["display_name"],
             "profile_pic": updated_user["profile_pic"],
             "username": updated_user["username"],
-            "setup": updated_user["setup_complete"]
+            "setup_complete": updated_user["setup_complete"]
         }
         flash("Username updated.")
         return redirect(url_for("account"))
@@ -223,7 +226,8 @@ def settings():
         return redirect(url_for("index"))
     else:
         values = {
-            "display_name": current_user["display_name"],
+            "username": current_user["username"],
+            "display_name": current_user["display_name"] or "",
             "bio": current_user["bio"] or "",
             "profile_pic": current_user["profile_pic"] or "",
         }
