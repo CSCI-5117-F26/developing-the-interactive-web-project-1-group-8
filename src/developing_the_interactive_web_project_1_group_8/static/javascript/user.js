@@ -1,52 +1,54 @@
-const followButton = document.getElementById( "follow-button" );
-const blockButton = document.getElementById( "block-button" );
+const followButton = document.getElementById("follow-button");
+const blockButton = document.getElementById("block-button");
 
-if ( followButton ) {
-  followButton.addEventListener( "click", function () {
+if (followButton) {
+  followButton.addEventListener("click", function () {
     const username = this.dataset.username;
     const action = this.dataset.action; // "follow" or "unfollow"
 
-    fetch( `/api/user/${ username }/${ action }`, {
+    fetch(`/api/user/${encodeURIComponent(username)}/${action}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-CSRFToken": this.dataset.csrfToken,
       },
-    } )
-      .then( ( data ) => {
-        if ( data.ok ) {
+    })
+      .then((data) => {
+        if (data.ok) {
           // Update the button text and action
-          if ( action === "follow" ) {
-            this.innerHTML = "Unfollow <i class=\"fa fa-user-times\" aria-hidden=\"true\"></i>";
+          if (action === "follow") {
+            this.innerHTML =
+              'Unfollow <i class="fa fa-user-times" aria-hidden="true"></i>';
             this.dataset.action = "unfollow";
           } else {
-            this.innerHTML = "Follow <i class=\"fa fa-user-plus\" aria-hidden=\"true\"></i>";
+            this.innerHTML =
+              'Follow <i class="fa fa-user-plus" aria-hidden="true"></i>';
             this.dataset.action = "follow";
           }
         } else {
-          console.error( "Error:", data.error );
+          console.error("Error:", data.error);
         }
-      } )
-      .catch( ( error ) => {
-        console.error( "Error:", error );
-      } );
-  } );
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+      });
+  });
 }
 
-if ( blockButton ) {
-  blockButton.addEventListener( "click", function () {
+if (blockButton) {
+  blockButton.addEventListener("click", function () {
     const username = this.dataset.username;
     const action = this.dataset.action; // "block" or "unblock"
 
-    fetch( `/api/user/${ username }/${ action }`, {
+    fetch(`/api/user/${encodeURIComponent(username)}/${action}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-CSRFToken": this.dataset.csrfToken,
       },
-    } )
-      .then( ( data ) => {
-        if ( data.ok ) {
+    })
+      .then((data) => {
+        if (data.ok) {
           window.location.reload(); // Reload the page to reflect the block action
 
           // // Update the button text and action
@@ -58,13 +60,12 @@ if ( blockButton ) {
           //   this.dataset.action = "block";
 
           // }
+        } else {
+          console.error("Error:", data.error);
         }
-        else {
-          console.error( "Error:", data.error );
-        }
-      } )
-      .catch( ( error ) => {
-        console.error( "Error:", error );
-      } );
-  } );
-} 
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+      });
+  });
+}

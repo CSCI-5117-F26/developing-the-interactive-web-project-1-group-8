@@ -16,7 +16,6 @@ def requires_auth(f):
 def requires_setup(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        print(session["profile"])
         if "profile" in session and not session["profile"].get("setup_complete", False):
             return redirect("/username")
         return current_app.ensure_sync(f)(*args, **kwargs)

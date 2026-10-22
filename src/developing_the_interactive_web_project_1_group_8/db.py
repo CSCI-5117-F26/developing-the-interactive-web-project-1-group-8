@@ -46,9 +46,10 @@ def get_user_from_id(user_id):
 
 def get_id_for_username(username):
     with pool.connection() as conn:
-        return conn.execute(
+        user = conn.execute(
             "SELECT id FROM users WHERE username = %s", (username,)
         ).fetchone()
+        return user["id"] if user else None
 
 
 def get_sub(login_sub):
@@ -119,7 +120,7 @@ def update_profile(id, display_name, bio, profile_pic):
       SET display_name = %s, bio = %s, profile_pic = %s,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = %s
-      RETURNING id, auth0_sub, display_name, bio, profile_pic
+      RETURNING id, auth0_sub, display_name, bio, profile_pic, username, setup_complete
       """,
             (display_name, bio, profile_pic, id),
         ).fetchone()
@@ -183,8 +184,10 @@ def get_user_events(user_id):
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT * FROM events
-                WHERE hostID = %s
+                SELECT e.*, g.name AS game_name, g.image_url,
+                    (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count
+                FROM events e LEFT JOIN games g ON g.id = e.gameid
+                WHERE e.hostID = %s
                 """,
                 (user_id,),
             )
@@ -196,10 +199,12 @@ def get_user_events_attending(user_id):
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT e.*
+                SELECT e.*, g.name AS game_name, g.image_url,
+                    (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count
                 FROM events e
+                LEFT JOIN games g ON g.id = e.gameid
                 JOIN event_participation ea ON e.id = ea.id
-                WHERE ea.id = %s
+                WHERE ea.user_interested = %s
                 """,
                 (user_id,),
             )
@@ -282,6 +287,7 @@ def attend_event(event_id, user_id, is_host):
                 """
                 INSERT INTO event_participation (id, user_interested, is_host)
                 VALUES (%s, %s, %s)
+                ON CONFLICT (id, user_interested) DO NOTHING
                 RETURNING *
                 """,
                 (event_id, user_id, is_host),
@@ -297,7 +303,7 @@ def get_following(user_id):
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT u.id, u.display_name, u.profile_pic, u.bio
+                SELECT u.id, u.username, u.display_name, u.profile_pic, u.bio
                 FROM users u
                 JOIN friends f ON u.id = f.followed
                 WHERE f.follower = %s
@@ -388,7 +394,7 @@ def get_friend_events(user):
             cur.execute(
                 """
         SELECT name, gameID, address, time, expected_duration, max_attendees,
-          description, status, created_at, updated_at
+          description, status, created_at
         FROM events INNER JOIN friends
         ON events.hostID = friends.followed
         WHERE friends.follower = %s
@@ -464,8 +470,10 @@ def search_events(name_query):
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT * FROM events
-                WHERE LOWER(name) LIKE LOWER(%s)
+                SELECT e.*, g.name AS game_name, g.image_url,
+                    (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count
+                FROM events e LEFT JOIN games g ON g.id = e.gameid
+                WHERE LOWER(e.name) LIKE LOWER(%s)
                 """,
                 (f"%{name_query}%",),
             )

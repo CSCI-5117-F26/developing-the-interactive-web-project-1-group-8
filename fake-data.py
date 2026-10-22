@@ -41,7 +41,7 @@ def generate_fake_users(num_users=10):
         }
         e = db.get_or_create_user(user)
         db.update_profile(
-            user_id=e["id"],
+            id=e["id"],
             display_name=user["name"],
             bio=user["bio"],
             profile_pic=user["profile_pic"],
@@ -82,7 +82,6 @@ def generate_fake_users(num_users=10):
                 name=ev["name"],
                 gameID=ev["gameID"],
                 hostID=user.get("user_id"),
-                calendarID=None,
                 address=ev["location"],
                 time=ev["time"],
                 expected_duration=ev["duration"],

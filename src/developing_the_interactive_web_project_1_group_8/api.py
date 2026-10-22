@@ -118,7 +118,7 @@ def get_user_photo(username):
     avatar_url = profile["profile_pic"]
 
     if not is_safe_avatar_url(avatar_url):
-        avatar_url = url_for("static", filename="images/default-avatar.svg")
+        avatar_url = url_for("static", filename="images/avatar-default.svg")
 
     return avatar_url
 
@@ -136,6 +136,8 @@ def follow_user(username):
 
     current_user = db.get_user_from_id(session["profile"]["id"])
     user_id = db.get_id_for_username(username)
+    if user_id is None:
+        abort(404, "This user does not appear to exist.")
 
     if current_user is None:
         session.clear()
@@ -175,6 +177,8 @@ def unfollow_user(username):
 
     current_user_id = session["profile"]["id"]
     user_id = db.get_id_for_username(username)
+    if user_id is None:
+        abort(404, "This user does not appear to exist.")
 
     if current_user_id == user_id:
         return jsonify({"error": "You cannot unfollow yourself"}), 400
@@ -207,6 +211,8 @@ def block_user(username):
 
     current_user_id = session["profile"]["id"]
     user_id = db.get_id_for_username(username)
+    if user_id is None:
+        abort(404, "This user does not appear to exist.")
 
     if current_user_id == user_id:
         return jsonify({"error": "You cannot block yourself"}), 400
@@ -240,6 +246,8 @@ def unblock_user(username):
 
     current_user_id = session["profile"]["id"]
     user_id = db.get_id_for_username(username)
+    if user_id is None:
+        abort(404, "This user does not appear to exist.")
 
     if current_user_id == user_id:
         return jsonify({"error": "You cannot unblock yourself"}), 400

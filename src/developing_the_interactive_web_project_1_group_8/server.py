@@ -161,7 +161,7 @@ def set_username():
     errors = []
 
     if not 3 <= len(username) <= 30:
-        errors.append("Username must be between 1 and 30 characters.")
+        errors.append("Username must be between 3 and 30 characters.")
     check_exists = db.get_public_user(username)
     if check_exists:
         errors.append("Username is already in use. Choose a unique display name.")
@@ -202,7 +202,7 @@ def user(username):
     profile["is_following"] = False
     profile["is_blocked"] = False
 
-    if db.is_blocked(profile_id, session["profile"]["id"]):
+    if "profile" in session and db.is_blocked(profile_id, session["profile"]["id"]):
         # this is deception, we don't want to tell the user that they are blocked, we just want to make it look like the user doesn't exist
         abort(403, "This user does not appear to exist.")
 
@@ -253,11 +253,6 @@ def settings():
             }
             if not 1 <= len(values["display_name"]) <= 80:
                 errors.append("Display name must be between 1 and 80 characters.")
-            check_exists = db.get_public_user(values["display_name"])
-            if check_exists and check_exists["id"] != current_user["id"]:
-                errors.append(
-                    "Display name is already in use. Choose a unique display name."
-                )
             if len(values["bio"]) > 200:
                 errors.append("Biography must be 200 characters or fewer.")
             if values["profile_pic"] and (
@@ -300,10 +295,18 @@ def settings():
 
 
 @app.route("/myevents")
+@requires_auth
 @requires_setup
 def my_events():
     """Page with many events"""
-    events = db.get_all_event_info()
+    user_id = session["profile"]["id"]
+    events = db.get_user_events(user_id)
+    hosted_ids = {event["id"] for event in events}
+    events += [
+        event
+        for event in db.get_user_events_attending(user_id)
+        if event["id"] not in hosted_ids
+    ]
     # print(events)
     return render_template("my_events.html", events=events)
 
@@ -326,7 +329,7 @@ def event(event_id):
     event = db.get_event_info(event_id)
     # print(event)
     if event is None:
-        abort(404, "This event does appear to exist.")
+        abort(404, "This event does not appear to exist.")
     # print(db.get_event(event_id))
     return render_template("event.html", event=event)
 
@@ -349,7 +352,7 @@ def add_event():
         request.form.get("gameid"),
         session["profile"]["id"],
         request.form.get("address"),
-        request.form.get("time"),
+        request.form.get("time") or None,
         request.form.get("expected_duration"),
         request.form.get("max_attendees"),
         request.form.get("description"),
@@ -375,6 +378,8 @@ def rsvp(event_id):
 def edit_event(event_id):
     """Event form, where users can edit info about their event"""
     edited_event = db.get_event(event_id)
+    if edited_event is None:
+        abort(404, "This event does not appear to exist.")
     # TODO There should be a check as to whether edited_event.hostid == the
     # userID of the session holder, 403 otherwise
     print(session["profile"])
@@ -390,6 +395,8 @@ def edit_event(event_id):
 @requires_auth
 def update_event(event_id):
     check_event = db.get_event_info(event_id)
+    if check_event is None:
+        abort(404, "This event does not appear to exist.")
 
     if check_event["hostid"] != session["profile"]["id"]:
         abort(404, "This event does not belong to you.")
@@ -405,7 +412,7 @@ def update_event(event_id):
         request.form.get("name"),
         request.form.get("gameid"),
         request.form.get("address"),
-        request.form.get("time"),
+        request.form.get("time") or None,
         request.form.get("expected_duration"),
         request.form.get("max_attendees"),
         request.form.get("description"),

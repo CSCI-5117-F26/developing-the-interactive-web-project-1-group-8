@@ -5,7 +5,8 @@
    :nosignatures:
 """
 
-from datetime import timedelta, time
+from datetime import timedelta
+from time import time
 from cmath import sqrt
 from psycopg import sql
 from psycopg import Connection
@@ -59,14 +60,14 @@ class PostgresCache(BaseCache):
             pool=pool,
             table_name=namespace + "_responses",
             ttl=ttl,
-            ttl_offset=timedelta(hours=1),
+            ttl_offset=ttl_offset,
             **skwargs,
         )
         self.redirects = PostgresDict(
             pool=pool,
             lock=self.responses._lock,
             table_name=namespace + "_redirects",
-            serializer=None,
+            serializer=utf8_encoder,
             **kwargs,
         )
 
@@ -148,24 +149,24 @@ class PostgresDict(BaseStorage):
             # print(f"Getting item with key {key} from table {self.table_name}: {result != None}")
             if result is None:
                 raise KeyError
-            return self.deserialize(key, result[0])
+            return self.deserialize(key, result["value"])
 
     def __setitem__(self, key, item):
         with self.pool.connection() as con:
             expires_delta = getattr(item, "expires_delta", None)
             # print(f"Setting item with key {key} and expires_delta {expires_delta}")
-            if expires_delta is not None:
-                con.execute(
-                    sql.SQL("""
-                        INSERT INTO {0} (key, value, expires) VALUES ({1}, {2}, {3})
-                        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, expires = EXCLUDED.expires;
-                        """).format(
-                        sql.Identifier(self.table_name),
-                        sql.Literal(self._bkey(key)),
-                        sql.Literal(self.serialize(item)),
-                        sql.Literal(expires_delta),
-                    )
+            expires = int(time() + expires_delta) if expires_delta is not None else 0
+            con.execute(
+                sql.SQL("""
+                    INSERT INTO {0} (key, value, expires) VALUES ({1}, {2}, {3})
+                    ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, expires = EXCLUDED.expires;
+                    """).format(
+                    sql.Identifier(self.table_name),
+                    sql.Literal(self._bkey(key)),
+                    sql.Literal(self.serialize(item)),
+                    sql.Literal(expires),
                 )
+            )
             return
 
     def __delitem__(self, key):
@@ -205,12 +206,12 @@ class PostgresDict(BaseStorage):
             with self.pool.connection() as con:
                 res = con.execute(
                     sql.SQL(
-                        """SELECT COUNT(*) FROM {0} WHERE expires is null or expires > {1}"""
+                        """SELECT COUNT(*) FROM {0} WHERE expires = 0 or expires > {1}"""
                     ).format(sql.Identifier(self.table_name), sql.Literal(time()))
                 ).fetchone()
                 if res is None:
                     return 0
-                return res[0]
+                return res["count"]
         return len(list(self.keys()))
 
     def close(self):
@@ -226,7 +227,9 @@ class PostgresDict(BaseStorage):
                     sql.Identifier(self.table_name)
                 )
             ).fetchall()
-            return [decode(row[0]) for row in result]
+            return [
+                decode(row["key"]).removeprefix(f"{self.table_name}:") for row in result
+            ]
 
     def items(self):
         """Return a list of all key-value pairs in the cache"""
@@ -238,7 +241,13 @@ class PostgresDict(BaseStorage):
                 )
             ).fetchall()
             return [
-                (decode(row[0]), self.deserialize(decode(row[0]), row[1]))
+                (
+                    decode(row["key"]).removeprefix(f"{self.table_name}:"),
+                    self.deserialize(
+                        decode(row["key"]).removeprefix(f"{self.table_name}:"),
+                        row["value"],
+                    ),
+                )
                 for row in result
             ]
 
@@ -251,7 +260,7 @@ class PostgresDict(BaseStorage):
                     sql.Identifier(self.table_name)
                 )
             ).fetchall()
-            return [self.deserialize(None, row[0]) for row in result]
+            return [self.deserialize(None, row["value"]) for row in result]
 
 
 class CacheBackendPostgres(CacheBackend):
