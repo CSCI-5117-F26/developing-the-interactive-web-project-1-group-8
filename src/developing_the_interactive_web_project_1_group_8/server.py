@@ -274,8 +274,10 @@ def settings():
             session["profile"] = {
                 "id": updated_user["id"],
                 "sub": updated_user["auth0_sub"],
+                "username": updated_user["username"],
                 "display_name": updated_user["display_name"],
                 "profile_pic": updated_user["profile_pic"],
+                "setup_complete": updated_user["setup_complete"],
             }
             flash("Profile saved.")
             return redirect(url_for("settings"))
