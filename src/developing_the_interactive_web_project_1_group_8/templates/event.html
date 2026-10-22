@@ -10,14 +10,21 @@
 <section class="page-panel">
     <!-- <div class="event-container"> -->
         <div class="event-heading-container">
-            <div class="event-image">
+            <img class="event-image" 
+            {% if event.image_url %}
+            src="{{ event.image_url }}"
+            {% endif %}
+            >
 
-            </div>
             <div class="event-heading-info-conatiner">
                 <div class="event-title">{{ event.name }}</div>
                 <div class="event-info-container">
                     <div class="event-info">
-                        Game Name
+                        {% if event.game_name %}
+                        {{ event.game_name }}
+                        {% else %}
+                        Unknown Game
+                        {% endif %}
                     </div>
                     <div class="event-status-container">
                         {% if event.status == "scheduled" %}
@@ -33,7 +40,8 @@
                     </div>
                 </div>
                 <div class="event-info">
-                    Host
+                    Hosted By: {% if event.display_name %}{{ event.display_name }}
+                    {% else %}Anonymous{% endif %}
                 </div>
                 <div class="event-info-container">
                     <div class="event-info">
@@ -59,7 +67,7 @@
             </div>
         </div>
         <div class="event-info">
-            ? out of {{event.max_attendees}} Maximum
+            {{ event.count }} out of {{event.max_attendees}} Maximum
         </div>
         <div class="description-label">
             Description:

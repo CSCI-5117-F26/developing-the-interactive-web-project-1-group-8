@@ -78,6 +78,26 @@ def get_all_events():
             cur.execute("select * from events")
             return cur.fetchall()
 
+def get_all_event_info():
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""select e.*, (select count(*) from event_participation p where p.id = e.id), 
+            (select g.name as game_name from games g where g.id = e.gameid), 
+            (select g.image_url from games g where g.id = e.gameid)
+            from events e""")
+            return cur.fetchall()
+
+def get_event_info(id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""select e.*, (select count(*) from event_participation p where p.id = e.id), 
+            (select g.name as game_name from games g where g.id = e.gameid), 
+            (select g.image_url from games g where g.id = e.gameid),
+            (select u.display_name from users u where u.id = e.hostid)
+            from events e 
+            where e.id = %s""", (id,))
+            return cur.fetchone()
+
 
 def get_event(id):
     with pool.connection() as conn:
@@ -111,19 +131,45 @@ def get_user_events_attending(user_id):
             )
             return cur.fetchall()
 
-def create_event(name, gameID, hostID, calendarID, address, time, expected_duration, max_attendees, description, status):
+def create_event(name, gameID, hostID, address, time, expected_duration, max_attendees, description, status):
     with pool.connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO events (name, gameID, hostID, calendarID, address, time, expected_duration, max_attendees, description, status)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO events (name, gameID, hostID, address, time, expected_duration, max_attendees, description, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING *
                 """,
-                (name, gameID, hostID, calendarID, address, time, expected_duration, max_attendees, description, status),
+                (name, gameID, hostID, address, time, expected_duration, max_attendees, description, status),
             )
             return cur.fetchone()
 
+def update_event(id, name, gameID, address, time, expected_duration, max_attendees, description, status):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE events SET name = %s, gameID = %s, address = %s,
+                time = %s, expected_duration = %s, max_attendees = %s, description = %s,
+                status = %s
+                WHERE id = %s
+                """,
+                (name, gameID, address, time, expected_duration, max_attendees, description, status, id),
+            )
+        return conn.commit()
+
+def attend_event(event_id, user_id, is_host):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO event_participation (id, user_interested, is_host)
+                VALUES (%s, %s, %s)
+                RETURNING *
+                """,
+                (event_id, user_id, is_host),
+            )
+            return cur.fetchone()
 
 # ---------- Follow ----------
 

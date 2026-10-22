@@ -29,10 +29,11 @@
     {% else %}
     <form class="pure-form pure-form-stacked" action="/add-event" method="post">
     {% endif %}
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <fieldset>
             <label for="name">Event Name</label>
             <input id="event-name" type="text" value="{{ event.name }}" required 
-             pattern="^[a-zA-Z 0-9,.!]+$" name="name" class="pure-u-2-3"/>
+             pattern="^[a-zA-Z 0-9,.!'/]+$" name="name" class="pure-u-2-3"/>
 
             <label for="gameid">GameID (This will change)</label>
             <input id="event-gameid" type="text" value="{{ event.gameid }}" required 
