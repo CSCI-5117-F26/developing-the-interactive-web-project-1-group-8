@@ -21,6 +21,15 @@
   </div>
   {% endif %}
 
+  <form class="pure-form pure-form-stacked" method="post" action="{{ url_for('set_username') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="username">Username</label>
+    <input class="pure-input-1" id="username" name="username" type="text" value="{{ values.username }}" minlength="3" maxlength="30" pattern="[A-Za-z0-9]+" title="Use 3-30 alphanumeric characters without spaces." required>
+    <p id="username-help">
+      Use 3-30 alphanumeric characters without spaces. Your username is used in your profile link, but changing it leaves your display name unchanged.</p>
+    <button class="pure-button pure-button-primary" type="submit">Save username</button>
+  </form>
+
   <form class="pure-form pure-form-stacked" method="post" action="{{ url_for('settings') }}" enctype="multipart/form-data">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label for="display_name">Display name</label>
@@ -38,11 +47,11 @@
     <button class="pure-button pure-button-primary" type="submit">Save profile</button>
   </form>
 
-  {% if can_restore_avatar %}
+  {% if user.profile_pic %}
   <form class="pure-form" method="post" action="{{ url_for('settings') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <input type="hidden" name="action" value="restore_avatar">
-    <p><button class="pure-button" type="submit">Restore Auth0 avatar</button></p>
+    <input type="hidden" name="action" value="delete_avatar">
+    <p><button class="pure-button" type="submit">Delete avatar</button></p>
   </form>
   {% endif %}
 </section>

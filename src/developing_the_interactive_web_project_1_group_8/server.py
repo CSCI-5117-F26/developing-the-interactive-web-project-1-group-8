@@ -21,6 +21,7 @@ from io import BytesIO
 import warnings
 from botocore.exceptions import BotoCoreError, ClientError
 from PIL import Image, UnidentifiedImageError
+from psycopg.errors import UniqueViolation
 
 from developing_the_interactive_web_project_1_group_8 import db
 from developing_the_interactive_web_project_1_group_8.api import (
@@ -179,19 +180,38 @@ def username():
 @app.route("/set-username", methods=["POST"])
 @requires_auth
 def set_username():
-    username = request.form.get("username").strip()
-    current_user = session["profile"]["id"]
+    username = request.form.get("username", "")
+    current_user = db.get_user_from_id(session["profile"]["id"])
+    if current_user is None:
+        session.clear()
+        return redirect(url_for("index"))
 
     errors = []
-
     if not 3 <= len(username) <= 30:
         errors.append("Username must be between 3 and 30 characters.")
-    check_exists = db.get_public_user(username)
-    if check_exists:
-        errors.append("Username is already in use. Choose a unique display name.")
-    if not errors:
-        updated_user = db.update_username(current_user, username)
+    if not username.isascii() or not username.isalnum():
+        errors.append(
+            "Username may contain only alphanumeric characters with no spaces."
+        )
 
+    existing_user_id = db.get_id_for_username(username)
+    if existing_user_id is not None and existing_user_id != current_user["id"]:
+        errors.append("Username is already in use; choose something unique.")
+
+    if not errors:
+        display_name = current_user["display_name"]
+        if not current_user["setup_complete"]:
+            display_name = username
+
+        # TODO: enforce 24 hr limit for username changes
+        try:
+            updated_user = db.update_username(
+                current_user["id"], username, display_name
+            )
+        except UniqueViolation:
+            errors.append("Username is already in use; choose something unique.")
+
+    if not errors:
         if updated_user is None:
             session.clear()
             return redirect(url_for("index"))
@@ -205,7 +225,23 @@ def set_username():
             "setup_complete": updated_user["setup_complete"],
         }
         flash("Username updated.")
+        if current_user["setup_complete"]:
+            return redirect(url_for("settings"))
         return redirect(url_for("account"))
+
+    if current_user["setup_complete"]:
+        values = {
+            "username": username,
+            "display_name": current_user["display_name"] or "",
+            "bio": current_user["bio"] or "",
+            "profile_pic": current_user["profile_pic"] or "",
+        }
+        return render_template(
+            "settings.html",
+            user=current_user,
+            values=values,
+            errors=errors,
+        )
 
     return render_template(
         "username.html",
@@ -262,13 +298,11 @@ def settings():
             "profile_pic": current_user["profile_pic"] or "",
         }
     errors = []
-    can_restore_avatar = is_safe_avatar_url(current_user["auth0_avatar_url"])
 
     if request.method == "POST":
-        if request.form.get("action") == "restore_avatar":
-            values["profile_pic"] = current_user["auth0_avatar_url"] or ""
-            if not can_restore_avatar:
-                errors.append("No valid Auth0 avatar is available to restore.")
+        action = request.form.get("action")
+        if action == "delete_avatar":
+            values["profile_pic"] = ""
         else:
             values["display_name"] = request.form.get("display_name", "").strip()
             values["bio"] = request.form.get("bio", "")
@@ -343,7 +377,10 @@ def settings():
                 "profile_pic": updated_user["profile_pic"],
                 "setup_complete": updated_user["setup_complete"],
             }
-            flash("Profile saved.")
+            if action == "delete_avatar":
+                flash("Avatar deleted. The default avatar is now in use.")
+            else:
+                flash("Profile saved.")
             return redirect(url_for("settings"))
 
     return render_template(
@@ -351,7 +388,6 @@ def settings():
         user=current_user,
         values=values,
         errors=errors,
-        can_restore_avatar=can_restore_avatar,
     )
 
 

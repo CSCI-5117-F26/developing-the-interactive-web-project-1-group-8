@@ -126,7 +126,7 @@ def update_profile(id, display_name, bio, profile_pic):
         ).fetchone()
 
 
-def update_username(id, username):
+def update_username(id, username, display_name):
     with pool.connection() as conn:
         return conn.execute(
             """
@@ -135,7 +135,7 @@ def update_username(id, username):
       WHERE id = %s
       RETURNING id, auth0_sub, display_name, bio, profile_pic, setup_complete, username
       """,
-            (username, username, True, id),
+            (username, display_name, True, id),
         ).fetchone()
 
 
