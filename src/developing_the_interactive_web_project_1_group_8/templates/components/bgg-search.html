@@ -1,0 +1,20 @@
+{% block head %}
+{% endblock %}
+
+{% block bggsearch %}
+
+<form method="POST" autocomplete="off">
+  <div class='bgg-search'>
+    <div class='bgg-searchbar'>
+      <input id="autocomplete" role="search" class='bgg-input' type='text' name='bgg_game' placeholder='Game...' />
+      <input type="hidden" name="game-name" value="">
+      <input type="hidden" name="game-id" value="">
+    </div>
+
+  </div>
+</form>
+
+{% endblock %}
+
+{% block scripts %}
+{% endblock %}
