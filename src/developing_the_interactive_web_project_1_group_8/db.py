@@ -116,146 +116,105 @@ def update_username(id, username):
     ).fetchone()
 
 
-# Event DB functions
+# ---------- Event ----------
+def get_all_events():
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("select * from events")
+            return cur.fetchall()
+
+def get_all_event_info():
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""select e.*, (select count(*) from event_participation p where p.id = e.id), 
+            (select g.name as game_name from games g where g.id = e.gameid), 
+            (select g.image_url from games g where g.id = e.gameid)
+            from events e""")
+            return cur.fetchall()
+
+def get_event_info(id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""select e.*, (select count(*) from event_participation p where p.id = e.id), 
+            (select g.name as game_name from games g where g.id = e.gameid), 
+            (select g.image_url from games g where g.id = e.gameid),
+            (select u.display_name from users u where u.id = e.hostid)
+            from events e 
+            where e.id = %s""", (id,))
+            return cur.fetchone()
+
 
 def get_event(id):
-  with pool.connection() as conn:
-    with conn.cursor() as cur:
-      cur.execute("SELECT * FROM events WHERE id = %s", (id,))
-      return cur.fetchone()
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("select * from events where id = %s", (id,))
+            return cur.fetchone()
 
-def get_all_events():
-  with pool.connection() as conn:
-    with conn.cursor() as cur:
-      cur.execute("SELECT * FROM events")
-      return cur.fetchall()
+def get_user_events(user_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT * FROM events
+                WHERE hostID = %s
+                """,
+                (user_id,),
+            )
+            return cur.fetchall()
 
-def get_or_create_event(event_info):
-  name = event_info.get("name")
-  game_id = event_info.get("game")
-  host_id = event_info.get("username")
-  address = event_info.get("address")
-  expected_duration = event_info.get("duration")
-  num_attendees = event_info.get("attendees")
-  desc = event_info.get("desc")
-  status = event_info.get("status")
+def get_user_events_attending(user_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT e.*
+                FROM events e
+                JOIN event_participation ea ON e.id = ea.id
+                WHERE ea.id = %s
+                """,
+                (user_id,),
+            )
+            return cur.fetchall()
 
-  with pool.connection() as conn:
-      conn.execute(
-        """
-        INSERT INTO events (name, gameID, hostID, address, expected_duration, max_attendees, description, status)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        """,
-        (name, game_id, host_id, address, expected_duration, num_attendees, desc, status),
-      )
-      return conn.execute(
-          "SELECT * FROM events WHERE name = %s ORDER BY created_at DESC", (name)
-      ).fetchone()
+def create_event(name, gameID, hostID, address, time, expected_duration, max_attendees, description, status):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO events (name, gameID, hostID, address, time, expected_duration, max_attendees, description, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING *
+                """,
+                (name, gameID, hostID, address, time, expected_duration, max_attendees, description, status),
+            )
+            return cur.fetchone()
 
-def delete_event(event_id):
-  with pool.connection() as conn, conn.cursor() as cur:
-    cur.execute(
-      """
-      DELETE FROM events
-      WHERE id = %s
-      """,
-      (event_id,)
-    )
-    conn.commit()
+def update_event(id, name, gameID, address, time, expected_duration, max_attendees, description, status):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE events SET name = %s, gameID = %s, address = %s,
+                time = %s, expected_duration = %s, max_attendees = %s, description = %s,
+                status = %s
+                WHERE id = %s
+                """,
+                (name, gameID, address, time, expected_duration, max_attendees, description, status, id),
+            )
+        return conn.commit()
 
-
-def get_user_events(username):
-  with pool.connection() as conn:
-    with conn.cursor() as cur:
-      user_id = cur.execute("SELECT id FROM users WHERE username = %s", (username,)).fetchone()['id']
-      cur.execute(
-        """
-        SELECT * FROM events
-        WHERE hostID = %s
-        """,
-        (user_id,),
-      )
-      return cur.fetchall()
-
-def get_user_events_attending(username):
-  with pool.connection() as conn:
-    with conn.cursor() as cur:
-      user_id = cur.execute("SELECT id FROM users WHERE username = %s", (username,)).fetchone()['id']
-      cur.execute(
-        """
-        SELECT e.*
-        FROM events e
-        JOIN event_participation ea ON e.id = ea.id
-        WHERE ea.id = %s
-        """,
-        (user_id,),
-      )
-      return cur.fetchall()
-
-def add_availability(time_info):
-  user = time_info.get("username")
-  event = time_info.get("event_id")
-  availability = time_info.get("availability")
-
-  with pool.connection() as conn:
-    with conn.cursor() as cur:
-      user_id = cur.execute("SELECT * FROM users WHERE display_name = %s", (user,)).fetchone()['id']
-      cur.execute(
-        """
-        INSERT INTO event_calendars (event_id, user_available, time_available)
-        VALUES (%s, %s, %s)
-        RETURNING id
-        """,
-        (event, user_id, availability)
-      )
-      conn.commit()
-
-def remove_availability(time_info):
-  user = time_info.get("username")
-  event = time_info.get("event_id")
-  with pool.connection() as conn:
-      with conn.cursor() as cur:
-        user_id = cur.execute("SELECT * FROM users WHERE display_name = %s", (user,)).fetchone()['id']
-        cur.execute(
-          """
-          DELETE FROM event_calendars
-          WHERE event_id = %s AND user_available = %s
-          """,
-          (event, user_id)
-        )
-        conn.commit()
-
-def add_user_to_event(participation_info):
-  user = participation_info.get("username")
-  event = participation_info.get("event_id")
-  is_host = participation_info.get("hosting")
-
-  with pool.connection() as conn:
-    with conn.cursor() as cur:
-      user_id = cur.execute("SELECT id FROM users WHERE display_name = %s", (user,)).fetchone()['id']
-      cur.execute(
-        """
-        INSERT INTO event_participation (event_id, user_interested, is_host)
-        VALUES (%s, %s, %s)
-        """,
-        (event, user_id, is_host)
-      )
-      conn.commit()
-
-def remove_interest(participation_info):
-  user = participation_info.get("username")
-  event = participation_info.get("event_id")
-  with pool.connection() as conn:
-    with conn.cursor() as cur:
-      user_id = cur.execute("SELECT * FROM users WHERE display_name = %s", (user,)).fetchone()['id']
-      cur.execute(
-        """
-        DELETE FROM event_participation
-        WHERE event_id = %s AND user_interested = %s
-        """,
-        (event, user_id)
-      )
-      conn.commit()
+def attend_event(event_id, user_id, is_host):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO event_participation (id, user_interested, is_host)
+                VALUES (%s, %s, %s)
+                RETURNING *
+                """,
+                (event_id, user_id, is_host),
+            )
+            return cur.fetchone()
 
 # ---------- Follow ----------
 

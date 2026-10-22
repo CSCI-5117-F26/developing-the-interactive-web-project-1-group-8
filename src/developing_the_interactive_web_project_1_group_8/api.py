@@ -112,7 +112,7 @@ def get_user_photo(username):
     avatar_url = profile["profile_pic"]
 
     if not is_safe_avatar_url(avatar_url):
-        avatar_url = url_for("static", filename="default-avatar.svg")
+        avatar_url = url_for("static", filename="images/default-avatar.svg")
 
     return avatar_url
 

@@ -56,7 +56,7 @@ app.register_blueprint(api)
 @app.route("/")
 def index():
     """Dashboard page, where users can explore for new events"""
-    events = db.get_all_events()
+    events = db.get_all_event_info()
     sections = [
         ("Events from Popular Games", events),
         ("Events from Games You've Played", events),
@@ -295,7 +295,7 @@ def settings():
 @requires_setup
 def my_events():
     """Page with many events"""
-    events = db.get_all_events()
+    events = db.get_all_event_info()
     # print(events)
     return render_template("my_events.html", events=events)
 
@@ -315,12 +315,76 @@ def event(event_id):
     
     """
 
-    event = db.get_event(event_id)
+    event = db.get_event_info(event_id)
+    # print(event)
     if event is None:
         abort(404,"This event does appear to exist.")
     # print(db.get_event(event_id))
     return render_template("event.html", event=event)
 
+@app.route("/create-event")
+@requires_auth
+def create_event():
+    """Event form, where users can insert info about their event"""
+    # print(database.get_event(event_id))
+    return render_template("event_info.html", event=None)
+
+@app.post("/add-event")
+@requires_auth
+def add_event():
+    print(request.form)
+    print(session["profile"]["id"])
+    result = db.create_event(request.form.get("name"), request.form.get("gameid"),
+                    session["profile"]["id"], request.form.get("address"),
+                    request.form.get("time"), request.form.get("expected_duration"), 
+                    request.form.get("max_attendees"), request.form.get("description"),
+                    "scheduled")
+
+    db.attend_event(result["id"], session["profile"]["id"], True)
+    
+    return redirect("/")
+
+@app.route("/rsvp/<int:event_id>")
+@requires_auth
+def rsvp(event_id):
+
+    db.attend_event(event_id, session["profile"]["id"], False)
+    
+    return redirect("/")
+
+@app.route("/event/<int:event_id>/edit")
+@requires_auth
+def edit_event(event_id):
+    """Event form, where users can edit info about their event"""
+    edited_event = db.get_event(event_id)
+    # TODO There should be a check as to whether edited_event.hostid == the
+    # userID of the session holder, 403 otherwise
+    print(session["profile"])
+    print(edited_event)
+    if (session["profile"]["id"] == edited_event["hostid"]):
+        return render_template("event_info.html", event=edited_event)
+    else:
+        # print(session["profile"]["user"])
+        return redirect("/event/" + str(event_id))
+
+@app.post("/update-event/<int:event_id>")
+@requires_auth
+def update_event(event_id):
+    check_event = db.get_event_info(event_id)
+
+    if check_event["hostid"] != session["profile"]["id"]:
+        abort(404,"This event does not belong to you.")
+
+    if check_event["count"] > int(request.form.get("max_attendees")):
+        abort(404,
+        "Cannot adjust an event's max attendees lower than the number of participants.")
+    
+    db.update_event(event_id, request.form.get("name"), request.form.get("gameid"),
+                    request.form.get("address"), request.form.get("time"), 
+                    request.form.get("expected_duration"), request.form.get("max_attendees"),
+                    request.form.get("description"), "scheduled")
+    
+    return redirect("/")
 
 # @app.route("/user/<string:username>")
 # def user(username):
