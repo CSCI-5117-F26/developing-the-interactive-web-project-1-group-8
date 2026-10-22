@@ -140,4 +140,6 @@ def setup_db():
                 """
             )
             conn.commit()
+
+
 setup()

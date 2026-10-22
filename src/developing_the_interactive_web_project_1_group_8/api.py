@@ -3,24 +3,32 @@ import psycopg
 import faker
 from flask import Flask, jsonify, Blueprint, request, render_template
 from boardgamegeek import BGGClient, CacheBackendSqlite
-from developing_the_interactive_web_project_1_group_8.CacheBackendPostgres import PostgresCache, CacheBackendPostgres
+from developing_the_interactive_web_project_1_group_8.CacheBackendPostgres import (
+    PostgresCache,
+    CacheBackendPostgres,
+)
 from developing_the_interactive_web_project_1_group_8.decorators import requires_auth
 import validators
 from urllib.parse import urlencode, urlsplit
 from developing_the_interactive_web_project_1_group_8 import db
 import psycopg
 import faker
-from flask import Flask, jsonify, Blueprint, request, render_template, abort, url_for, session, redirect
+from flask import (
+    Flask,
+    jsonify,
+    Blueprint,
+    request,
+    render_template,
+    abort,
+    url_for,
+    session,
+    redirect,
+)
 
 # this module holds all of the api endpoints
 
 
 api = Blueprint("api", __name__, template_folder="templates")
-
-
-
-
-
 
 
 # ---------- Events ----------
@@ -81,8 +89,6 @@ def userCreate():
     return jsonify({"message": "User created successfully"}), 201
 
 
-
-
 # https://nandgator.github.io/pyvalidators/stable/api/url/
 def is_safe_avatar_url(url):
     if not url or validators.url(url) is not True:
@@ -134,7 +140,7 @@ def follow_user(username):
     if current_user is None:
         session.clear()
         return redirect(url_for("index"))
-    
+
     current_user_id = session["profile"]["id"]
 
     if current_user_id == user_id:
@@ -149,7 +155,7 @@ def follow_user(username):
         return jsonify({"error": "You are already following this user"}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    
+
 
 @api.route("/api/user/<string:username>/unfollow", methods=["POST"])
 @requires_auth
@@ -162,12 +168,11 @@ def unfollow_user(username):
     """
 
     current_user = db.get_user_from_id(session["profile"]["id"])
-    
 
     if current_user is None:
         session.clear()
         return redirect(url_for("index"))
-    
+
     current_user_id = session["profile"]["id"]
     user_id = db.get_id_for_username(username)
 
@@ -180,7 +185,9 @@ def unfollow_user(username):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
 # ---------- Block ----------
+
 
 @api.route("/api/user/<string:username>/block", methods=["POST"])
 @requires_auth
@@ -197,7 +204,7 @@ def block_user(username):
     if current_user is None:
         session.clear()
         return redirect(url_for("index"))
-    
+
     current_user_id = session["profile"]["id"]
     user_id = db.get_id_for_username(username)
 
@@ -214,7 +221,6 @@ def block_user(username):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-    
 
 @api.route("/api/user/<string:username>/unblock", methods=["POST"])
 @requires_auth
@@ -231,7 +237,7 @@ def unblock_user(username):
     if current_user is None:
         session.clear()
         return redirect(url_for("index"))
-    
+
     current_user_id = session["profile"]["id"]
     user_id = db.get_id_for_username(username)
 
@@ -243,8 +249,10 @@ def unblock_user(username):
         return jsonify({"message": "User unblocked successfully"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    
+
+
 # ---------- Search ----------
+
 
 @api.route("/api/search", methods=["GET"])
 def search():
@@ -265,6 +273,7 @@ def search():
 
     return jsonify(r), 200
 
+
 @api.route("/api/search-games", methods=["GET"])
 def searchGames():
     """
@@ -282,7 +291,7 @@ def searchGames():
     r = db.bgg.search(query)
     # filter so we only use game
     r = [game for game in r if game.type == "boardgame"]
-    
+
     # sort so that the best match is first
     r.sort(key=lambda game: game.name.lower().find(query.lower()))
     r = [{"id": game.id, "name": game.name} for game in r]

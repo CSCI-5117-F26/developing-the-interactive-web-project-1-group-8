@@ -14,6 +14,7 @@ pool = None
 fake = Faker()
 Faker.seed(0)  # Seed for reproducibility
 
+
 def setup():
     global pool
     # note use of `[]` over `.get()` is intentional here. I want a hard-and-fast crash if environment is not setup right.
@@ -48,7 +49,7 @@ def generate_fake_users(num_users=10):
         user["user_id"] = e["id"]
         users.append(user)
 
-    #have the shitgoblins follow eachother
+    # have the shitgoblins follow eachother
     for user in users:
         i = fake.random_int(min=0, max=3)
         for _ in range(i):
@@ -58,13 +59,13 @@ def generate_fake_users(num_users=10):
                     user.get("user_id"),
                     other_user.get("user_id"),
                 )
-              
 
-
-        stati = ["cancelled", "scheduled","pending"]
+        stati = ["cancelled", "scheduled", "pending"]
     # make them create events, goddamn it
     for user in users:
-        i = fake.random_choices(elements=OrderedDict([(0,0.4), (1,0.3), (2,0.2), (3,0.1)]), length=1)[0]
+        i = fake.random_choices(
+            elements=OrderedDict([(0, 0.4), (1, 0.3), (2, 0.2), (3, 0.1)]), length=1
+        )[0]
         for _ in range(i):
             ev = {
                 "name": fake.sentence(nb_words=4),

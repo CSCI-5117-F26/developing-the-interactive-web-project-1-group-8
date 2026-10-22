@@ -8,7 +8,8 @@ from flask import (
     session,
     abort,
     flash,
-    request, jsonify,
+    request,
+    jsonify,
 )
 import validators
 import os
@@ -18,8 +19,15 @@ from flask_wtf.csrf import CSRFProtect
 from authlib.integrations.flask_client import OAuth
 
 from developing_the_interactive_web_project_1_group_8 import db
-from developing_the_interactive_web_project_1_group_8.api import api, is_safe_avatar_url, get_user_photo
-from developing_the_interactive_web_project_1_group_8.decorators import requires_auth, requires_setup
+from developing_the_interactive_web_project_1_group_8.api import (
+    api,
+    is_safe_avatar_url,
+    get_user_photo,
+)
+from developing_the_interactive_web_project_1_group_8.decorators import (
+    requires_auth,
+    requires_setup,
+)
 import developing_the_interactive_web_project_1_group_8.db as db
 
 db.setup()
@@ -52,6 +60,7 @@ auth0 = oauth.register(
 CSRFProtect(app)
 
 app.register_blueprint(api)
+
 
 @app.route("/")
 def index():
@@ -128,6 +137,7 @@ def account():
 
     return render_template("account.html", user=user)
 
+
 @app.route("/username")
 @requires_auth
 def username():
@@ -138,8 +148,9 @@ def username():
         return redirect(url_for("index"))
     elif current_user["setup_complete"]:
         return redirect(url_for("account"))
-    else: 
+    else:
         return render_template("username.html")
+
 
 @app.route("/set-username", methods=["POST"])
 @requires_auth
@@ -155,32 +166,28 @@ def set_username():
     if check_exists:
         errors.append("Username is already in use. Choose a unique display name.")
     if not errors:
-        updated_user = db.update_username(
-            current_user,
-            username
-        )
-        
+        updated_user = db.update_username(current_user, username)
+
         if updated_user is None:
             session.clear()
             return redirect(url_for("index"))
-                
+
         session["profile"] = {
             "id": updated_user["id"],
             "sub": updated_user["auth0_sub"],
             "display_name": updated_user["display_name"],
             "profile_pic": updated_user["profile_pic"],
             "username": updated_user["username"],
-            "setup_complete": updated_user["setup_complete"]
+            "setup_complete": updated_user["setup_complete"],
         }
         flash("Username updated.")
         return redirect(url_for("account"))
-    
+
     return render_template(
         "username.html",
         username=username,
         errors=errors,
     )
-
 
 
 @app.route("/user/<string:username>")
@@ -189,9 +196,9 @@ def user(username):
 
     if profile is None:
         abort(404, "This user does not appear to exist.")
-        
+
     profile_id = profile["id"]
-    profile["followers"] =  db.get_follower_count(profile_id)
+    profile["followers"] = db.get_follower_count(profile_id)
     profile["is_following"] = False
     profile["is_blocked"] = False
 
@@ -202,17 +209,16 @@ def user(username):
     events = db.get_user_events(profile_id)
     going_events = db.get_user_events_attending(profile_id)
     followers = db.get_following(profile_id)
-    sections = [
-        ("Hosted Events", events),
-        ("Events Going To", going_events)
-    ]
+    sections = [("Hosted Events", events), ("Events Going To", going_events)]
 
     if "profile" in session:
         current_user_id = session["profile"]["id"]
         profile["is_following"] = db.is_following(current_user_id, profile_id)
         profile["is_blocked"] = db.is_blocked(current_user_id, profile_id)
 
-    return render_template("user.html", sections=sections, following=followers, user=profile)
+    return render_template(
+        "user.html", sections=sections, following=followers, user=profile
+    )
 
 
 @app.route("/account/settings", methods=["GET", "POST"])
@@ -249,7 +255,9 @@ def settings():
                 errors.append("Display name must be between 1 and 80 characters.")
             check_exists = db.get_public_user(values["display_name"])
             if check_exists and check_exists["id"] != current_user["id"]:
-                errors.append("Display name is already in use. Choose a unique display name.")
+                errors.append(
+                    "Display name is already in use. Choose a unique display name."
+                )
             if len(values["bio"]) > 200:
                 errors.append("Biography must be 200 characters or fewer.")
             if values["profile_pic"] and (
@@ -270,7 +278,7 @@ def settings():
             if updated_user is None:
                 session.clear()
                 return redirect(url_for("index"))
-            
+
             session["profile"] = {
                 "id": updated_user["id"],
                 "sub": updated_user["auth0_sub"],
@@ -312,15 +320,16 @@ def search():
 def event(event_id):
     """
     Event page, where users can view details about a specific event
-    
+
     """
 
     event = db.get_event_info(event_id)
     # print(event)
     if event is None:
-        abort(404,"This event does appear to exist.")
+        abort(404, "This event does appear to exist.")
     # print(db.get_event(event_id))
     return render_template("event.html", event=event)
+
 
 @app.route("/create-event")
 @requires_auth
@@ -329,28 +338,37 @@ def create_event():
     # print(database.get_event(event_id))
     return render_template("event_info.html", event=None)
 
+
 @app.post("/add-event")
 @requires_auth
 def add_event():
     print(request.form)
     print(session["profile"]["id"])
-    result = db.create_event(request.form.get("name"), request.form.get("gameid"),
-                    session["profile"]["id"], request.form.get("address"),
-                    request.form.get("time"), request.form.get("expected_duration"), 
-                    request.form.get("max_attendees"), request.form.get("description"),
-                    "scheduled")
+    result = db.create_event(
+        request.form.get("name"),
+        request.form.get("gameid"),
+        session["profile"]["id"],
+        request.form.get("address"),
+        request.form.get("time"),
+        request.form.get("expected_duration"),
+        request.form.get("max_attendees"),
+        request.form.get("description"),
+        "scheduled",
+    )
 
     db.attend_event(result["id"], session["profile"]["id"], True)
-    
+
     return redirect("/")
+
 
 @app.route("/rsvp/<int:event_id>")
 @requires_auth
 def rsvp(event_id):
 
     db.attend_event(event_id, session["profile"]["id"], False)
-    
+
     return redirect("/")
+
 
 @app.route("/event/<int:event_id>/edit")
 @requires_auth
@@ -361,11 +379,12 @@ def edit_event(event_id):
     # userID of the session holder, 403 otherwise
     print(session["profile"])
     print(edited_event)
-    if (session["profile"]["id"] == edited_event["hostid"]):
+    if session["profile"]["id"] == edited_event["hostid"]:
         return render_template("event_info.html", event=edited_event)
     else:
         # print(session["profile"]["user"])
         return redirect("/event/" + str(event_id))
+
 
 @app.post("/update-event/<int:event_id>")
 @requires_auth
@@ -373,18 +392,28 @@ def update_event(event_id):
     check_event = db.get_event_info(event_id)
 
     if check_event["hostid"] != session["profile"]["id"]:
-        abort(404,"This event does not belong to you.")
+        abort(404, "This event does not belong to you.")
 
     if check_event["count"] > int(request.form.get("max_attendees")):
-        abort(404,
-        "Cannot adjust an event's max attendees lower than the number of participants.")
-    
-    db.update_event(event_id, request.form.get("name"), request.form.get("gameid"),
-                    request.form.get("address"), request.form.get("time"), 
-                    request.form.get("expected_duration"), request.form.get("max_attendees"),
-                    request.form.get("description"), "scheduled")
-    
+        abort(
+            404,
+            "Cannot adjust an event's max attendees lower than the number of participants.",
+        )
+
+    db.update_event(
+        event_id,
+        request.form.get("name"),
+        request.form.get("gameid"),
+        request.form.get("address"),
+        request.form.get("time"),
+        request.form.get("expected_duration"),
+        request.form.get("max_attendees"),
+        request.form.get("description"),
+        "scheduled",
+    )
+
     return redirect("/")
+
 
 # @app.route("/user/<string:username>")
 # def user(username):
@@ -394,14 +423,12 @@ def update_event(event_id):
 #     return render_template("user.html", username=username)
 
 
-
-
 # ---------- Error Handlers ----------
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template("error.html", message=e.description), 404
 
+
 @app.errorhandler(403)
 def forbidden(e):
     return render_template("error.html", message=e.description), 404
-
