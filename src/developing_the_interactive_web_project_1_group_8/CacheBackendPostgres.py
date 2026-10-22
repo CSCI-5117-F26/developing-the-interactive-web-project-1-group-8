@@ -114,7 +114,7 @@ class PostgresDict(BaseStorage):
     def __contains__(self, key) -> bool:
         with self.pool.connection() as con:
             result = con.execute(sql.SQL("""SELECT 1 FROM {0} WHERE key = {1};""").format(sql.Identifier(self.table_name), sql.Literal(self._bkey(key))))
-            print(f"Checking if key {key} exists in table {self.table_name}: {result.fetchone() is not None}")
+            # print(f"Checking if key {key} exists in table {self.table_name}: {result.fetchone() is not None}")
             return bool(result.fetchone())
 
     def __getitem__(self, key):
@@ -123,7 +123,7 @@ class PostgresDict(BaseStorage):
                         SELECT value FROM {0} WHERE key = {1};
                         """).format(sql.Identifier(self.table_name), sql.Literal(self._bkey(key)))
                     ).fetchone()
-            print(f"Getting item with key {key} from table {self.table_name}: {result != None}")
+            # print(f"Getting item with key {key} from table {self.table_name}: {result != None}")
             if result is None:
                 raise KeyError
             return self.deserialize(key, result[0])
@@ -131,7 +131,7 @@ class PostgresDict(BaseStorage):
     def __setitem__(self, key, item):
         with self.pool.connection() as con:
             expires_delta = getattr(item, 'expires_delta', None)
-            print(f"Setting item with key {key} and expires_delta {expires_delta}")
+            # print(f"Setting item with key {key} and expires_delta {expires_delta}")
             if expires_delta is not None:
                 con.execute(
                         sql.SQL("""
@@ -167,7 +167,7 @@ class PostgresDict(BaseStorage):
 
     def count(self, expired: bool = True) -> int:
         """Count number of responses, optionally excluding expired"""
-        print(f"Counting items in table {self.table_name}, expired={expired}")
+        # print(f"Counting items in table {self.table_name}, expired={expired}")
         if not expired:
             with self.pool.connection() as con:
                 res = con.execute(sql.SQL("""SELECT COUNT(*) FROM {0} WHERE expires is null or expires > {1}""").format(sql.Identifier(self.table_name), sql.Literal(time()))).fetchone()
@@ -182,7 +182,7 @@ class PostgresDict(BaseStorage):
 
     def keys(self):
         """Return a list of all keys in the cache"""
-        print(f"Fetching all keys from table {self.table_name}")
+        # print(f"Fetching all keys from table {self.table_name}")
         with self.pool.connection() as con:
             result = con.execute(sql.SQL("""SELECT key FROM {0}""").format(sql.Identifier(self.table_name))).fetchall()
             return [decode(row[0]) for row in result]
@@ -190,14 +190,14 @@ class PostgresDict(BaseStorage):
 
     def items(self):
         """Return a list of all key-value pairs in the cache"""
-        print(f"Fetching all items from table {self.table_name}")
+        # print(f"Fetching all items from table {self.table_name}")
         with self.pool.connection() as con:
             result = con.execute(sql.SQL("""SELECT key, value FROM {0}""").format(sql.Identifier(self.table_name))).fetchall()
             return [(decode(row[0]), self.deserialize(decode(row[0]), row[1])) for row in result]
 
     def values(self):
         """Return a list of all values in the cache"""
-        print(f"Fetching all values from table {self.table_name}")
+        # print(f"Fetching all values from table {self.table_name}")
         with self.pool.connection() as con:
             result = con.execute(sql.SQL("""SELECT value FROM {0}""").format(sql.Identifier(self.table_name))).fetchall()
             return [self.deserialize(None, row[0]) for row in result]

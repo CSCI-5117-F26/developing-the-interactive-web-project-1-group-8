@@ -264,3 +264,29 @@ def search():
     print(r)
 
     return jsonify(r), 200
+
+@api.route("/api/search-games", methods=["GET"])
+def searchGames():
+    """
+    Search for events from our bgg instance
+
+    Parameters:
+      query (str): The game query
+    """
+    query = request.args.get("q", type=str)
+
+    if not query:
+        return jsonify({"error": "Search query is required"}), 400
+
+    # search users, events, games ( ? )
+    r = db.bgg.search(query)
+    # filter so we only use game
+    r = [game for game in r if game.type == "boardgame"]
+    
+    # sort so that the best match is first
+    r.sort(key=lambda game: game.name.lower().find(query.lower()))
+    r = [{"id": game.id, "name": game.name} for game in r]
+    r = r[:10]  # limit to 10 results
+    # print(r)
+
+    return jsonify(r), 200

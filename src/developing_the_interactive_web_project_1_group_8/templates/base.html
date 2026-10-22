@@ -8,6 +8,8 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/pure-min.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/grids-responsive-min.css" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='bggsearch.css') }}">
+
   <title>{% block title %}Project{% endblock %}</title>
   {% block head %}{% endblock %}
 </head>
@@ -24,5 +26,6 @@
   </main>
 </body>
 {% block scripts %}{% endblock %}
+<script src="{{ url_for('static', filename='bggsearch.js') }}"></script>
 
 </html>
