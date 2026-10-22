@@ -199,8 +199,8 @@ def user(username):
         # this is deception, we don't want to tell the user that they are blocked, we just want to make it look like the user doesn't exist
         abort(403, "This user does not appear to exist.")
 
-    events = db.get_user_events(username)
-    going_events = db.get_user_events_attending(username)
+    events = db.get_user_events(profile_id)
+    going_events = db.get_user_events_attending(profile_id)
     followers = db.get_following(profile_id)
     sections = [
         ("Hosted Events", events),
