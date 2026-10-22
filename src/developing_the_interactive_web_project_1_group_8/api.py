@@ -8,7 +8,6 @@ from developing_the_interactive_web_project_1_group_8.decorators import requires
 import validators
 from urllib.parse import urlencode, urlsplit
 from developing_the_interactive_web_project_1_group_8 import db
-from developing_the_interactive_web_project_1_group_8.db import get_public_user, get_user
 import psycopg
 import faker
 from flask import Flask, jsonify, Blueprint, request, render_template, abort, url_for, session, redirect
@@ -97,15 +96,15 @@ def is_safe_avatar_url(url):
 
 
 # get user account photo
-@api.route("/api/user/<int:user_id>/photo", methods=["GET"])
-def get_user_photo(user_id):
+@api.route("/api/user/<string:username>/photo", methods=["GET"])
+def get_user_photo(username):
     """
     Get the account photo for a user.
 
     Parameters:
-      user_id (int): The ID of the user.
+      username (str): The username of the user.
     """
-    profile = get_public_user(user_id)
+    profile = db.get_public_user(username)
 
     if profile is None:
         abort(404)
@@ -119,23 +118,24 @@ def get_user_photo(user_id):
 
 
 # ---------- Follow ----------
-@api.route("/api/user/<int:user_id>/follow", methods=["POST"])
+@api.route("/api/user/<string:username>/follow", methods=["POST"])
 @requires_auth
-def follow_user(user_id):
+def follow_user(username):
     """
     Follow a user.
 
     Parameters:
-      user_id (int): The ID of the user to follow.
+      username (str): The username of the user to follow.
     """
 
-    current_user = get_user(session["profile"]["id"])
+    current_user = db.get_user_from_id(session["profile"]["id"])
+    user_id = db.get_id_for_username(username)
 
     if current_user is None:
         session.clear()
         return redirect(url_for("index"))
     
-    current_user_id = current_user["id"]
+    current_user_id = session["profile"]["id"]
 
     if current_user_id == user_id:
         return jsonify({"error": "You cannot follow yourself"}), 400
@@ -151,23 +151,25 @@ def follow_user(user_id):
         return jsonify({"error": str(e)}), 500
     
 
-@api.route("/api/user/<int:user_id>/unfollow", methods=["POST"])
+@api.route("/api/user/<string:username>/unfollow", methods=["POST"])
 @requires_auth
-def unfollow_user(user_id):
+def unfollow_user(username):
     """
     Unfollow a user.
 
     Parameters:
-      user_id (int): The ID of the user to unfollow.
+      usernamt (str): The username of the user to unfollow.
     """
 
-    current_user = get_user(session["profile"]["id"])
+    current_user = db.get_user_from_id(session["profile"]["id"])
+    
 
     if current_user is None:
         session.clear()
         return redirect(url_for("index"))
     
-    current_user_id = current_user["id"]
+    current_user_id = session["profile"]["id"]
+    user_id = db.get_id_for_username(username)
 
     if current_user_id == user_id:
         return jsonify({"error": "You cannot unfollow yourself"}), 400
@@ -180,23 +182,24 @@ def unfollow_user(user_id):
 
 # ---------- Block ----------
 
-@api.route("/api/user/<int:user_id>/block", methods=["POST"])
+@api.route("/api/user/<string:username>/block", methods=["POST"])
 @requires_auth
-def block_user(user_id):
+def block_user(username):
     """
     Block a user.
 
     Parameters:
-      user_id (int): The ID of the user to block.
+      username (str): The username of the user to block.
     """
 
-    current_user = get_user(session["profile"]["id"])
+    current_user = db.get_user_from_id(session["profile"]["id"])
 
     if current_user is None:
         session.clear()
         return redirect(url_for("index"))
     
-    current_user_id = current_user["id"]
+    current_user_id = session["profile"]["id"]
+    user_id = db.get_id_for_username(username)
 
     if current_user_id == user_id:
         return jsonify({"error": "You cannot block yourself"}), 400
@@ -213,9 +216,9 @@ def block_user(user_id):
 
     
 
-@api.route("/api/user/<int:user_id>/unblock", methods=["POST"])
+@api.route("/api/user/<string:username>/unblock", methods=["POST"])
 @requires_auth
-def unblock_user(user_id):
+def unblock_user(username):
     """
     Unblock a user.
 
@@ -223,13 +226,14 @@ def unblock_user(user_id):
       user_id (int): The ID of the user to unblock.
     """
 
-    current_user = get_user(session["profile"]["id"])
+    current_user = db.get_user_from_id(session["profile"]["id"])
 
     if current_user is None:
         session.clear()
         return redirect(url_for("index"))
     
-    current_user_id = current_user["id"]
+    current_user_id = session["profile"]["id"]
+    user_id = db.get_id_for_username(username)
 
     if current_user_id == user_id:
         return jsonify({"error": "You cannot unblock yourself"}), 400

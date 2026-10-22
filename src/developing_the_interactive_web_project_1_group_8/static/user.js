@@ -3,10 +3,10 @@ const blockButton = document.getElementById( "block-button" );
 
 if ( followButton ) {
   followButton.addEventListener( "click", function () {
-    const userId = this.dataset.userId;
+    const username = this.dataset.username;
     const action = this.dataset.action; // "follow" or "unfollow"
 
-    fetch( `/api/user/${ userId }/${ action }`, {
+    fetch( `/api/user/${ username }/${ action }`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -35,10 +35,10 @@ if ( followButton ) {
 
 if ( blockButton ) {
   blockButton.addEventListener( "click", function () {
-    const userId = this.dataset.userId;
+    const username = this.dataset.username;
     const action = this.dataset.action; // "block" or "unblock"
 
-    fetch( `/api/user/${ userId }/${ action }`, {
+    fetch( `/api/user/${ username }/${ action }`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

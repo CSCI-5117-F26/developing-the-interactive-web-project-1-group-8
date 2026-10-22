@@ -31,21 +31,21 @@
 
 
   <div class="profile-actions">
-    {% if session.get('profile') and session['profile']['id'] == user.id %}
+    {% if session.get('profile') and session['profile']['display_name'] == user.display_name %}
     <a class="profile-edit pure-button" href="{{ url_for('settings') }}"><i class="fa fa-cog fa-fw"
         aria-hidden="true"></i></a>
     {% endif %}
 
-    {% if session.get('profile') and session['profile']['id'] != user.id and not user.is_blocked %}
+    {% if session.get('profile') and session['profile']['display_name'] != user.display_name and not user.is_blocked %}
     <button class="profile-button pure-button" id="follow-button" data-csrf-token="{{ csrf_token() }}"
-      data-action="{% if user.is_following %}unfollow{% else %}follow{% endif %}" data-user-id="{{ user.id }}">
+      data-action="{% if user.is_following %}unfollow{% else %}follow{% endif %}" data-username="{{ user.username }}">
       {% if user.is_following %}Unfollow <i class="fa fa-user-times" aria-hidden="true"></i>{% else %}Follow <i
         class="fa fa-user-plus" aria-hidden="true"></i>{% endif %}</button>
     {% endif %}
 
-    {% if session.get('profile') and session['profile']['id'] != user.id %}
+    {% if session.get('profile') and session['profile']['display_name'] != user.display_name %}
     <button class="profile-button pure-button" id="block-button" data-csrf-token="{{ csrf_token() }}"
-      data-action="{% if user.is_blocked %}unblock{% else %}block{% endif %}" data-user-id="{{ user.id }}">
+      data-action="{% if user.is_blocked %}unblock{% else %}block{% endif %}" data-username="{{ user.username }}">
       {% if user.is_blocked %}Unblock <i class="fa fa-unlock" aria-hidden="true"></i>{% else %}Block <i
         class="fa fa-ban" aria-hidden="true"></i>{% endif %}</button>
     {% endif %}
