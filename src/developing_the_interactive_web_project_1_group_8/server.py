@@ -1,3 +1,5 @@
+from wtforms.validators import DataRequired, Length
+from wtforms import StringField
 from flask import (
     Flask,
     render_template,
@@ -8,6 +10,7 @@ from flask import (
     flash,
     request, jsonify,
 )
+import validators
 import os
 from urllib.parse import urlencode, urlsplit
 from dotenv import load_dotenv
@@ -16,13 +19,10 @@ from authlib.integrations.flask_client import OAuth
 
 from developing_the_interactive_web_project_1_group_8 import db
 from developing_the_interactive_web_project_1_group_8.api import api, is_safe_avatar_url, get_user_photo
-from developing_the_interactive_web_project_1_group_8.decorators import requires_auth
-from developing_the_interactive_web_project_1_group_8.db import (
-    get_or_create_user,
-    get_user,
-    get_public_user,
-    update_profile,
-)
+from developing_the_interactive_web_project_1_group_8.decorators import requires_auth, requires_setup
+import developing_the_interactive_web_project_1_group_8.db as db
+
+db.setup()
 
 load_dotenv()
 app = Flask(__name__)
@@ -76,16 +76,21 @@ async def login():
 async def callback():
     token = auth0.authorize_access_token()
     user_info = token["userinfo"]
-    user = get_or_create_user(user_info)
+    user_exists = db.get_sub(user_info["sub"])
+    user = db.get_or_create_user(user_info)
 
     session.clear()
     session["profile"] = {
         "id": user["id"],
         "sub": user["auth0_sub"],
-        "display_name": user["display_name"],
+        "username": user["username"],
+        "setup_complete": user["setup_complete"],
         "profile_pic": user["profile_pic"] or None,
     }
-    return redirect(url_for("account"))
+    if user_exists and user["setup_complete"]:
+        return redirect(url_for("account"))
+    else:
+        return redirect(url_for("username"))
 
 
 @app.route("/logout", methods=["POST"])
@@ -105,8 +110,9 @@ def logout():
 
 @app.route("/account")
 @requires_auth
+@requires_setup
 def account():
-    user = get_user(session["profile"]["id"])
+    user = db.get_user_from_id(session["profile"]["id"])
     if user is None:
         session.clear()
         return redirect(url_for("index"))
@@ -115,29 +121,87 @@ def account():
     session["profile"] = {
         "id": user["id"],
         "sub": user["auth0_sub"],
-        "display_name": user["display_name"],
+        "username": user["username"],
+        "setup_complete": user["setup_complete"],
         "profile_pic": user["profile_pic"] or None,
     }
 
     return render_template("account.html", user=user)
 
+@app.route("/username")
+@requires_auth
+def username():
+    current_user = db.get_user_from_id(session["profile"]["id"])
 
-@app.route("/user/<int:user_id>")
-def user(user_id):
-    profile = get_public_user(user_id)
+    if current_user is None:
+        session.clear()
+        return redirect(url_for("index"))
+    elif current_user["setup_complete"]:
+        return redirect(url_for("account"))
+    else: 
+        return render_template("username.html")
+
+@app.route("/set-username", methods=["POST"])
+@requires_auth
+def set_username():
+    username = request.form.get("username").strip()
+    current_user = session["profile"]["id"]
+
+    errors = []
+
+    if not 3 <= len(username) <= 30:
+        errors.append("Username must be between 1 and 30 characters.")
+    check_exists = db.get_public_user(username)
+    if check_exists:
+        errors.append("Username is already in use. Choose a unique display name.")
+    if not errors:
+        updated_user = db.update_username(
+            current_user,
+            username
+        )
+        
+        if updated_user is None:
+            session.clear()
+            return redirect(url_for("index"))
+                
+        session["profile"] = {
+            "id": updated_user["id"],
+            "sub": updated_user["auth0_sub"],
+            "display_name": updated_user["display_name"],
+            "profile_pic": updated_user["profile_pic"],
+            "username": updated_user["username"],
+            "setup_complete": updated_user["setup_complete"]
+        }
+        flash("Username updated.")
+        return redirect(url_for("account"))
+    
+    return render_template(
+        "username.html",
+        username=username,
+        errors=errors,
+    )
+
+
+
+@app.route("/user/<string:username>")
+def user(username):
+    profile = db.get_public_user(username)
+
     if profile is None:
         abort(404, "This user does not appear to exist.")
-    profile["followers"] =  db.get_follower_count(user_id)
+        
+    profile_id = profile["id"]
+    profile["followers"] =  db.get_follower_count(profile_id)
     profile["is_following"] = False
     profile["is_blocked"] = False
 
-    if db.is_blocked(user_id, session["profile"]["id"]):
+    if db.is_blocked(profile_id, session["profile"]["id"]):
         # this is deception, we don't want to tell the user that they are blocked, we just want to make it look like the user doesn't exist
         abort(403, "This user does not appear to exist.")
 
-    events = db.get_user_events(user_id)
-    going_events = db.get_user_events_attending(user_id)
-    followers = db.get_following(user_id)
+    events = db.get_user_events(username)
+    going_events = db.get_user_events_attending(username)
+    followers = db.get_following(profile_id)
     sections = [
         ("Hosted Events", events),
         ("Events Going To", going_events)
@@ -145,26 +209,28 @@ def user(user_id):
 
     if "profile" in session:
         current_user_id = session["profile"]["id"]
-        profile["is_following"] = db.is_following(current_user_id, user_id)
-        profile["is_blocked"] = db.is_blocked(current_user_id, user_id)
+        profile["is_following"] = db.is_following(current_user_id, profile_id)
+        profile["is_blocked"] = db.is_blocked(current_user_id, profile_id)
 
     return render_template("user.html", sections=sections, following=followers, user=profile)
 
 
 @app.route("/account/settings", methods=["GET", "POST"])
 @requires_auth
+@requires_setup
 def settings():
-    current_user = get_user(session["profile"]["id"])
+    current_user = db.get_user_from_id(session["profile"]["id"])
 
     if current_user is None:
         session.clear()
         return redirect(url_for("index"))
-
-    values = {
-        "display_name": current_user["display_name"],
-        "bio": current_user["bio"] or "",
-        "profile_pic": current_user["profile_pic"] or "",
-    }
+    else:
+        values = {
+            "username": current_user["username"],
+            "display_name": current_user["display_name"] or "",
+            "bio": current_user["bio"] or "",
+            "profile_pic": current_user["profile_pic"] or "",
+        }
     errors = []
     can_restore_avatar = is_safe_avatar_url(current_user["auth0_avatar_url"])
 
@@ -181,6 +247,9 @@ def settings():
             }
             if not 1 <= len(values["display_name"]) <= 80:
                 errors.append("Display name must be between 1 and 80 characters.")
+            check_exists = db.get_public_user(values["display_name"])
+            if check_exists and check_exists["id"] != current_user["id"]:
+                errors.append("Display name is already in use. Choose a unique display name.")
             if len(values["bio"]) > 200:
                 errors.append("Biography must be 200 characters or fewer.")
             if values["profile_pic"] and (
@@ -192,11 +261,11 @@ def settings():
                 )
 
         if not errors:
-            updated_user = update_profile(
+            updated_user = db.update_profile(
                 current_user["id"],
                 values["display_name"],
                 values["bio"],
-                values["profile_pic"],
+                values["profile_pic"] or None,
             )
             if updated_user is None:
                 session.clear()
@@ -221,6 +290,7 @@ def settings():
 
 
 @app.route("/myevents")
+@requires_setup
 def my_events():
     """Page with many events"""
     events = db.get_all_event_info()

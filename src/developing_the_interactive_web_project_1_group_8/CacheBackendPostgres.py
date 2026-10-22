@@ -12,7 +12,7 @@ from psycopg_pool.abc import CT
 import requests
 from contextlib import contextmanager
 import threading
-import requests_cache
+# import requests_cache
 from boardgamegeek import BGGValueError
 from boardgamegeek.cache import CacheBackend, StrOrPath
 from psycopg_pool import ConnectionPool

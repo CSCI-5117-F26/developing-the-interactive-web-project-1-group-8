@@ -33,7 +33,12 @@
           </a>
           <ul class="accountDetails pure-menu-children">
             <li class="pure-menu-item">
-              <a class="pure-menu-link" href="{{ url_for('user', user_id=session['profile']['id']) }}">My Profile</a>
+              {% if session.get('profile').get('setup_complete') %}
+              <a class="pure-menu-link" href="{{ url_for('user', username=session['profile']['username']) }}">My
+                Profile</a>
+              {% else %}
+              <a class="pure-menu-link" href="{{ url_for('username') }}">Set Username</a>
+              {% endif %}
             </li>
             <li class="pure-menu-item">
               <a class="pure-menu-link" href="{{ url_for('account') }}">Account</a>
