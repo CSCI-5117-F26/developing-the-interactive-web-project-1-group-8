@@ -14,7 +14,7 @@
 
 {% block content %}
 <section class="profile-content page-panel">
-  <img class="user-ico" src="{{ user.profile_pic or url_for('static', filename='images/avatar-default.svg') }}" width="128" height="128">
+  <img class="user-ico" src="{{ avatar_url(user) }}" width="128" height="128">
   <div class="profile-desc">
     <h1>{{ user.display_name }}</h1>
     <h2>{{ user.followers }} followers</h2>

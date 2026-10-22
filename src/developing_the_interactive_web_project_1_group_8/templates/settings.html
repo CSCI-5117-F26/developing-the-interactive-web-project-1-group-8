@@ -12,7 +12,7 @@
 
   {% if errors %}
   <div>
-    <p>Please correct these fields:</p>
+    <p>Profile could not be saved:</p>
     <ul>
       {% for error in errors %}
       <li>{{ error }}</li>
@@ -21,7 +21,7 @@
   </div>
   {% endif %}
 
-  <form class="pure-form pure-form-stacked" method="post" action="{{ url_for('settings') }}">
+  <form class="pure-form pure-form-stacked" method="post" action="{{ url_for('settings') }}" enctype="multipart/form-data">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label for="display_name">Display name</label>
     <input class="pure-input-1" id="display_name" name="display_name" type="text" value="{{ values.display_name }}"
@@ -31,10 +31,9 @@
     <textarea class="pure-input-1" id="bio" name="bio" rows="6" maxlength="200">{{ values.bio }}</textarea>
     <p id="bio-help">Up to 200 characters</p>
 
-    <label for="profile_pic">Avatar URL</label>
-    <input class="pure-input-1" id="profile_pic" name="profile_pic" type="url" value="{{ values.profile_pic }}"
-      maxlength="2048">
-    <p id="avatar-help">Use an HTTPS image URL, or leave blank for the default avatar</p>
+    <label for="avatar">Profile picture</label>
+    <input class="pure-input-1" id="avatar" name="avatar" type="file" accept="image/jpeg,image/png,image/webp">
+    <p id="avatar-help">Choose a JPEG, PNG, or WebP image up to 5 MB.</p>
 
     <button class="pure-button pure-button-primary" type="submit">Save profile</button>
   </form>

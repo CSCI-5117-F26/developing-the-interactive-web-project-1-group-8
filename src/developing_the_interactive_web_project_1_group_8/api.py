@@ -1,3 +1,5 @@
+from io import BytesIO
+from botocore.exceptions import BotoCoreError, ClientError
 import os
 import psycopg
 import faker
@@ -25,6 +27,10 @@ from flask import (
     redirect,
 )
 
+from flask import send_file
+from developing_the_interactive_web_project_1_group_8.avatars import (
+    download_avatar,
+)
 # this module holds all of the api endpoints
 
 
@@ -101,6 +107,36 @@ def is_safe_avatar_url(url):
     )
 
 
+@api.app_template_global()
+def avatar_url(profile):
+    picture = profile["profile_pic"]
+    if picture and picture.startswith("avatars/"):
+        return url_for("api.avatar_image", user_id=profile["id"])
+
+    if is_safe_avatar_url(picture):
+        return picture
+
+    return url_for("static", filename="images/avatar-default.svg")
+
+
+@api.get("/api/user/<int:user_id>/avatar")
+def avatar_image(user_id):
+    profile = db.get_user_from_id(user_id)
+    if profile is None:
+        abort(404)
+
+    avatar_key = profile["profile_pic"]
+    if not avatar_key or not avatar_key.startswith("avatars/"):
+        return redirect(avatar_url(profile))
+
+    try:
+        image_data = download_avatar(avatar_key)
+    except KeyError, BotoCoreError, ClientError:
+        return redirect(url_for("static", filename="images/avatar-default.svg"))
+
+    return send_file(BytesIO(image_data), mimetype="image/jpeg", etag=avatar_key)
+
+
 # get user account photo
 @api.route("/api/user/<string:username>/photo", methods=["GET"])
 def get_user_photo(username):
@@ -115,12 +151,7 @@ def get_user_photo(username):
     if profile is None:
         abort(404)
 
-    avatar_url = profile["profile_pic"]
-
-    if not is_safe_avatar_url(avatar_url):
-        avatar_url = url_for("static", filename="images/avatar-default.svg")
-
-    return avatar_url
+    return avatar_url(profile)
 
 
 # ---------- Follow ----------

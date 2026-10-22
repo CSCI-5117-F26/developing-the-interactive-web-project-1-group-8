@@ -17,6 +17,10 @@ from urllib.parse import urlencode, urlsplit
 from dotenv import load_dotenv
 from flask_wtf.csrf import CSRFProtect
 from authlib.integrations.flask_client import OAuth
+from io import BytesIO
+import warnings
+from botocore.exceptions import BotoCoreError, ClientError
+from PIL import Image, UnidentifiedImageError
 
 from developing_the_interactive_web_project_1_group_8 import db
 from developing_the_interactive_web_project_1_group_8.api import (
@@ -29,6 +33,11 @@ from developing_the_interactive_web_project_1_group_8.decorators import (
     requires_setup,
 )
 import developing_the_interactive_web_project_1_group_8.db as db
+from developing_the_interactive_web_project_1_group_8.avatars import (
+    MAX_AVATAR_BYTES,
+    prepare_avatar,
+    upload_avatar,
+)
 
 db.setup()
 
@@ -55,6 +64,21 @@ auth0 = oauth.register(
         f"https://{os.environ['AUTH0_DOMAIN']}/.well-known/openid-configuration"
     ),
 )
+
+
+@app.before_request
+def limit_avatar_request():
+    if request.endpoint == "settings" and request.method == "POST":
+        request.max_content_length = MAX_AVATAR_BYTES + 64 * 1024
+
+
+@app.errorhandler(413)
+def upload_too_large(e):
+    return render_template(
+        "error.html",
+        message="Upload is too large. Choose an avatar of 5 MiB or smaller.",
+    ), 413
+
 
 # https://flask-wtf.readthedocs.io/en/0.15.x/csrf/
 CSRFProtect(app)
@@ -246,22 +270,59 @@ def settings():
             if not can_restore_avatar:
                 errors.append("No valid Auth0 avatar is available to restore.")
         else:
-            values = {
-                "display_name": request.form.get("display_name", "").strip(),
-                "bio": request.form.get("bio", ""),
-                "profile_pic": request.form.get("profile_pic", "").strip(),
-            }
+            values["display_name"] = request.form.get("display_name", "").strip()
+            values["bio"] = request.form.get("bio", "")
             if not 1 <= len(values["display_name"]) <= 80:
                 errors.append("Display name must be between 1 and 80 characters.")
             if len(values["bio"]) > 200:
                 errors.append("Biography must be 200 characters or fewer.")
-            if values["profile_pic"] and (
-                len(values["profile_pic"]) > 2048
-                or not is_safe_avatar_url(values["profile_pic"])
-            ):
-                errors.append(
-                    "Avatar must be an HTTPS URL of 2,048 characters or fewer, without a username or password."
-                )
+            if not errors:
+                avatar_file = request.files.get("avatar")
+                if avatar_file is not None and avatar_file.filename:
+                    image_data = avatar_file.stream.read(MAX_AVATAR_BYTES + 1)
+                    if len(image_data) > MAX_AVATAR_BYTES:
+                        errors.append("Avatar must be 5 MB or smaller.")
+
+                    if not errors:
+                        try:
+                            with warnings.catch_warnings():
+                                warnings.simplefilter(
+                                    "error", Image.DecompressionBombWarning
+                                )
+                                with Image.open(BytesIO(image_data)) as image:
+                                    if image.format not in {"JPEG", "PNG", "WEBP"}:
+                                        errors.append(
+                                            "Choose a JPEG, PNG, or WebP image."
+                                        )
+                                    if getattr(image, "is_animated", False):
+                                        errors.append(
+                                            "Choose a still image rather than an animation."
+                                        )
+                                    if not errors:
+                                        prepared_image = prepare_avatar(image)
+                        except (
+                            UnidentifiedImageError,
+                            OSError,
+                            ValueError,
+                            Image.DecompressionBombWarning,
+                            Image.DecompressionBombError,
+                        ):
+                            errors.append("Choose a valid JPEG, PNG, or WebP image.")
+
+                    if not errors:
+                        try:
+                            avatar_key = upload_avatar(
+                                prepared_image, current_user["id"]
+                            )
+                            values["profile_pic"] = avatar_key
+                        except KeyError:
+                            errors.append(
+                                "Avatar storage is not configured yet. Your current avatar is unchanged."
+                            )
+                        except BotoCoreError, ClientError:
+                            errors.append(
+                                "Avatar upload failed. Your current avatar is unchanged."
+                            )
 
         if not errors:
             updated_user = db.update_profile(
