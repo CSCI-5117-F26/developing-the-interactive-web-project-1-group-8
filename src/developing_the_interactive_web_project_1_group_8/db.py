@@ -434,7 +434,7 @@ def get_sent_friend_requests(user_id):
 
 def send_friend_request(requester_id, recipient_id):
     with pool.connection() as conn:
-        return conn.execute(
+        sent_request = conn.execute(
             """
             INSERT INTO friend_requests (requester_id, recipient_id)
             VALUES (%s, %s)
@@ -443,6 +443,16 @@ def send_friend_request(requester_id, recipient_id):
             """,
             (requester_id, recipient_id),
         ).fetchone()
+        if sent_request:
+            conn.execute(
+                """
+                INSERT INTO friends (follower, followed)
+                VALUES (%s, %s)
+                ON CONFLICT (follower, followed) DO NOTHING
+                """,
+                (requester_id, recipient_id),
+            )
+        return sent_request
 
 
 def cancel_friend_request(requester_id, recipient_id):
@@ -472,6 +482,78 @@ def accept_friend_request(requester_id, recipient_id):
                 )
             """,
             (requester_id, recipient_id),
+        )
+        accepted = result.rowcount > 0
+        if accepted:
+            conn.execute(
+                """
+                INSERT INTO friends (follower, followed)
+                VALUES (%s, %s), (%s, %s)
+                ON CONFLICT (follower, followed) DO NOTHING
+                """,
+                (requester_id, recipient_id, recipient_id, requester_id),
+            )
+        return accepted
+
+
+def accept_friend_invite(owner_id, recipient_id):
+    with pool.connection() as conn:
+        blocked = conn.execute(
+            """
+            SELECT 1 FROM blocked
+            WHERE (blocking = %s AND blocked = %s)
+               OR (blocking = %s AND blocked = %s)
+            """,
+            (owner_id, recipient_id, recipient_id, owner_id),
+        ).fetchone()
+        if blocked:
+            return False
+
+        updated = conn.execute(
+            """
+            UPDATE friend_requests SET accepted = TRUE
+            WHERE NOT accepted AND (
+                (requester_id = %s AND recipient_id = %s)
+                OR (requester_id = %s AND recipient_id = %s)
+            )
+            """,
+            (owner_id, recipient_id, recipient_id, owner_id),
+        )
+        if updated.rowcount == 0:
+            inserted = conn.execute(
+                """
+                INSERT INTO friend_requests (requester_id, recipient_id, accepted)
+                VALUES (%s, %s, TRUE)
+                ON CONFLICT DO NOTHING
+                RETURNING requester_id
+                """,
+                (owner_id, recipient_id),
+            ).fetchone()
+            if inserted is None:
+                return False
+
+        conn.execute(
+            """
+            INSERT INTO friends (follower, followed)
+            VALUES (%s, %s), (%s, %s)
+            ON CONFLICT (follower, followed) DO NOTHING
+            """,
+            (owner_id, recipient_id, recipient_id, owner_id),
+        )
+        return True
+
+
+def remove_friend(first_user_id, second_user_id):
+    with pool.connection() as conn:
+        result = conn.execute(
+            """
+            DELETE FROM friend_requests
+            WHERE accepted AND (
+                (requester_id = %s AND recipient_id = %s)
+                OR (requester_id = %s AND recipient_id = %s)
+            )
+            """,
+            (first_user_id, second_user_id, second_user_id, first_user_id),
         )
         return result.rowcount > 0
 
@@ -542,6 +624,14 @@ def block_user(blocking_id, blocked_id):
                 DELETE FROM friend_requests
                 WHERE (requester_id = %s AND recipient_id = %s)
                    OR (requester_id = %s AND recipient_id = %s)
+                """,
+                (blocking_id, blocked_id, blocked_id, blocking_id),
+            )
+            cur.execute(
+                """
+                DELETE FROM friends
+                WHERE (follower = %s AND followed = %s)
+                   OR (follower = %s AND followed = %s)
                 """,
                 (blocking_id, blocked_id, blocked_id, blocking_id),
             )

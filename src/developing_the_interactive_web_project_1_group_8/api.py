@@ -178,6 +178,10 @@ def follow_user(username):
 
     if current_user_id == user_id:
         return jsonify({"error": "You cannot follow yourself"}), 400
+    if db.is_blocked(current_user_id, user_id) or db.is_blocked(
+        user_id, current_user_id
+    ):
+        return jsonify({"error": "Following is unavailable for this user"}), 400
     if db.is_following(current_user_id, user_id):
         return jsonify({"error": "You are already following this user"}), 400
 
@@ -250,10 +254,6 @@ def block_user(username):
 
     try:
         db.block_user(current_user_id, user_id)
-        if db.is_following(current_user_id, user_id):
-            db.unfollow_user(current_user_id, user_id)
-        if db.is_following(user_id, current_user_id):
-            db.unfollow_user(user_id, current_user_id)
         return jsonify({"message": "User blocked successfully"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500

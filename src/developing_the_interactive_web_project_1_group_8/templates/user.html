@@ -18,6 +18,9 @@
   <div class="profile-desc">
     <h1>{{ user.display_name }}</h1>
     <h2>{{ user.followers }} followers</h2>
+    {% if user.is_friend %}
+    <p>You are friends. You can unfollow without removing the friendship.</p>
+    {% endif %}
     {% if user.is_blocked %}
     <p>This user is blocked.</p>
     {% else %}
@@ -34,6 +37,10 @@
     {% if session.get('profile') and session['profile']['id'] == user.id %}
     <a class="profile-edit pure-button" href="{{ url_for('settings') }}"><i class="fa fa-cog fa-fw"
         aria-hidden="true"></i></a>
+    {% if friend_link %}
+    <button class="profile-button pure-button" type="button" id="copy-friend-link"
+      data-friend-link="{{ friend_link }}">Copy friend link</button>
+    {% endif %}
     {% endif %}
 
     {% if session.get('profile') and session['profile']['id'] != user.id and not user.is_blocked %}
@@ -41,6 +48,13 @@
       data-action="{% if user.is_following %}unfollow{% else %}follow{% endif %}" data-username="{{ user.username }}">
       {% if user.is_following %}Unfollow <i class="fa fa-user-times" aria-hidden="true"></i>{% else %}Follow <i
         class="fa fa-user-plus" aria-hidden="true"></i>{% endif %}</button>
+    {% endif %}
+
+    {% if user.is_friend and not user.is_blocked %}
+    <form class="pure-form" method="post" action="{{ url_for('remove_friend', user_id=user.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="profile-button pure-button" type="submit">Remove friend</button>
+    </form>
     {% endif %}
 
     {% if session.get('profile') and session['profile']['id'] != user.id %}
@@ -53,6 +67,10 @@
 
 
 </section>
+<p id="profile-action-notice" role="status" hidden></p>
+{% if friend_link %}
+<p>Anyone with your friend link can become your friend after signing in and confirming.</p>
+{% endif %}
 
 {% if user.is_blocked %}
 <section class="page-panel">
@@ -90,6 +108,7 @@
 </section>
 <section class="row">
   <h2>Following</h2>
+  <p>Friends are shown in the section above.</p>
   <div class="carousel">
     {% if following|length == 0 %}
     <div class="no-events">

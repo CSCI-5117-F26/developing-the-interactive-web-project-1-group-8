@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Friend invitation - GameMaster{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tile.css') }}">
+{% endblock %}
+{% block content %}
+<section class="page-panel">
+  <h1>Friend invitation</h1>
+  {% with user=owner %}
+  {% include "components/user_tile.html" %}
+  {% endwith %}
+  <p>{{ owner.display_name }} (@{{ owner.username }}) has shared a friend link.</p>
+  {% if needs_login %}
+  <p>Sign in to decide whether to accept this invitation.</p>
+  <a class="pure-button pure-button-primary" href="{{ url_for('login') }}">Sign in</a>
+  {% elif own_link %}
+  <p>This is your friend link. Share it with someone else to invite them.</p>
+  {% elif unavailable %}
+  <p>This friend invitation is unavailable.</p>
+  {% elif already_friends %}
+  <p>You are already friends with {{ owner.display_name }}.</p>
+  {% else %}
+  <p>Accept a friend invitation from {{ owner.display_name }}?</p>
+  <form class="pure-form" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="pure-button pure-button-primary" type="submit">Accept invitation</button>
+    <a class="pure-button" href="{{ url_for('account') }}">Not now</a>
+  </form>
+  {% endif %}
+</section>
+{% endblock %}

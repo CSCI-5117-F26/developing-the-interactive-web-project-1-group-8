@@ -22,6 +22,7 @@ import warnings
 from botocore.exceptions import BotoCoreError, ClientError
 from PIL import Image, UnidentifiedImageError
 from psycopg.errors import UniqueViolation
+from itsdangerous import BadSignature, URLSafeSerializer
 
 from developing_the_interactive_web_project_1_group_8 import db
 from developing_the_interactive_web_project_1_group_8.api import (
@@ -52,6 +53,9 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
 )
+
+# https://itsdangerous.palletsprojects.com/en/stable/
+friend_link_signer = URLSafeSerializer(app.secret_key, salt="friend-invite")
 
 oauth = OAuth(app)
 auth0 = oauth.register(
@@ -113,7 +117,10 @@ async def callback():
     user_exists = db.get_sub(user_info["sub"])
     user = db.get_or_create_user(user_info)
 
+    friend_invite = session.get("friend_invite")
     session.clear()
+    if friend_invite:
+        session["friend_invite"] = friend_invite
     session["profile"] = {
         "id": user["id"],
         "sub": user["auth0_sub"],
@@ -122,6 +129,8 @@ async def callback():
         "profile_pic": user["profile_pic"] or None,
     }
     if user_exists and user["setup_complete"]:
+        if friend_invite:
+            return redirect(url_for("friend_invite", token=friend_invite))
         return redirect(url_for("account"))
     else:
         return redirect(url_for("username"))
@@ -191,7 +200,7 @@ def friend_requests():
             else:
                 sent_request = db.send_friend_request(current_user_id, recipient["id"])
                 if sent_request:
-                    flash("Friend request sent.")
+                    flash("Friend request sent. You are following this user.")
                 else:
                     flash(
                         "A friend request is already pending between you and this user."
@@ -200,7 +209,9 @@ def friend_requests():
             requester_id = request.form.get("user_id", type=int)
             accepted = db.accept_friend_request(requester_id, current_user_id)
             if accepted:
-                flash("Friend request accepted. You are now friends.")
+                flash(
+                    "Friend request accepted. You are now friends. You also follow each other."
+                )
             else:
                 flash("That request is no longer available to accept.")
         elif action == "cancel":
@@ -292,6 +303,9 @@ def set_username():
         flash("Username updated.")
         if current_user["setup_complete"]:
             return redirect(url_for("settings"))
+        friend_invite = session.get("friend_invite")
+        if friend_invite:
+            return redirect(url_for("friend_invite", token=friend_invite))
         return redirect(url_for("account"))
 
     if current_user["setup_complete"]:
@@ -315,6 +329,76 @@ def set_username():
     )
 
 
+@app.route("/friend-invite/<string:token>", methods=["GET", "POST"])
+def friend_invite(token):
+    try:
+        owner_id = friend_link_signer.loads(token)
+    except BadSignature:
+        abort(404, "This friend link is invalid.")
+
+    owner = db.get_user_from_id(owner_id)
+    if owner is None or not owner["setup_complete"]:
+        abort(404, "This friend link is no longer available.")
+
+    current_user = None
+    if "profile" in session:
+        current_user = db.get_user_from_id(session["profile"]["id"])
+        if current_user is None:
+            session.clear()
+    if current_user is None:
+        session["friend_invite"] = token
+        return render_template("friend_invite.html", owner=owner, needs_login=True)
+    if not current_user["setup_complete"]:
+        session["friend_invite"] = token
+        return redirect(url_for("username"))
+
+    session.pop("friend_invite", None)
+    current_user_id = current_user["id"]
+    own_link = owner_id == current_user_id
+    unavailable = db.is_blocked(owner_id, current_user_id) or db.is_blocked(
+        current_user_id, owner_id
+    )
+    already_friends = db.are_friends(owner_id, current_user_id)
+    if request.method == "POST":
+        if own_link:
+            flash("This is your own friend link. Share it with someone else.")
+        elif unavailable:
+            flash("This friend invitation is unavailable.")
+        elif already_friends:
+            flash("You are already friends with this user.")
+        elif db.accept_friend_invite(owner_id, current_user_id):
+            flash(
+                "Friend invitation accepted. You are now friends and follow each other."
+            )
+        else:
+            flash("This invitation was already accepted or is no longer available.")
+        return redirect(url_for("friend_invite", token=token))
+
+    return render_template(
+        "friend_invite.html",
+        owner=owner,
+        needs_login=False,
+        own_link=own_link,
+        unavailable=unavailable,
+        already_friends=already_friends,
+    )
+
+
+@app.post("/user/<int:user_id>/remove-friend")
+@requires_auth
+@requires_setup
+def remove_friend(user_id):
+    other_user = db.get_user_from_id(user_id)
+    if other_user is None:
+        abort(404, "This user does not appear to exist.")
+    removed = db.remove_friend(session["profile"]["id"], user_id)
+    if removed:
+        flash("Friend removed. Your follow settings are unchanged.")
+    else:
+        flash("You are no longer friends with this user.")
+    return redirect(url_for("user", username=other_user["username"]))
+
+
 @app.route("/user/<string:username>")
 def user(username):
     profile = db.get_public_user(username)
@@ -326,6 +410,7 @@ def user(username):
     profile["followers"] = db.get_follower_count(profile_id)
     profile["is_following"] = False
     profile["is_blocked"] = False
+    profile["is_friend"] = False
 
     if "profile" in session and db.is_blocked(profile_id, session["profile"]["id"]):
         # this is deception, we don't want to tell the user that they are blocked, we just want to make it look like the user doesn't exist
@@ -333,19 +418,32 @@ def user(username):
 
     events = db.get_user_events(profile_id)
     going_events = db.get_user_events_attending(profile_id)
-    followers = db.get_following(profile_id)
+    friends = db.get_friends(profile_id)
+    friend_ids = {friend["id"] for friend in friends}
+    following = []
+    for followed_user in db.get_following(profile_id):
+        if followed_user["id"] not in friend_ids:
+            following.append(followed_user)
+    friend_link = None
     sections = [("Hosted Events", events), ("Events Going To", going_events)]
 
     if "profile" in session:
         current_user_id = session["profile"]["id"]
         profile["is_following"] = db.is_following(current_user_id, profile_id)
         profile["is_blocked"] = db.is_blocked(current_user_id, profile_id)
+        profile["is_friend"] = db.are_friends(current_user_id, profile_id)
+        if current_user_id == profile_id and profile["setup_complete"]:
+            token = friend_link_signer.dumps(profile_id)
+            friend_link = os.environ["APP_BASE_URL"].rstrip("/") + url_for(
+                "friend_invite", token=token
+            )
 
     return render_template(
         "user.html",
         sections=sections,
-        following=followers,
-        friends=db.get_friends(profile_id),
+        following=following,
+        friends=friends,
+        friend_link=friend_link,
         user=profile,
     )
 
