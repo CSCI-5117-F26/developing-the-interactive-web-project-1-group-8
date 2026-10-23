@@ -265,8 +265,8 @@ def set_username():
         return redirect(url_for("index"))
 
     errors = []
-    if not 3 <= len(username) <= 30:
-        errors.append("Username must be between 3 and 30 characters.")
+    if not 3 <= len(username) <= 20:
+        errors.append("Username must be between 3 and 20 characters.")
     if not username.isascii() or not username.isalnum():
         errors.append(
             "Username may contain only alphanumeric characters with no spaces."
@@ -471,8 +471,8 @@ def settings():
         else:
             values["display_name"] = request.form.get("display_name", "").strip()
             values["bio"] = request.form.get("bio", "")
-            if not 1 <= len(values["display_name"]) <= 80:
-                errors.append("Display name must be between 1 and 80 characters.")
+            if not 1 <= len(values["display_name"]) <= 40:
+                errors.append("Display name must be between 1 and 40 characters.")
             if len(values["bio"]) > 200:
                 errors.append("Biography must be 200 characters or fewer.")
             if not errors:

@@ -29,8 +29,8 @@
       <legend>Username</legend>
       <label for="username">Username</label>
       <input class="pure-input-1" id="username" name="username" type="text" value="{{ values.username }}"
-        minlength="3" maxlength="30" pattern="[A-Za-z0-9]+" title="Use 3-30 alphanumeric characters without spaces." required>
-      <p id="username-help">Use 3-30 alphanumeric characters without spaces. Your username is used in your profile link, but changing it leaves your display name unchanged.</p>
+        minlength="3" maxlength="20" pattern="[A-Za-z0-9]+" title="Use 3-20 alphanumeric characters without spaces." required>
+      <p id="username-help">Use 3-20 alphanumeric characters without spaces. Your username is used in your profile link, but changing it leaves your display name unchanged</p>
       <button class="pure-button pure-button-primary" type="submit">Save username</button>
     </fieldset>
   </form>
@@ -40,8 +40,8 @@
     <fieldset>
       <legend>Public profile</legend>
       <label for="display_name">Display name</label>
-      <input class="pure-input-1" id="display_name" name="display_name" type="text" value="{{ values.display_name }}"maxlength="80" required>
-      <p class="pure-form-message" id="display-name-help">The name other players see. This can be different from your username.</p>
+      <input class="pure-input-1" id="display_name" name="display_name" type="text" value="{{ values.display_name }}" maxlength="40" required>
+      <p class="pure-form-message" id="display-name-help">Use 1-40 characters. This is the name other players see and can be different from your username.</p>
 
       <label for="bio">Biography</label>
       <textarea class="pure-input-1" id="bio" name="bio" rows="5" maxlength="200">{{ values.bio }}</textarea>

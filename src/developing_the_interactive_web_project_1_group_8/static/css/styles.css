@@ -203,9 +203,13 @@ main {
   scroll-snap-align: start;
 }
 
+/* https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/object-fit */
 .user-ico {
   border-radius: 50%;
   aspect-ratio: 1;
+  object-fit: cover;
+  flex-shrink: 0;
+  background-color: var(--color-surface);
 }
 
 .avatar-drop-zone {
