@@ -404,6 +404,59 @@ def get_friend_events(user):
             return cur.fetchall()
 
 
+def get_received_friend_requests(user_id):
+    with pool.connection() as conn:
+        return conn.execute(
+            """
+            SELECT u.id, u.username, u.display_name, u.profile_pic
+            FROM friend_requests r
+            JOIN users u ON u.id = r.requester_id
+            WHERE r.recipient_id = %s
+            ORDER BY u.username
+            """,
+            (user_id,),
+        ).fetchall()
+
+
+def get_sent_friend_requests(user_id):
+    with pool.connection() as conn:
+        return conn.execute(
+            """
+            SELECT u.id, u.username, u.display_name, u.profile_pic
+            FROM friend_requests r
+            JOIN users u ON u.id = r.recipient_id
+            WHERE r.requester_id = %s
+            ORDER BY u.username
+            """,
+            (user_id,),
+        ).fetchall()
+
+
+def send_friend_request(requester_id, recipient_id):
+    with pool.connection() as conn:
+        return conn.execute(
+            """
+            INSERT INTO friend_requests (requester_id, recipient_id)
+            VALUES (%s, %s)
+            ON CONFLICT DO NOTHING
+            RETURNING requester_id, recipient_id
+            """,
+            (requester_id, recipient_id),
+        ).fetchone()
+
+
+def cancel_friend_request(requester_id, recipient_id):
+    with pool.connection() as conn:
+        result = conn.execute(
+            """
+            DELETE FROM friend_requests
+            WHERE requester_id = %s AND recipient_id = %s
+            """,
+            (requester_id, recipient_id),
+        )
+        return result.rowcount > 0
+
+
 # ---------- Block ----------
 
 
@@ -433,7 +486,16 @@ def block_user(blocking_id, blocked_id):
                 """,
                 (blocking_id, blocked_id),
             )
-            return cur.rowcount > 0  # Returns True if a row was inserted
+            blocked = cur.rowcount > 0
+            cur.execute(
+                """
+                DELETE FROM friend_requests
+                WHERE (requester_id = %s AND recipient_id = %s)
+                   OR (requester_id = %s AND recipient_id = %s)
+                """,
+                (blocking_id, blocked_id, blocked_id, blocking_id),
+            )
+            return blocked
 
 
 def unblock_user(blocking_id, blocked_id):

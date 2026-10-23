@@ -120,6 +120,27 @@ def setup_db():
 
             cur.execute(
                 """
+                CREATE TABLE friend_requests (
+                    requester_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    recipient_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    PRIMARY KEY (requester_id, recipient_id),
+                    CHECK (requester_id <> recipient_id)
+                );
+                """
+            )
+
+            cur.execute(
+                """
+                CREATE UNIQUE INDEX friend_requests_pair
+                    ON friend_requests (
+                        LEAST(requester_id, recipient_id),
+                        GREATEST(requester_id, recipient_id)
+                    );
+                """
+            )
+
+            cur.execute(
+                """
                 CREATE TABLE IF NOT EXISTS blocked (
                     blocking INTEGER REFERENCES users(id) ON DELETE CASCADE,
                     blocked INTEGER REFERENCES users(id) ON DELETE CASCADE,

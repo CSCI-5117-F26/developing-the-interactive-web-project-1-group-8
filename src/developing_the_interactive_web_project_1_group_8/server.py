@@ -163,6 +163,62 @@ def account():
     return render_template("account.html", user=user)
 
 
+@app.route("/account/friend-requests", methods=["GET", "POST"])
+@requires_auth
+@requires_setup
+def friend_requests():
+    current_user = db.get_user_from_id(session["profile"]["id"])
+    if current_user is None:
+        session.clear()
+        return redirect(url_for("index"))
+
+    current_user_id = current_user["id"]
+    if request.method == "POST":
+        action = request.form.get("action")
+        if action == "send":
+            username = request.form.get("username", "").strip()
+            recipient = db.get_public_user(username)
+            if recipient is None:
+                flash("No user with that username was found.")
+            elif recipient["id"] == current_user_id:
+                flash("You cannot send a friend request to yourself.")
+            elif db.is_blocked(current_user_id, recipient["id"]) or db.is_blocked(
+                recipient["id"], current_user_id
+            ):
+                flash("Friend requests are unavailable for this user.")
+            else:
+                sent_request = db.send_friend_request(current_user_id, recipient["id"])
+                if sent_request:
+                    flash("Friend request sent.")
+                else:
+                    flash(
+                        "A friend request is already pending between you and this user."
+                    )
+        elif action == "cancel":
+            recipient_id = request.form.get("user_id", type=int)
+            removed = db.cancel_friend_request(current_user_id, recipient_id)
+            if removed:
+                flash("Friend request cancelled.")
+            else:
+                flash("That sent request is no longer pending.")
+        elif action == "decline":
+            requester_id = request.form.get("user_id", type=int)
+            removed = db.cancel_friend_request(requester_id, current_user_id)
+            if removed:
+                flash("Friend request declined.")
+            else:
+                flash("That received request is no longer pending.")
+        else:
+            flash("Choose a friend request action.")
+        return redirect(url_for("friend_requests"))
+
+    return render_template(
+        "friend_requests.html",
+        received_requests=db.get_received_friend_requests(current_user_id),
+        sent_requests=db.get_sent_friend_requests(current_user_id),
+    )
+
+
 @app.route("/username")
 @requires_auth
 def username():

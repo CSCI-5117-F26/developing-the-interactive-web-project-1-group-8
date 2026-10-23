@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Friend requests - GameMaster{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tile.css') }}">
+{% endblock %}
+{% block content %}
+<section class="page-panel">
+  <h1>Friend requests</h1>
+  <p><a href="{{ url_for('account') }}">Back to account</a></p>
+  <form class="pure-form pure-form-stacked" method="post" action="{{ url_for('friend_requests') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="send">
+    <label for="friend-username">Username</label>
+    <input class="pure-input-1" id="friend-username" name="username" type="text" maxlength="30" required>
+    <button class="pure-button pure-button-primary" type="submit">Send friend request</button>
+  </form>
+</section>
+
+<section class="row">
+  <h2>Received requests</h2>
+  <div class="carousel">
+    {% for user in received_requests %}
+    <div>
+      {% include "components/user_tile.html" %}
+      <form class="pure-form" method="post" action="{{ url_for('friend_requests') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="decline">
+        <input type="hidden" name="user_id" value="{{ user.id }}">
+        <button class="pure-button" type="submit">Decline request</button>
+      </form>
+    </div>
+    {% else %}
+    <p>No received requests.</p>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="row">
+  <h2>Sent requests</h2>
+  <div class="carousel">
+    {% for user in sent_requests %}
+    <div>
+      {% include "components/user_tile.html" %}
+      <form class="pure-form" method="post" action="{{ url_for('friend_requests') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="cancel">
+        <input type="hidden" name="user_id" value="{{ user.id }}">
+        <button class="pure-button" type="submit">Cancel request</button>
+      </form>
+    </div>
+    {% else %}
+    <p>No sent requests.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
