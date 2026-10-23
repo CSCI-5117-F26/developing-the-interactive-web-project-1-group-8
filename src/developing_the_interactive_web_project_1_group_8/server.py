@@ -422,11 +422,6 @@ def user(username):
     events = db.get_user_events(profile_id)
     going_events = db.get_user_events_attending(profile_id)
     friends = db.get_friends(profile_id)
-    friend_ids = {friend["id"] for friend in friends}
-    following = []
-    for followed_user in db.get_following(profile_id):
-        if followed_user["id"] not in friend_ids:
-            following.append(followed_user)
     friend_link = None
     sections = [("Hosted Events", events), ("Events Going To", going_events)]
 
@@ -444,7 +439,6 @@ def user(username):
     return render_template(
         "user.html",
         sections=sections,
-        following=following,
         friends=friends,
         friend_link=friend_link,
         user=profile,

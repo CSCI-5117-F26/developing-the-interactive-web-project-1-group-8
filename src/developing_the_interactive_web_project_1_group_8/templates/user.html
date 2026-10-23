@@ -23,9 +23,6 @@
       <span>{{ friends|length }} {{ 'friend' if friends|length == 1 else 'friends' }}</span>
       <span>{{ user.followers }} {{ 'follower' if user.followers == 1 else 'followers' }}</span>
     </p>
-    {% if user.is_friend %}
-    <p>You are friends. You can unfollow without removing the friendship.</p>
-    {% endif %}
     {% if user.is_blocked %}
     <p>This user is blocked.</p>
     {% else %}
@@ -89,6 +86,21 @@
   <p>You will not see any events from this user, and they will not be able to see any of your events.</p>
 </section>
 {% else %}
+<section class="profile-section row">
+  <h2>Friends</h2>
+  <div class="carousel">
+    {% for friend in friends %}
+    <a class="profile-friend" href="{{ url_for('user', username=friend.username) }}" title="{{ friend.display_name }}">
+      <img class="user-ico" src="{{ avatar_url(friend) }}" width="64" height="64">
+      <span>{{ friend.display_name }}</span>
+    </a>
+    {% else %}
+    <div class="no-events">
+      <p>No friends yet.</p>
+    </div>
+    {% endfor %}
+  </div>
+</section>
 {% for title, events in sections %}
 <section class="profile-section row">
   <h2>{{ title }}</h2>
@@ -105,33 +117,6 @@
   </div>
 </section>
 {% endfor %}
-<section class="profile-section row">
-  <h2>Friends</h2>
-  <div class="carousel">
-    {% for user in friends %}
-    {% include "components/user_tile.html" %}
-    {% else %}
-    <div class="no-events">
-      <p>No friends yet.</p>
-    </div>
-    {% endfor %}
-  </div>
-</section>
-<section class="profile-section row">
-  <h2>Following</h2>
-  <p>Friends are shown in the section above.</p>
-  <div class="carousel">
-    {% if following|length == 0 %}
-    <div class="no-events">
-      <p>Not following anyone else yet.</p>
-    </div>
-    {% else %}
-    {% for user in following %}
-    {% include "components/user_tile.html" %}
-    {% endfor %}
-    {% endif %}
-  </div>
-</section>
 {% endif %}
 </div>
 {% endblock %}
