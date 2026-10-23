@@ -1,8 +1,9 @@
 {% block topbar %}
+{% set setup_required = session.get('profile') and (not session['profile'].get('setup_complete') or not session['profile'].get('username')) %}
 <div id="topbar" class="pure-g">
   <div class="pure-u-1 pure-u-md-1-3">
     <div class="pure-menu" style="width: fit-content;">
-      <a href="{{ url_for('index') }}" class="pure-menu-link">Game Master</a>
+      <a href="{{ url_for('username' if setup_required else 'index') }}" class="pure-menu-link">Game Master</a>
     </div>
   </div>
   <div class="pure-u-1 pure-u-md-1-3">
@@ -10,9 +11,9 @@
       <form id="search-form" role="search" action="{{ url_for('search')}}" method="GET" aria-label="Site search"
         class="pure-form pure-g">
         <div id="search-container" class="pure-g">
-          <input type="search" id="search" name="q" value="{{request.args.get('q','')}}" autocomplete="off"
+          <input {% if setup_required %}disabled{% endif %} type="search" id="search" name="q" value="{{request.args.get('q','')}}" autocomplete="off"
             placeholder="Search..." aria-label="Search" />
-          <button type="submit" class="fa fa-search" aria-label="Submit search"></button>
+          <button {% if setup_required %}disabled{% endif %} type="submit" class="fa fa-search" aria-label="Submit search"></button>
         </div>
         <!-- <div id="search-results-container">
           <ul id="search-results"></ul>
@@ -33,16 +34,18 @@
           </a>
           <ul class="accountDetails pure-menu-children">
             <li class="pure-menu-item">
-              {% if session.get('profile').get('setup_complete') %}
+              {% if not setup_required %}
               <a class="pure-menu-link" href="{{ url_for('user', username=session['profile']['username']) }}">My
                 Profile</a>
               {% else %}
               <a class="pure-menu-link" href="{{ url_for('username') }}">Set Username</a>
               {% endif %}
             </li>
+            {% if not setup_required %}
             <li class="pure-menu-item">
               <a class="pure-menu-link" href="{{ url_for('settings') }}">Settings</a>
             </li>
+            {% endif %}
             <li class="pure-menu-item">
               <form method="post" action="{{ url_for('logout') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

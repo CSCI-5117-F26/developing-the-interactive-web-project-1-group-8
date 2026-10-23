@@ -73,6 +73,30 @@ auth0 = oauth.register(
 
 
 @app.before_request
+def require_account_setup():
+    profile = session.get("profile")
+    if profile is None:
+        return
+    if profile.get("setup_complete") and profile.get("username"):
+        return
+    if request.endpoint in {
+        "static", "login", "callback", "logout", "username", "set_username"
+    }:
+        return
+    if request.endpoint == "api.avatar_image" and request.view_args["user_id"] == profile["id"]:
+        return
+
+    if request.endpoint == "friend_invite":
+        session["friend_invite"] = request.view_args["token"]
+    if request.blueprint == "api":
+        return jsonify(
+            error="Choose a username before using the app.",
+            setup_url=url_for("username"),
+        ), 403
+    return redirect(url_for("username"))
+
+
+@app.before_request
 def limit_avatar_request():
     if request.endpoint == "settings" and request.method == "POST":
         request.max_content_length = MAX_AVATAR_BYTES + 64 * 1024
@@ -129,7 +153,7 @@ async def callback():
         "setup_complete": user["setup_complete"],
         "profile_pic": user["profile_pic"] or None,
     }
-    if user_exists and user["setup_complete"]:
+    if user_exists and user["setup_complete"] and user["username"]:
         if friend_invite:
             return redirect(url_for("friend_invite", token=friend_invite))
         return redirect(url_for("user", username=user["username"]))
@@ -249,7 +273,7 @@ def username():
     if current_user is None:
         session.clear()
         return redirect(url_for("index"))
-    elif current_user["setup_complete"]:
+    elif current_user["setup_complete"] and current_user["username"]:
         return redirect(url_for("user", username=current_user["username"]))
     else:
         return render_template("username.html")
@@ -264,6 +288,7 @@ def set_username():
         session.clear()
         return redirect(url_for("index"))
 
+    setup_complete = current_user["setup_complete"] and bool(current_user["username"])
     errors = []
     if not 3 <= len(username) <= 20:
         errors.append("Username must be between 3 and 20 characters.")
@@ -278,7 +303,7 @@ def set_username():
 
     if not errors:
         display_name = current_user["display_name"]
-        if not current_user["setup_complete"]:
+        if not setup_complete:
             display_name = username
 
         # TODO: enforce 24 hr limit for username changes
@@ -302,15 +327,16 @@ def set_username():
             "username": updated_user["username"],
             "setup_complete": updated_user["setup_complete"],
         }
-        flash("Username updated.")
-        if current_user["setup_complete"]:
+        if setup_complete:
+            flash("Username updated.")
             return redirect(url_for("settings"))
+        flash("Your account is ready.")
         friend_invite = session.get("friend_invite")
         if friend_invite:
             return redirect(url_for("friend_invite", token=friend_invite))
-        return redirect(url_for("user", username=updated_user["username"]))
+        return redirect(url_for("settings"))
 
-    if current_user["setup_complete"]:
+    if setup_complete:
         values = {
             "username": username,
             "display_name": current_user["display_name"] or "",
