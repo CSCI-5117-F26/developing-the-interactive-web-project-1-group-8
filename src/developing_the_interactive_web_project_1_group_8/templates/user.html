@@ -13,11 +13,16 @@
 {% endblock %}
 
 {% block content %}
-<section class="profile-content page-panel">
+<div class="profile-page page-panel">
+<section class="profile-content profile-section">
   <img class="user-ico" src="{{ avatar_url(user) }}" width="128" height="128">
   <div class="profile-desc">
     <h1>{{ user.display_name }}</h1>
-    <h2>{{ user.followers }} followers</h2>
+    <p class="profile-username">@{{ user.username }}</p>
+    <p class="profile-counts">
+      <span>{{ friends|length }} {{ 'friend' if friends|length == 1 else 'friends' }}</span>
+      <span>{{ user.followers }} {{ 'follower' if user.followers == 1 else 'followers' }}</span>
+    </p>
     {% if user.is_friend %}
     <p>You are friends. You can unfollow without removing the friendship.</p>
     {% endif %}
@@ -35,8 +40,14 @@
 
   <div class="profile-actions">
     {% if session.get('profile') and session['profile']['id'] == user.id %}
-    <a class="profile-edit pure-button" href="{{ url_for('settings') }}"><i class="fa fa-cog fa-fw"
-        aria-hidden="true"></i></a>
+    <div class="profile-owner-tools" role="group">
+      <a class="profile-edit pure-button" href="{{ url_for('settings') }}" title="Profile settings">
+        <i class="fa fa-cog fa-fw"></i>
+      </a>
+      <a class="profile-edit pure-button" href="{{ url_for('friend_requests') }}" title="Friend requests">
+        <i class="fa fa-user-plus fa-fw"></i>
+      </a>
+    </div>
     {% if friend_link %}
     <button class="profile-button pure-button" type="button" id="copy-friend-link"
       data-friend-link="{{ friend_link }}">Copy friend link</button>
@@ -69,22 +80,22 @@
 </section>
 <p id="profile-action-notice" role="status" hidden></p>
 {% if friend_link %}
-<p>Anyone with your friend link can become your friend after signing in and confirming.</p>
+<p class="profile-help" id="friend-link-help" hidden>Anyone with your friend link can become your friend after signing in and confirming.</p>
 {% endif %}
 
 {% if user.is_blocked %}
-<section class="page-panel">
+<section class="profile-section">
   <h2>This user is blocked.</h2>
   <p>You will not see any events from this user, and they will not be able to see any of your events.</p>
 </section>
 {% else %}
 {% for title, events in sections %}
-<section class="row">
+<section class="profile-section row">
   <h2>{{ title }}</h2>
   <div class="carousel">
     {% if events|length == 0 %}
     <div class="no-events">
-      <p>Nothing to show ;(</p>
+      <p>No events to show.</p>
     </div>
     {% else %}
     {% for event in events %}
@@ -94,7 +105,7 @@
   </div>
 </section>
 {% endfor %}
-<section class="row">
+<section class="profile-section row">
   <h2>Friends</h2>
   <div class="carousel">
     {% for user in friends %}
@@ -106,13 +117,13 @@
     {% endfor %}
   </div>
 </section>
-<section class="row">
+<section class="profile-section row">
   <h2>Following</h2>
   <p>Friends are shown in the section above.</p>
   <div class="carousel">
     {% if following|length == 0 %}
     <div class="no-events">
-      <p>Nothing to show ;(</p>
+      <p>Not following anyone else yet.</p>
     </div>
     {% else %}
     {% for user in following %}
@@ -122,4 +133,5 @@
   </div>
 </section>
 {% endif %}
+</div>
 {% endblock %}

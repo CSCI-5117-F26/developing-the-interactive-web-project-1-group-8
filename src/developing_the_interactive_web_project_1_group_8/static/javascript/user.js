@@ -1,6 +1,7 @@
 const followButton = document.getElementById("follow-button");
 const blockButton = document.getElementById("block-button");
 const copyFriendLinkButton = document.getElementById("copy-friend-link");
+const friendLinkHelp = document.getElementById("friend-link-help");
 const profileActionNotice = document.getElementById("profile-action-notice");
 
 function showProfileNotice(message) {
@@ -11,6 +12,7 @@ function showProfileNotice(message) {
 if (copyFriendLinkButton) {
   copyFriendLinkButton.addEventListener("click", async function () {
     const link = this.dataset.friendLink;
+    friendLinkHelp.hidden = false;
     try {
       await navigator.clipboard.writeText(link);
       showProfileNotice("Friend link copied.");

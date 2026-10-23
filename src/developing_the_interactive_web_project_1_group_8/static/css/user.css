@@ -48,3 +48,61 @@
     margin: 0;
   }
 }
+
+.profile-page .profile-content {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1.25em;
+  margin-top: 0;
+}
+
+.profile-page .profile-content > img {
+  flex-shrink: 0;
+}
+
+.profile-page .profile-desc {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.profile-page .profile-actions {
+  margin-left: auto;
+  align-items: flex-end;
+}
+
+.profile-owner-tools,
+.profile-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75em;
+}
+
+.profile-owner-tools .profile-edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5em;
+  height: 2.5em;
+  padding: 0;
+  margin-left: 0;
+}
+
+.profile-username,
+.profile-help {
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.profile-page h1 {
+  overflow-wrap: anywhere;
+}
+
+.profile-page .row {
+  height: auto;
+  border-bottom: 0;
+}
+
+.profile-page .carousel {
+  height: auto;
+  border-radius: 4px;
+}

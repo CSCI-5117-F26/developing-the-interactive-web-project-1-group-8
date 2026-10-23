@@ -6,7 +6,7 @@
 {% block content %}
 <section class="page-panel">
   <h1>Friend requests</h1>
-  <p><a href="{{ url_for('account') }}">Back to account</a></p>
+  <p><a class="pure-button" href="{{ url_for('user', username=current_user.username) }}">Back to my profile</a></p>
   <form class="pure-form pure-form-stacked" method="post" action="{{ url_for('friend_requests') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="action" value="send">

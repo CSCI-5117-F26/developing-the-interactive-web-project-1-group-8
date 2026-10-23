@@ -1,18 +1,20 @@
 {% extends "base.html" %}
 {% block title %}Profile Settings - GameMaster{% endblock %}
 {% block content %}
-<section class="profile-content page-panel">
-  <h1>Profile settings</h1>
-  {% if session.get('profile').get('setup_complete') %}
-  <p><a href="{{ url_for('user', username=user.username) }}">View my public profile</a></p>
-  {% else %}
-  <p><a href="{{ url_for('username') }}">Set Username</a></p>
-  {% endif %}
-
+<section class="settings-page page-panel">
+  <header>
+    <h1>Profile settings</h1>
+    <p>Choose how you appear to other players.</p>
+    <nav class="settings-links">
+      <a class="pure-button" href="{{ url_for('user', username=user.username) }}">
+        <i class="fa fa-arrow-left"></i> Back
+      </a>
+    </nav>
+  </header>
 
   {% if errors %}
-  <div>
-    <p>Profile could not be saved:</p>
+  <div class="settings-notice" role="alert">
+    <h2>Changes could not be saved</h2>
     <ul>
       {% for error in errors %}
       <li>{{ error }}</li>
@@ -21,44 +23,60 @@
   </div>
   {% endif %}
 
-  <form class="pure-form pure-form-stacked" method="post" action="{{ url_for('set_username') }}">
+  <form class="settings-section pure-form pure-form-stacked" method="post" action="{{ url_for('set_username') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <label for="username">Username</label>
-    <input class="pure-input-1" id="username" name="username" type="text" value="{{ values.username }}" minlength="3" maxlength="30" pattern="[A-Za-z0-9]+" title="Use 3-30 alphanumeric characters without spaces." required>
-    <p id="username-help">
-      Use 3-30 alphanumeric characters without spaces. Your username is used in your profile link, but changing it leaves your display name unchanged.</p>
-    <button class="pure-button pure-button-primary" type="submit">Save username</button>
+    <fieldset>
+      <legend>Username</legend>
+      <label for="username">Username</label>
+      <input class="pure-input-1" id="username" name="username" type="text" value="{{ values.username }}"
+        minlength="3" maxlength="30" pattern="[A-Za-z0-9]+" title="Use 3-30 alphanumeric characters without spaces." required>
+      <p id="username-help">Use 3-30 alphanumeric characters without spaces. Your username is used in your profile link, but changing it leaves your display name unchanged.</p>
+      <button class="pure-button pure-button-primary" type="submit">Save username</button>
+    </fieldset>
   </form>
 
-  <form class="pure-form pure-form-stacked" method="post" action="{{ url_for('settings') }}" enctype="multipart/form-data">
+  <form class="settings-section pure-form pure-form-stacked" method="post" action="{{ url_for('settings') }}" enctype="multipart/form-data">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <label for="display_name">Display name</label>
-    <input class="pure-input-1" id="display_name" name="display_name" type="text" value="{{ values.display_name }}"
-      maxlength="80" required>
+    <fieldset>
+      <legend>Public profile</legend>
+      <label for="display_name">Display name</label>
+      <input class="pure-input-1" id="display_name" name="display_name" type="text" value="{{ values.display_name }}"maxlength="80" required>
+      <p class="pure-form-message" id="display-name-help">The name other players see. This can be different from your username.</p>
 
-    <label for="bio">Biography</label>
-    <textarea class="pure-input-1" id="bio" name="bio" rows="6" maxlength="200">{{ values.bio }}</textarea>
-    <p id="bio-help">Up to 200 characters</p>
+      <label for="bio">Biography</label>
+      <textarea class="pure-input-1" id="bio" name="bio" rows="5" maxlength="200">{{ values.bio }}</textarea>
+      <p class="pure-form-message" id="bio-help">Up to 200 characters.</p>
+    </fieldset>
 
-    <div class="avatar-drop-zone" id="avatar-drop-zone">
-      <label for="avatar">Profile picture</label>
-      <p><img class="user-ico" id="avatar-preview" src="{{ avatar_url(user) }}"
-        width="128" height="128"></p>
-      <input class="pure-input-1" id="avatar" name="avatar" type="file" accept="image/jpeg,image/png,image/webp">
-      <p id="avatar-help">Choose a JPEG, PNG, or WebP image up to 5 MB.</p>
-      <p id="avatar-drop-help" hidden>Drop image here or use file selector.</p>
-      <p id="avatar-notice" role="status"></p>
-      <button class="pure-button" id="avatar-clear" type="button" hidden>Cancel selection</button>
+    <fieldset>
+      <legend>Profile picture</legend>
+      <div class="avatar-drop-zone" id="avatar-drop-zone">
+        <label for="avatar">Choose a picture</label>
+        <p><img class="user-ico" id="avatar-preview" src="{{ avatar_url(user) }}"width="128" height="128"></p>
+        <input class="pure-input-1" id="avatar" name="avatar" type="file" accept="image/jpeg,image/png,image/webp">
+        <p class="pure-form-message" id="avatar-help">Choose a JPEG, PNG, or WebP image up to 5 MB.</p>
+        <p id="avatar-drop-help" hidden>Drop image here or use file selector.</p>
+        <p id="avatar-notice" role="status"></p>
+        <button class="pure-button" id="avatar-clear" type="button" hidden>Cancel selection</button>
+      </div>
+      {% if user.profile_pic %}
+      <div class="settings-actions">
+        <button class="pure-button" type="submit" form="delete-avatar-form">Delete avatar</button>
+        <span class="pure-form-message">Uses the default avatar immediately.</span>
+      </div>
+      {% endif %}
+    </fieldset>
+
+    <div class="settings-actions">
+      <button class="pure-button pure-button-primary" type="submit">Save profile</button>
+      <span class="pure-form-message">Saves your display name, biography, and selected picture.</span>
     </div>
-
-    <button class="pure-button pure-button-primary" type="submit">Save profile</button>
   </form>
 
   {% if user.profile_pic %}
-  <form class="pure-form" method="post" action="{{ url_for('settings') }}">
+  <form id="delete-avatar-form" method="post" action="{{ url_for('settings') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="action" value="delete_avatar">
-    <p><button class="pure-button" type="submit">Delete avatar</button></p>
   </form>
   {% endif %}
 </section>

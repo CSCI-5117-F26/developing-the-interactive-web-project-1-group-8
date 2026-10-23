@@ -132,7 +132,7 @@ async def callback():
     if user_exists and user["setup_complete"]:
         if friend_invite:
             return redirect(url_for("friend_invite", token=friend_invite))
-        return redirect(url_for("account"))
+        return redirect(url_for("user", username=user["username"]))
     else:
         return redirect(url_for("username"))
 
@@ -170,7 +170,7 @@ def account():
         "profile_pic": user["profile_pic"] or None,
     }
 
-    return render_template("account.html", user=user)
+    return redirect(url_for("settings"))
 
 
 @app.route("/account/friend-requests", methods=["GET", "POST"])
@@ -235,6 +235,7 @@ def friend_requests():
 
     return render_template(
         "friend_requests.html",
+        current_user=current_user,
         received_requests=db.get_received_friend_requests(current_user_id),
         sent_requests=db.get_sent_friend_requests(current_user_id),
     )
@@ -249,7 +250,7 @@ def username():
         session.clear()
         return redirect(url_for("index"))
     elif current_user["setup_complete"]:
-        return redirect(url_for("account"))
+        return redirect(url_for("user", username=current_user["username"]))
     else:
         return render_template("username.html")
 
@@ -307,7 +308,7 @@ def set_username():
         friend_invite = session.get("friend_invite")
         if friend_invite:
             return redirect(url_for("friend_invite", token=friend_invite))
-        return redirect(url_for("account"))
+        return redirect(url_for("user", username=updated_user["username"]))
 
     if current_user["setup_complete"]:
         values = {
@@ -378,6 +379,7 @@ def friend_invite(token):
     return render_template(
         "friend_invite.html",
         owner=owner,
+        current_user=current_user,
         needs_login=False,
         own_link=own_link,
         unavailable=unavailable,
