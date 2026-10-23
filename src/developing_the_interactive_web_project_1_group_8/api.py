@@ -134,6 +134,7 @@ def avatar_image(user_id):
     except KeyError, BotoCoreError, ClientError:
         return redirect(url_for("static", filename="images/avatar-default.svg"))
 
+    # https://tedboy.github.io/flask/generated/flask.send_file.html
     return send_file(BytesIO(image_data), mimetype="image/jpeg", etag=avatar_key)
 
 

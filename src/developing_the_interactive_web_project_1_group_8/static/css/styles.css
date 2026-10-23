@@ -128,12 +128,10 @@ main {
   }
 
   #menuLink1 {
-
     padding: 0.25em;
     display: flex;
     align-items: center;
   }
-
 
   .accountDetails {
     border-radius: 0 0 8px 8px;
@@ -150,18 +148,12 @@ main {
   } */
 }
 
-
-
-
-
 .page-panel {
   box-sizing: border-box;
   max-width: 80vw;
   margin: 0 auto;
   padding: 20px;
 }
-
-
 
 .row {
   display: flex;
@@ -195,7 +187,6 @@ main {
 .carosel::-webkit-scrollbar {
   height: 8px;
   border-radius: 4px;
-
 }
 
 .no-events {
@@ -212,8 +203,22 @@ main {
   scroll-snap-align: start;
 }
 
-
 .user-ico {
   border-radius: 50%;
   aspect-ratio: 1;
+}
+
+.avatar-drop-zone {
+  padding: 1em;
+  border: 2px dashed var(--color-border);
+  border-radius: 8px;
+}
+
+.avatar-drop-zone.is-dragging {
+  border-color: var(--color-primary);
+  background-color: var(--color-surface-muted);
+}
+
+.avatar-drop-zone [hidden] {
+  display: none;
 }

@@ -8,6 +8,8 @@ from PIL import Image, ImageOps
 MAX_AVATAR_BYTES = 5 * 1024 * 1024
 
 
+# https://pillow.readthedocs.io/en/stable/reference/ImageOps.html#PIL.ImageOps.exif_transpose
+# https://pillow.readthedocs.io/en/stable/reference/Image.html
 def prepare_avatar(image):
     image.load()
     image = ImageOps.exif_transpose(image)
@@ -23,6 +25,7 @@ def prepare_avatar(image):
     return output.getvalue()
 
 
+# https://developers.cloudflare.com/r2/examples/aws/boto3/
 def get_avatar_storage():
     client = boto3.client(
         "s3",

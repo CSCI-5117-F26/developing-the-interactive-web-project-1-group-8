@@ -54,7 +54,8 @@ app.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
 )
 
-# https://itsdangerous.palletsprojects.com/en/stable/
+# https://itsdangerous.palletsprojects.com/en/stable/url_safe/
+# https://itsdangerous.palletsprojects.com/en/stable/concepts/
 friend_link_signer = URLSafeSerializer(app.secret_key, salt="friend-invite")
 
 oauth = OAuth(app)
@@ -85,7 +86,7 @@ def upload_too_large(e):
     ), 413
 
 
-# https://flask-wtf.readthedocs.io/en/0.15.x/csrf/
+# https://flask-wtf.readthedocs.io/en/1.2.x/csrf/
 CSRFProtect(app)
 
 app.register_blueprint(api)
@@ -448,6 +449,7 @@ def user(username):
     )
 
 
+# https://flask.palletsprojects.com/en/stable/patterns/fileuploads/
 @app.route("/account/settings", methods=["GET", "POST"])
 @requires_auth
 @requires_setup
