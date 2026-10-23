@@ -411,7 +411,7 @@ def get_received_friend_requests(user_id):
             SELECT u.id, u.username, u.display_name, u.profile_pic
             FROM friend_requests r
             JOIN users u ON u.id = r.requester_id
-            WHERE r.recipient_id = %s
+            WHERE r.recipient_id = %s AND NOT r.accepted
             ORDER BY u.username
             """,
             (user_id,),
@@ -425,7 +425,7 @@ def get_sent_friend_requests(user_id):
             SELECT u.id, u.username, u.display_name, u.profile_pic
             FROM friend_requests r
             JOIN users u ON u.id = r.recipient_id
-            WHERE r.requester_id = %s
+            WHERE r.requester_id = %s AND NOT r.accepted
             ORDER BY u.username
             """,
             (user_id,),
@@ -450,11 +450,61 @@ def cancel_friend_request(requester_id, recipient_id):
         result = conn.execute(
             """
             DELETE FROM friend_requests
-            WHERE requester_id = %s AND recipient_id = %s
+            WHERE requester_id = %s AND recipient_id = %s AND NOT accepted
             """,
             (requester_id, recipient_id),
         )
         return result.rowcount > 0
+
+
+def accept_friend_request(requester_id, recipient_id):
+    with pool.connection() as conn:
+        result = conn.execute(
+            """
+            UPDATE friend_requests r
+            SET accepted = TRUE
+            WHERE r.requester_id = %s AND r.recipient_id = %s
+                AND NOT r.accepted
+                AND NOT EXISTS (
+                    SELECT 1 FROM blocked b
+                    WHERE (b.blocking = r.requester_id AND b.blocked = r.recipient_id)
+                       OR (b.blocking = r.recipient_id AND b.blocked = r.requester_id)
+                )
+            """,
+            (requester_id, recipient_id),
+        )
+        return result.rowcount > 0
+
+
+def are_friends(first_user_id, second_user_id):
+    with pool.connection() as conn:
+        result = conn.execute(
+            """
+            SELECT 1 FROM friend_requests
+            WHERE accepted AND (
+                (requester_id = %s AND recipient_id = %s)
+                OR (requester_id = %s AND recipient_id = %s)
+            )
+            """,
+            (first_user_id, second_user_id, second_user_id, first_user_id),
+        ).fetchone()
+        return result is not None
+
+
+def get_friends(user_id):
+    with pool.connection() as conn:
+        return conn.execute(
+            """
+            SELECT u.id, u.username, u.display_name, u.profile_pic
+            FROM users u
+            JOIN friend_requests r
+                ON (r.requester_id = %s AND r.recipient_id = u.id)
+                OR (r.recipient_id = %s AND r.requester_id = u.id)
+            WHERE r.accepted
+            ORDER BY u.username
+            """,
+            (user_id, user_id),
+        ).fetchall()
 
 
 # ---------- Block ----------

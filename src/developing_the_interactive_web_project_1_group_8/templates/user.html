@@ -77,6 +77,18 @@
 </section>
 {% endfor %}
 <section class="row">
+  <h2>Friends</h2>
+  <div class="carousel">
+    {% for user in friends %}
+    {% include "components/user_tile.html" %}
+    {% else %}
+    <div class="no-events">
+      <p>No friends yet.</p>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+<section class="row">
   <h2>Following</h2>
   <div class="carousel">
     {% if following|length == 0 %}

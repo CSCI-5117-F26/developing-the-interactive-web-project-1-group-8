@@ -186,6 +186,8 @@ def friend_requests():
                 recipient["id"], current_user_id
             ):
                 flash("Friend requests are unavailable for this user.")
+            elif db.are_friends(current_user_id, recipient["id"]):
+                flash("You are already friends with this user.")
             else:
                 sent_request = db.send_friend_request(current_user_id, recipient["id"])
                 if sent_request:
@@ -194,6 +196,13 @@ def friend_requests():
                     flash(
                         "A friend request is already pending between you and this user."
                     )
+        elif action == "accept":
+            requester_id = request.form.get("user_id", type=int)
+            accepted = db.accept_friend_request(requester_id, current_user_id)
+            if accepted:
+                flash("Friend request accepted. You are now friends.")
+            else:
+                flash("That request is no longer available to accept.")
         elif action == "cancel":
             recipient_id = request.form.get("user_id", type=int)
             removed = db.cancel_friend_request(current_user_id, recipient_id)
@@ -333,7 +342,11 @@ def user(username):
         profile["is_blocked"] = db.is_blocked(current_user_id, profile_id)
 
     return render_template(
-        "user.html", sections=sections, following=followers, user=profile
+        "user.html",
+        sections=sections,
+        following=followers,
+        friends=db.get_friends(profile_id),
+        user=profile,
     )
 
 
