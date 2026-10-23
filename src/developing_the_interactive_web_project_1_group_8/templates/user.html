@@ -61,7 +61,7 @@
     {% if user.is_friend and not user.is_blocked %}
     <form class="pure-form" method="post" action="{{ url_for('remove_friend', user_id=user.id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="profile-button pure-button" type="submit">Remove friend</button>
+      <button class="profile-button profile-button-danger pure-button" type="submit">Remove friend</button>
     </form>
     {% endif %}
 

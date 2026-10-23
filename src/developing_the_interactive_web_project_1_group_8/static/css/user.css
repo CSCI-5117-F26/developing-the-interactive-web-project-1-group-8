@@ -143,3 +143,26 @@
 .profile-page .no-events {
   background-color: transparent;
 }
+
+.profile-page .profile-actions .pure-button {
+  color: var(--color-text-primary);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-primary);
+}
+
+.profile-page #copy-friend-link,
+.profile-page #follow-button[data-action="follow"] {
+  color: var(--color-text-inverse);
+  background-color: var(--color-primary);
+}
+
+.profile-page .profile-actions .profile-button-danger,
+.profile-page #block-button[data-action="block"] {
+  background-color: var(--color-danger-soft);
+  border-color: var(--color-danger);
+}
+
+.profile-page .profile-actions .pure-button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
