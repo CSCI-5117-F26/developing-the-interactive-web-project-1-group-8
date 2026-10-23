@@ -4,6 +4,8 @@ const avatarDropZone = document.getElementById("avatar-drop-zone");
 const avatarPreview = document.getElementById("avatar-preview");
 const avatarNotice = document.getElementById("avatar-notice");
 const avatarClear = document.getElementById("avatar-clear");
+const avatarDelete = document.getElementById("avatar-delete");
+const avatarDeleteButton = document.getElementById("avatar-delete-button");
 const savedAvatar = avatarPreview.src;
 const maxAvatarBytes = 5 * 1024 * 1024;
 let previewUrl = null;
@@ -16,8 +18,8 @@ function resetAvatarPreview() {
     previewUrl = null;
   }
   avatarPreview.src = savedAvatar;
-  avatarPreview.alt = "Current avatar";
   avatarClear.hidden = true;
+  avatarDelete.value = "0";
 }
 
 function clearAvatarSelection(message) {
@@ -26,7 +28,24 @@ function clearAvatarSelection(message) {
   avatarNotice.textContent = message;
 }
 
+function markAvatarForDeletion() {
+  clearAvatarSelection("Avatar will be deleted when you click Save profile.");
+  avatarDelete.value = "1";
+  avatarPreview.src = avatarPreview.dataset.defaultAvatar;
+  avatarClear.hidden = false;
+}
+
+if (avatarDelete.value === "1") {
+  markAvatarForDeletion();
+}
+if (avatarDeleteButton) {
+  avatarDeleteButton.addEventListener("click", markAvatarForDeletion);
+}
+
 async function displayAvatar(files) {
+  if (files.length === 0 && avatarDelete.value === "1") {
+    return;
+  }
   resetAvatarPreview();
   if (files.length > 1) {
     clearAvatarSelection("Drop one image at a time.");
@@ -64,7 +83,6 @@ async function displayAvatar(files) {
     return;
   }
   avatarPreview.src = imageUrl;
-  avatarPreview.alt = "Selected avatar preview";
   avatarNotice.textContent = `Preview of ${file.name}.`;
 }
 
@@ -72,7 +90,7 @@ avatarInput.addEventListener("change", function (event) {
   return displayAvatar(event.target.files);
 });
 avatarClear.addEventListener("click", function () {
-  clearAvatarSelection("Selection cancelled.");
+  clearAvatarSelection("Picture change cancelled.");
 });
 
 avatarDropZone.addEventListener("dragover", function (event) {

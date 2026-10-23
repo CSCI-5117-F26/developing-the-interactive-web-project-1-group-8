@@ -37,6 +37,7 @@
 
   <form class="settings-section pure-form pure-form-stacked" method="post" action="{{ url_for('settings') }}" enctype="multipart/form-data">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" id="avatar-delete" name="delete_avatar" value="{{ '1' if values.delete_avatar else '0' }}">
     <fieldset>
       <legend>Public profile</legend>
       <label for="display_name">Display name</label>
@@ -52,33 +53,28 @@
       <legend>Profile picture</legend>
       <div class="avatar-drop-zone" id="avatar-drop-zone">
         <label for="avatar">Choose a picture</label>
-        <p><img class="user-ico" id="avatar-preview" src="{{ avatar_url(user) }}"width="128" height="128"></p>
+        <p><img class="user-ico" id="avatar-preview" src="{{ avatar_url(user) }}" width="128" height="128"
+          data-default-avatar="{{ url_for('static', filename='images/avatar-default.svg') }}"></p>
         <input class="pure-input-1" id="avatar" name="avatar" type="file" accept="image/jpeg,image/png,image/webp">
         <p class="pure-form-message" id="avatar-help">Choose a JPEG, PNG, or WebP image up to 5 MB.</p>
         <p id="avatar-drop-help" hidden>Drop image here or use file selector.</p>
         <p id="avatar-notice" role="status"></p>
-        <button class="pure-button" id="avatar-clear" type="button" hidden>Cancel selection</button>
+        <button class="pure-button" id="avatar-clear" type="button" hidden>Cancel picture change</button>
       </div>
       {% if user.profile_pic %}
       <div class="settings-actions">
-        <button class="pure-button" type="submit" form="delete-avatar-form">Delete avatar</button>
-        <span class="pure-form-message">Uses the default avatar immediately.</span>
+        <button class="pure-button" id="avatar-delete-button" type="button">Delete avatar</button>
+        <span class="pure-form-message">Applied when you click Save profile.</span>
       </div>
       {% endif %}
     </fieldset>
 
     <div class="settings-actions">
       <button class="pure-button pure-button-primary" type="submit">Save profile</button>
-      <span class="pure-form-message">Saves your display name, biography, and selected picture.</span>
+      <span class="pure-form-message">Saves your display name, biography, and picture changes.</span>
     </div>
   </form>
 
-  {% if user.profile_pic %}
-  <form id="delete-avatar-form" method="post" action="{{ url_for('settings') }}">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <input type="hidden" name="action" value="delete_avatar">
-  </form>
-  {% endif %}
 </section>
 {% endblock %}
 

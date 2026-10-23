@@ -80,10 +80,18 @@ def require_account_setup():
     if profile.get("setup_complete") and profile.get("username"):
         return
     if request.endpoint in {
-        "static", "login", "callback", "logout", "username", "set_username"
+        "static",
+        "login",
+        "callback",
+        "logout",
+        "username",
+        "set_username",
     }:
         return
-    if request.endpoint == "api.avatar_image" and request.view_args["user_id"] == profile["id"]:
+    if (
+        request.endpoint == "api.avatar_image"
+        and request.view_args["user_id"] == profile["id"]
+    ):
         return
 
     if request.endpoint == "friend_invite":
@@ -342,6 +350,7 @@ def set_username():
             "display_name": current_user["display_name"] or "",
             "bio": current_user["bio"] or "",
             "profile_pic": current_user["profile_pic"] or "",
+            "delete_avatar": False,
         }
         return render_template(
             "settings.html",
@@ -487,67 +496,63 @@ def settings():
             "display_name": current_user["display_name"] or "",
             "bio": current_user["bio"] or "",
             "profile_pic": current_user["profile_pic"] or "",
+            "delete_avatar": False,
         }
     errors = []
 
     if request.method == "POST":
-        action = request.form.get("action")
-        if action == "delete_avatar":
+        values["delete_avatar"] = request.form.get("delete_avatar") == "1"
+        values["display_name"] = request.form.get("display_name", "").strip()
+        values["bio"] = request.form.get("bio", "")
+        if not 1 <= len(values["display_name"]) <= 40:
+            errors.append("Display name must be between 1 and 40 characters.")
+        if len(values["bio"]) > 200:
+            errors.append("Biography must be 200 characters or fewer.")
+        if values["delete_avatar"]:
             values["profile_pic"] = ""
-        else:
-            values["display_name"] = request.form.get("display_name", "").strip()
-            values["bio"] = request.form.get("bio", "")
-            if not 1 <= len(values["display_name"]) <= 40:
-                errors.append("Display name must be between 1 and 40 characters.")
-            if len(values["bio"]) > 200:
-                errors.append("Biography must be 200 characters or fewer.")
-            if not errors:
-                avatar_file = request.files.get("avatar")
-                if avatar_file is not None and avatar_file.filename:
-                    image_data = avatar_file.stream.read(MAX_AVATAR_BYTES + 1)
-                    if len(image_data) > MAX_AVATAR_BYTES:
-                        errors.append("Avatar must be 5 MB or smaller.")
+        elif not errors:
+            avatar_file = request.files.get("avatar")
+            if avatar_file is not None and avatar_file.filename:
+                image_data = avatar_file.stream.read(MAX_AVATAR_BYTES + 1)
+                if len(image_data) > MAX_AVATAR_BYTES:
+                    errors.append("Avatar must be 5 MB or smaller.")
 
-                    if not errors:
-                        try:
-                            with warnings.catch_warnings():
-                                warnings.simplefilter(
-                                    "error", Image.DecompressionBombWarning
-                                )
-                                with Image.open(BytesIO(image_data)) as image:
-                                    if image.format not in {"JPEG", "PNG", "WEBP"}:
-                                        errors.append(
-                                            "Choose a JPEG, PNG, or WebP image."
-                                        )
-                                    if getattr(image, "is_animated", False):
-                                        errors.append(
-                                            "Choose a still image rather than an animation."
-                                        )
-                                    if not errors:
-                                        prepared_image = prepare_avatar(image)
-                        except (
-                            UnidentifiedImageError,
-                            OSError,
-                            ValueError,
-                            Image.DecompressionBombWarning,
-                            Image.DecompressionBombError,
-                        ):
-                            errors.append("Choose a valid JPEG, PNG, or WebP image.")
+                if not errors:
+                    try:
+                        with warnings.catch_warnings():
+                            warnings.simplefilter(
+                                "error", Image.DecompressionBombWarning
+                            )
+                            with Image.open(BytesIO(image_data)) as image:
+                                if image.format not in {"JPEG", "PNG", "WEBP"}:
+                                    errors.append("Choose a JPEG, PNG, or WebP image.")
+                                if getattr(image, "is_animated", False):
+                                    errors.append(
+                                        "Choose a still image rather than an animation."
+                                    )
+                                if not errors:
+                                    prepared_image = prepare_avatar(image)
+                    except (
+                        UnidentifiedImageError,
+                        OSError,
+                        ValueError,
+                        Image.DecompressionBombWarning,
+                        Image.DecompressionBombError,
+                    ):
+                        errors.append("Choose a valid JPEG, PNG, or WebP image.")
 
-                    if not errors:
-                        try:
-                            avatar_key = upload_avatar(
-                                prepared_image, current_user["id"]
-                            )
-                            values["profile_pic"] = avatar_key
-                        except KeyError:
-                            errors.append(
-                                "Avatar storage is not configured yet. Your current avatar is unchanged."
-                            )
-                        except BotoCoreError, ClientError:
-                            errors.append(
-                                "Avatar upload failed. Your current avatar is unchanged."
-                            )
+                if not errors:
+                    try:
+                        avatar_key = upload_avatar(prepared_image, current_user["id"])
+                        values["profile_pic"] = avatar_key
+                    except KeyError:
+                        errors.append(
+                            "Avatar storage is not configured yet. Your current avatar is unchanged."
+                        )
+                    except BotoCoreError, ClientError:
+                        errors.append(
+                            "Avatar upload failed. Your current avatar is unchanged."
+                        )
 
         if not errors:
             updated_user = db.update_profile(
@@ -568,10 +573,7 @@ def settings():
                 "profile_pic": updated_user["profile_pic"],
                 "setup_complete": updated_user["setup_complete"],
             }
-            if action == "delete_avatar":
-                flash("Avatar deleted. The default avatar is now in use.")
-            else:
-                flash("Profile saved.")
+            flash("Profile saved.")
             return redirect(url_for("settings"))
 
     return render_template(
