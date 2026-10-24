@@ -12,6 +12,7 @@ import atexit
 from dotenv import load_dotenv
 import http.client
 import random
+from datetime import datetime, timedelta
 
 
 load_dotenv()
@@ -465,16 +466,72 @@ def is_blocked(blocking_id, blocked_id):
 # ---------- Search ----------
 
 
-def search_events(name_query):
+def search_events(q, user_id, game, category, min_players, max_players, duration, recency, full, pending, played):
     with pool.connection() as conn:
         with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT e.*, g.name AS game_name, g.image_url,
-                    (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count
-                FROM events e LEFT JOIN games g ON g.id = e.gameid
-                WHERE LOWER(e.name) LIKE LOWER(%s)
-                """,
-                (f"%{name_query}%",),
-            )
-            return cur.fetchall()
+            # cur.execute(
+            #     """
+            #     SELECT e.*, g.name AS game_name, g.image_url,
+            #         (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count
+            #     FROM events e LEFT JOIN games g ON g.id = e.gameid
+            #     WHERE LOWER(e.name) LIKE LOWER(%s)
+            #     """,
+            #     (f"%{name_query}%",),
+            # )
+            # return cur.fetchall()
+            query, params = build_query(q, user_id, game, category, min_players, max_players, duration, recency, full, pending, played)
+            return cur.execute(query, params).fetchall()
+
+def build_query(q, user_id, game, category, min_players, max_players, duration, recency, full, pending, played):
+    conditions = []
+    params = []
+    conditions.append("LOWER(e.name) LIKE LOWER(%s)")
+    params.append(f"%{q}%")
+
+    # Filter for game id
+    if game:
+        conditions.append("e.gameid = %s")
+        params.append(game)
+    elif user_id and played:
+        conditions.append(
+            """e.gameid IN (
+                SELECT DISTINCT e2.gameid
+                FROM events e2
+                JOIN event_participation ep ON ep.id = e2.id
+                WHERE ep.user_interested = %s
+            )"""
+        )
+        params.append(user_id)
+
+    if min_players is not None:
+        conditions.append("e.min_attendees >= %s")
+        params.append(min_players)
+    if max_players is not None:
+        conditions.append("e.max_attendees <= %s")
+        params.append(max_players)
+    if duration is not None:
+        min_duration = duration - 1
+        max_duration = duration + 1
+        conditions.append("e.expected_duration >= %s")
+        conditions.append("e.expected_duration <= %s")
+        params.append(min_duration)
+        params.append(max_duration)
+    if recency:
+        conditions.append("e.time >= %s AND e.time < %s")
+        start = datetime.now().replace(hour=0,minute=0,second=0, microsecond=0)
+        if recency == 'today':
+            end = start + timedelta(days=1)
+        else:
+            end = start + timedelta(weeks=1)
+        params.extend([start, end])
+    if full:
+        conditions.append("(SELECT COUNT(*) FROM event_participation ep2 WHERE ep2.id = e.id) < e.max_attendees")
+    if pending:
+        conditions.append("e.status = 'pending'")
+
+    cond_clause ="WHERE " + " AND ".join(conditions) if conditions else ""
+    query = f"""SELECT e.*, (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count
+        FROM events e LEFT JOIN event_participation ep ON ep.id = e.id
+        {cond_clause}
+        GROUP BY e.id"""
+    return query, params

@@ -315,8 +315,47 @@ def my_events():
 def search():
     """Search page, where users can search for events"""
     q = request.args.get("q", type=str)
+    game = request.args.get("game", "", type=str)
+    game_name = request.args.get("game-name", "", type=str)
+    category = request.args.get("category", "", type=str)
+    min_players = request.args.get("min", None, type=int)
+    max_players = request.args.get("max", None, type=int)
+    duration = request.args.get("duration", None, type=int)
+    recency = request.args.get('recency', "", type=str)
+    full = request.args.get("full", False, type=bool)
+    pending = request.args.get("pending", False, type=bool)
+    played = request.args.get("played", False, type=bool)
+    user_id = session['profile']['id'] if session.get("profile") else None;
 
-    return render_template("search.html", query=q, results=db.search_events(q))
+    results = db.search_events(
+        q,
+        user_id,
+        game,
+        category,
+        min_players,
+        max_players,
+        duration,
+        recency,
+        full,
+        pending,
+        played
+    )
+
+    return render_template(
+        "search.html", 
+        query=q,
+        game=game if game_name else "",
+        game_name = game_name,
+        category=category,
+        min_players=min_players,
+        max_players=max_players,
+        duration=duration,
+        recency=recency,
+        full=full,
+        pending=pending,
+        played=played,
+        results=results
+    )
 
 
 @app.route("/event/<int:event_id>")
