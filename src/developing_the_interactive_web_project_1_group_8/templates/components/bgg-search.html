@@ -1,0 +1,20 @@
+{% block head %}
+{% endblock %}
+
+{% block bggsearch %}
+
+<form class="pure-form" method="POST" autocomplete="off">
+  <div class='bgg-search'>
+    <div class='bgg-searchbar'>
+      <input id="autocomplete" role="search" class='bgg-input' type='text' name='bgg_game' placeholder='Game...' value="{{ selected_game_name }}"/>
+      <input type="hidden" name="game-name" value="{{ selected_game_name }}">
+      <input type="hidden" name="game-id" value="{{ selected_game_id }}">
+    </div>
+
+  </div>
+</form>
+
+{% endblock %}
+
+{% block scripts %}
+{% endblock %}

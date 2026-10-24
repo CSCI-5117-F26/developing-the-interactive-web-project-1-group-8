@@ -1,0 +1,29 @@
+{% extends "account_base.html" %}
+{% block title %}Profile unavailable - GameMaster{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/user.css') }}">
+{% endblock %}
+{% block content %}
+<div class="compact-screen">
+  <section class="compact-page compact-card page-panel profile-section">
+    <h1>Profile unavailable</h1>
+    {% if blocked_by_owner %}
+    <p>You are blocked by this user.</p>
+    {% endif %}
+    {% if blocked_by_viewer %}
+    <p>You have blocked this user.</p>
+    {% endif %}
+    <div class="settings-actions">
+      {% if blocked_by_viewer %}
+      <button class="pure-button pure-button-primary" id="block-button" type="button"
+        data-action="unblock" data-username="{{ username }}" data-csrf-token="{{ csrf_token() }}">Unblock</button>
+      {% endif %}
+      <a class="pure-button" href="{{ url_for('index') }}">Go to dashboard</a>
+    </div>
+    {% include "components/notices.html" %}
+  </section>
+</div>
+{% endblock %}
+{% block account_scripts %}
+<script src="{{ url_for('static', filename='javascript/user.js') }}"></script>
+{% endblock %}
