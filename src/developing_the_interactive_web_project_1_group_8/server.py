@@ -1,5 +1,3 @@
-from wtforms.validators import DataRequired, Length
-from wtforms import StringField
 from flask import (
     Flask,
     render_template,
@@ -11,11 +9,10 @@ from flask import (
     request,
     jsonify,
 )
-import validators
 import os
 import secrets
 from datetime import timezone
-from urllib.parse import urlencode, urlsplit
+from urllib.parse import urlencode
 from dotenv import load_dotenv
 from flask_wtf.csrf import CSRFProtect
 from authlib.integrations.flask_client import OAuth
@@ -24,19 +21,15 @@ import warnings
 from botocore.exceptions import BotoCoreError, ClientError
 from PIL import Image, UnidentifiedImageError
 from psycopg.errors import UniqueViolation
-from itsdangerous import BadSignature, URLSafeSerializer
 
 from developing_the_interactive_web_project_1_group_8 import db
 from developing_the_interactive_web_project_1_group_8.api import (
     api,
-    is_safe_avatar_url,
-    get_user_photo,
 )
 from developing_the_interactive_web_project_1_group_8.decorators import (
     requires_auth,
     requires_setup,
 )
-import developing_the_interactive_web_project_1_group_8.db as db
 from developing_the_interactive_web_project_1_group_8.avatars import (
     MAX_AVATAR_BYTES,
     prepare_avatar,
@@ -185,7 +178,7 @@ def notifications():
         elif entry["event_id"] is not None:
             entry["url"] = url_for("event", event_id=entry["event_id"])
     return render_template(
-        "notifications.html",
+        "account/notifications.html",
         notifications=entries,
         page=page,
         has_older=has_older,
@@ -329,7 +322,7 @@ def connections():
         ),
     ]
     return render_template(
-        "connections.html", current_user=current_user, sections=sections
+        "account/connections.html", current_user=current_user, sections=sections
     )
 
 
@@ -447,7 +440,7 @@ def friend_requests():
         )
         invitation["expires_at"] = invitation["expires_at"].astimezone(timezone.utc)
     return render_template(
-        "friend_requests.html",
+        "account/friend_requests.html",
         current_user=current_user,
         received_requests=db.get_received_friend_requests(current_user_id),
         sent_requests=db.get_sent_friend_requests(current_user_id),
@@ -469,7 +462,7 @@ def username():
     elif current_user["setup_complete"] and current_user["username"]:
         return redirect(url_for("user", username=current_user["username"]))
     else:
-        return render_template("username.html")
+        return render_template("account/username.html")
 
 
 @app.route("/set-username", methods=["POST"])
@@ -538,7 +531,7 @@ def set_username():
             "delete_avatar": False,
         }
         return render_template(
-            "settings.html",
+            "account/settings.html",
             user=current_user,
             values=values,
             errors=errors,
@@ -547,7 +540,7 @@ def set_username():
         )
 
     return render_template(
-        "username.html",
+        "account/username.html",
         username=username,
         errors=errors,
     )
@@ -558,7 +551,7 @@ def friend_invite(token):
     invitation = db.get_friend_invitation(token)
     if invitation is None:
         return render_template(
-            "friend_invite.html",
+            "account/friend_invite.html",
             unavailable=True,
             unavailable_message="This link is invalid or no longer available. Ask for a new invitation.",
         ), 404
@@ -566,7 +559,7 @@ def friend_invite(token):
     owner_id = invitation["owner_id"]
     owner = db.get_user_from_id(owner_id)
     if owner is None or not owner["setup_complete"] or not owner["username"]:
-        return render_template("friend_invite.html", unavailable=True), 404
+        return render_template("account/friend_invite.html", unavailable=True), 404
 
     current_user = None
     if "profile" in session:
@@ -577,7 +570,7 @@ def friend_invite(token):
         db.is_blocked(owner_id, current_user["id"])
         or db.is_blocked(current_user["id"], owner_id)
     ):
-        return render_template("friend_invite.html", unavailable=True), 403
+        return render_template("account/friend_invite.html", unavailable=True), 403
 
     if invitation["status"] != "active":
         messages = {
@@ -586,14 +579,16 @@ def friend_invite(token):
             "exhausted": "This friend invitation has no uses remaining.",
         }
         return render_template(
-            "friend_invite.html",
+            "account/friend_invite.html",
             unavailable=True,
             unavailable_message=messages[invitation["status"]],
         ), 410
 
     if current_user is None:
         session["friend_invite"] = token
-        return render_template("friend_invite.html", owner=owner, needs_login=True)
+        return render_template(
+            "account/friend_invite.html", owner=owner, needs_login=True
+        )
     if not current_user["setup_complete"]:
         session["friend_invite"] = token
         return redirect(url_for("username"))
@@ -619,7 +614,7 @@ def friend_invite(token):
         return redirect(url_for("friend_invite", token=token))
 
     return render_template(
-        "friend_invite.html",
+        "account/friend_invite.html",
         owner=owner,
         current_user=current_user,
         needs_login=False,
@@ -665,7 +660,7 @@ def user(username):
         blocked_by_viewer = db.is_blocked(viewer_id, profile_id)
         if blocked_by_owner or blocked_by_viewer:
             return render_template(
-                "profile_blocked.html",
+                "account/profile_blocked.html",
                 username=username,
                 blocked_by_owner=blocked_by_owner,
                 blocked_by_viewer=blocked_by_viewer,
@@ -694,7 +689,7 @@ def user(username):
         sections.append(("Events Going To", db.get_user_events_attending(profile_id)))
 
     return render_template(
-        "user.html",
+        "account/user.html",
         sections=sections,
         friends=friends,
         user=profile,
@@ -798,7 +793,7 @@ def settings():
             return redirect(url_for("settings"))
 
     return render_template(
-        "settings.html",
+        "account/settings.html",
         user=current_user,
         values=values,
         errors=errors,
@@ -845,7 +840,7 @@ def privacy_settings():
         "delete_avatar": False,
     }
     return render_template(
-        "settings.html",
+        "account/settings.html",
         user=current_user,
         values=values,
         errors=errors,
@@ -868,7 +863,7 @@ def my_events():
         if event["id"] not in hosted_ids
     ]
     # print(events)
-    return render_template("my_events.html", events=events)
+    return render_template("events/my_events.html", events=events)
 
 
 @app.route("/search")
@@ -891,7 +886,7 @@ def event(event_id):
     if event is None:
         abort(404, "This event does not appear to exist.")
     # print(db.get_event(event_id))
-    return render_template("event.html", event=event)
+    return render_template("events/event.html", event=event)
 
 
 @app.route("/create-event")
@@ -899,7 +894,7 @@ def event(event_id):
 def create_event():
     """Event form, where users can insert info about their event"""
     # print(database.get_event(event_id))
-    return render_template("event_info.html", event=None)
+    return render_template("events/event_info.html", event=None)
 
 
 @app.post("/add-event")
@@ -945,7 +940,7 @@ def edit_event(event_id):
     print(session["profile"])
     print(edited_event)
     if session["profile"]["id"] == edited_event["hostid"]:
-        return render_template("event_info.html", event=edited_event)
+        return render_template("events/event_info.html", event=edited_event)
     else:
         # print(session["profile"]["user"])
         return redirect("/event/" + str(event_id))
@@ -980,14 +975,6 @@ def update_event(event_id):
     )
 
     return redirect("/")
-
-
-# @app.route("/user/<string:username>")
-# def user(username):
-#     """ User page, where users can view details about a specific user """
-#     if not username:
-#         return render_template("error.html", message="Username is required"), 400
-#     return render_template("user.html", username=username)
 
 
 # ---------- Error Handlers ----------

@@ -18,7 +18,7 @@
       {% endif %}
     </nav>
   </header>
-  {% include "components/account_notices.html" %}
+  {% include "components/notices.html" %}
   {% for notification in notifications %}
   <article class="profile-section notification-entry{% if not notification.is_read %} notification-unread{% endif %}">
     <h2 class="notification-message">{{ notification.message }}</h2>

@@ -6,7 +6,7 @@
 {% block content %}
 <div class="compact-screen">
   <section class="compact-page compact-card page-panel profile-section friend-invite-page">
-    {% include "components/account_notices.html" %}
+    {% include "components/notices.html" %}
     {% if unavailable %}
     <h1>Invitation unavailable</h1>
     <p>{{ unavailable_message or "This friend invitation is unavailable." }}</p>

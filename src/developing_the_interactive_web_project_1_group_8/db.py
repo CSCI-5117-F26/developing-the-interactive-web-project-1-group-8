@@ -1,10 +1,8 @@
 from datetime import timedelta
 from developing_the_interactive_web_project_1_group_8.CacheBackendPostgres import (
     CacheBackendPostgres,
-    PostgresCache,
-    PostgresDict,
 )
-from boardgamegeek import BGGClient, CacheBackendMemory
+from boardgamegeek import BGGClient
 from psycopg_pool import ConnectionPool
 from psycopg.rows import dict_row
 import os

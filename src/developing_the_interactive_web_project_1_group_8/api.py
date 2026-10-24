@@ -1,26 +1,12 @@
 from io import BytesIO
 from botocore.exceptions import BotoCoreError, ClientError
-import os
 import psycopg
-import faker
-from flask import Flask, jsonify, Blueprint, request, render_template
-from boardgamegeek import BGGClient, CacheBackendSqlite
-from developing_the_interactive_web_project_1_group_8.CacheBackendPostgres import (
-    PostgresCache,
-    CacheBackendPostgres,
-)
+from flask import jsonify, Blueprint, request
 from developing_the_interactive_web_project_1_group_8.decorators import requires_auth
 import validators
-from urllib.parse import urlencode, urlsplit
+from urllib.parse import urlsplit
 from developing_the_interactive_web_project_1_group_8 import db
-import psycopg
-import faker
 from flask import (
-    Flask,
-    jsonify,
-    Blueprint,
-    request,
-    render_template,
     abort,
     url_for,
     session,
