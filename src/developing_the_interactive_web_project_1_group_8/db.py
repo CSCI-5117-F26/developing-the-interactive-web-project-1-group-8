@@ -13,6 +13,7 @@ import random
 from datetime import datetime, timedelta
 
 
+
 load_dotenv()
 
 pool: ConnectionPool
@@ -34,7 +35,7 @@ def setup():
     # I'm not _actually_ convinced this is required, but the docs said to do it!
     atexit.register(pool.close)
 
-
+ # warm up the cache so that the first request doesn't take forever
 # User DB Functions
 
 
