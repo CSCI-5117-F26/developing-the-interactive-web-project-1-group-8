@@ -126,7 +126,9 @@ def avatar_image(user_id):
         abort(404)
     if "profile" in session and session["profile"]["id"] != profile["id"]:
         viewer_id = session["profile"]["id"]
-        if db.is_blocked(viewer_id, profile["id"]) or db.is_blocked(profile["id"], viewer_id):
+        if db.is_blocked(viewer_id, profile["id"]) or db.is_blocked(
+            profile["id"], viewer_id
+        ):
             return redirect(url_for("static", filename="images/avatar-default.svg"))
 
     avatar_key = profile["profile_pic"]
@@ -157,7 +159,9 @@ def get_user_photo(username):
         abort(404)
     if "profile" in session and session["profile"]["id"] != profile["id"]:
         viewer_id = session["profile"]["id"]
-        if db.is_blocked(viewer_id, profile["id"]) or db.is_blocked(profile["id"], viewer_id):
+        if db.is_blocked(viewer_id, profile["id"]) or db.is_blocked(
+            profile["id"], viewer_id
+        ):
             return url_for("static", filename="images/avatar-default.svg")
 
     return avatar_url(profile)

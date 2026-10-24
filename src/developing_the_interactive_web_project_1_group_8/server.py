@@ -212,6 +212,37 @@ def account():
     return redirect(url_for("settings"))
 
 
+@app.get("/account/connections")
+@requires_auth
+@requires_setup
+def connections():
+    current_user = db.get_user_from_id(session["profile"]["id"])
+    if current_user is None:
+        session.clear()
+        return redirect(url_for("index"))
+
+    user_id = current_user["id"]
+    sections = [
+        ("friends", "Friends", db.get_friends(user_id), "No friends yet."),
+        (
+            "following",
+            "Following",
+            db.get_following(user_id),
+            "You are not following anyone yet.",
+        ),
+        ("followers", "Followers", db.get_followers(user_id), "No followers yet."),
+        (
+            "blocked",
+            "Blocked",
+            db.get_blocked_users(user_id),
+            "You have not blocked anyone.",
+        ),
+    ]
+    return render_template(
+        "connections.html", current_user=current_user, sections=sections
+    )
+
+
 @app.route("/account/friend-requests", methods=["GET", "POST"])
 @requires_auth
 @requires_setup

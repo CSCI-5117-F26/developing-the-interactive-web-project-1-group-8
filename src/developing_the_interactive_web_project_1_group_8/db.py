@@ -336,6 +336,7 @@ def get_following(user_id):
                 FROM users u
                 JOIN friends f ON u.id = f.followed
                 WHERE f.follower = %s
+                ORDER BY u.username
                 """,
                 (user_id,),
             )
@@ -389,10 +390,11 @@ def get_followers(user_id):
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT u.id, u.display_name, u.profile_pic
+                SELECT u.id, u.username, u.display_name, u.profile_pic
                 FROM users u
                 JOIN friends f ON u.id = f.follower
                 WHERE f.followed = %s
+                ORDER BY u.username
                 """,
                 (user_id,),
             )
@@ -626,10 +628,11 @@ def get_blocked_users(user_id):
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT u.id, u.display_name, u.profile_pic
+                SELECT u.id, u.username, u.display_name, u.profile_pic
                 FROM users u
                 JOIN blocked b ON u.id = b.blocked
                 WHERE b.blocking = %s
+                ORDER BY u.username
                 """,
                 (user_id,),
             )

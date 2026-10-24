@@ -46,6 +46,9 @@
       <a class="profile-edit pure-button" href="{{ url_for('friend_requests') }}" title="Friend requests">
         <i class="fa fa-user-plus fa-fw"></i>
       </a>
+      <a class="profile-edit pure-button" href="{{ url_for('connections') }}" title="Connections">
+        <i class="fa fa-users fa-fw"></i>
+      </a>
     </div>
     {% if friend_link %}
     <button class="profile-button pure-button" type="button" id="copy-friend-link"
