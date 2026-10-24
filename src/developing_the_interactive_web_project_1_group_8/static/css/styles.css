@@ -129,12 +129,10 @@ main {
   }
 
   #menuLink1 {
-
     padding: 0.25em;
     display: flex;
     align-items: center;
   }
-
 
   .accountDetails {
     border-radius: 0 0 8px 8px;
@@ -193,8 +191,6 @@ main {
   padding: 20px;
 }
 
-
-
 .row {
   display: flex;
   flex-direction: column;
@@ -227,7 +223,6 @@ main {
 .carosel::-webkit-scrollbar {
   height: 8px;
   border-radius: 4px;
-
 }
 
 .no-events {
@@ -244,8 +239,163 @@ main {
   scroll-snap-align: start;
 }
 
-
+/* https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/object-fit */
 .user-ico {
   border-radius: 50%;
   aspect-ratio: 1;
+  object-fit: cover;
+  flex-shrink: 0;
+  background-color: var(--color-surface);
+}
+
+.avatar-drop-zone {
+  padding: 1em;
+  border: 2px dashed var(--color-border);
+  border-radius: 8px;
+}
+
+.avatar-drop-zone.is-dragging {
+  border-color: var(--color-primary);
+  background-color: var(--color-surface-muted);
+}
+
+.avatar-drop-zone [hidden] {
+  display: none;
+}
+
+.settings-page,
+.profile-page,
+.friend-requests-page {
+  width: 100%;
+  padding: 0 0 1.5em;
+}
+
+.settings-page h1,
+.friend-requests-page h1 {
+  margin-top: 0;
+}
+
+.settings-links,
+.settings-actions,
+.friend-request-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75em;
+}
+
+.settings-actions {
+  margin-top: 1em;
+}
+
+.settings-section,
+.settings-notice,
+.profile-section {
+  margin-top: 1.5em;
+  padding: 1.25em;
+  border-radius: 8px;
+  background-color: var(--color-background-outset);
+}
+
+.settings-section fieldset + fieldset {
+  margin-top: 1.5em;
+}
+
+.settings-section legend,
+.friend-requests-page legend {
+  font-weight: bold;
+  color: var(--color-text-primary);
+  border-color: var(--color-border);
+}
+
+.settings-page .pure-form-message,
+.friend-requests-page .pure-form-message {
+  color: var(--color-text-secondary);
+  line-height: 1.3;
+}
+
+.settings-page .pure-input-1,
+.friend-requests-page .pure-input-1 {
+  box-sizing: border-box;
+}
+
+.settings-page .pure-button-primary,
+.friend-requests-page .pure-button-primary {
+  color: var(--color-text-inverse);
+  background-color: var(--color-primary);
+}
+
+.settings-notice {
+  background-color: var(--color-danger-soft);
+  border: 1px solid var(--color-danger);
+}
+
+.settings-notice h2 {
+  margin-top: 0;
+  font-size: 1.1em;
+}
+
+.friend-requests-page h2 {
+  margin-top: 0;
+  font-size: 1.2rem;
+}
+
+.friend-requests-page .carousel {
+  height: auto;
+  align-items: flex-start;
+}
+
+.friend-request {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.friend-request .friend-request-actions {
+  align-self: stretch;
+  margin-top: 0.75em;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.account-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75em;
+  margin: 1em 0;
+  padding: 0.75em 1em;
+  border: 1px solid var(--color-primary);
+  border-radius: 8px;
+  background-color: var(--color-background-outset);
+}
+
+.account-notice-message {
+  flex: 1 1 12rem;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.account-notice .pure-button {
+  color: var(--color-primary);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-primary);
+}
+
+.account-notice[hidden],
+.account-notice [hidden] {
+  display: none;
+}
+
+.account-notice .pure-button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+.invitation-entry + .invitation-entry {
+  margin-top: 1.5em;
+  padding-top: 1.5em;
+  border-top: 1px solid var(--color-border);
 }

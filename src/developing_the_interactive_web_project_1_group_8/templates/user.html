@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "account_base.html" %}
 {% block title %}{{ user.display_name }} - GameMaster{% endblock %}
 
 
@@ -8,32 +8,48 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/user.css') }}">
 {% endblock %}
 
-{% block scripts %}
+{% block account_scripts %}
 <script src="{{ url_for('static', filename='javascript/user.js') }}"></script>
 {% endblock %}
 
 {% block content %}
-<section class="profile-content page-panel">
-  <img class="user-ico" src="{{ user.profile_pic or url_for('static', filename='images/avatar-default.svg') }}" width="128" height="128">
+<div class="profile-page page-panel">
+<section class="profile-content profile-section">
+  <img class="user-ico" src="{{ avatar_url(user) }}" width="128" height="128">
   <div class="profile-desc">
     <h1>{{ user.display_name }}</h1>
-    <h2>{{ user.followers }} followers</h2>
-    {% if user.is_blocked %}
-    <p>This user is blocked.</p>
-    {% else %}
+    <p class="profile-username">@{{ user.username }}</p>
+    {% if friends is not none or user.followers is not none %}
+    <p class="profile-counts">
+      {% if friends is not none %}
+      <span>{{ friends|length }} {{ 'friend' if friends|length == 1 else 'friends' }}</span>
+      {% endif %}
+      {% if user.followers is not none %}
+      <span>{{ user.followers }} {{ 'follower' if user.followers == 1 else 'followers' }}</span>
+      {% endif %}
+    </p>
+    {% endif %}
     {% if user.bio %}
     <p class="profile-bio">{{ user.bio }}</p>
     {% else %}
     <p>No biography yet.</p>
-    {% endif %}
     {% endif %}
   </div>
 
 
   <div class="profile-actions">
     {% if session.get('profile') and session['profile']['id'] == user.id %}
-    <a class="profile-edit pure-button" href="{{ url_for('settings') }}"><i class="fa fa-cog fa-fw"
-        aria-hidden="true"></i></a>
+    <div class="profile-owner-tools" role="group">
+      <a class="profile-edit pure-button" href="{{ url_for('settings') }}" title="Profile settings">
+        <i class="fa fa-cog fa-fw"></i>
+      </a>
+      <a class="profile-edit pure-button" href="{{ url_for('friend_requests') }}" title="Friend requests">
+        <i class="fa fa-user-plus fa-fw"></i>
+      </a>
+      <a class="profile-edit pure-button" href="{{ url_for('connections') }}" title="Connections">
+        <i class="fa fa-users fa-fw"></i>
+      </a>
+    </div>
     {% endif %}
 
     {% if session.get('profile') and session['profile']['id'] != user.id and not user.is_blocked %}
@@ -41,6 +57,13 @@
       data-action="{% if user.is_following %}unfollow{% else %}follow{% endif %}" data-username="{{ user.username }}">
       {% if user.is_following %}Unfollow <i class="fa fa-user-times" aria-hidden="true"></i>{% else %}Follow <i
         class="fa fa-user-plus" aria-hidden="true"></i>{% endif %}</button>
+    {% endif %}
+
+    {% if user.is_friend and not user.is_blocked %}
+    <form class="pure-form" method="post" action="{{ url_for('remove_friend', user_id=user.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="profile-button profile-button-danger pure-button" type="submit">Remove friend</button>
+    </form>
     {% endif %}
 
     {% if session.get('profile') and session['profile']['id'] != user.id %}
@@ -53,20 +76,32 @@
 
 
 </section>
+{% include "components/account_notices.html" %}
 
-{% if user.is_blocked %}
-<section class="page-panel">
-  <h2>This user is blocked.</h2>
-  <p>You will not see any events from this user, and they will not be able to see any of your events.</p>
+{% if friends is not none %}
+<section class="profile-section row">
+  <h2>Friends</h2>
+  <div class="carousel">
+    {% for friend in friends %}
+    <a class="profile-friend" href="{{ url_for('user', username=friend.username) }}" title="{{ friend.display_name }}">
+      <img class="user-ico" src="{{ avatar_url(friend) }}" width="64" height="64">
+      <span>{{ friend.display_name }}</span>
+    </a>
+    {% else %}
+    <div class="no-events">
+      <p>No friends yet.</p>
+    </div>
+    {% endfor %}
+  </div>
 </section>
-{% else %}
+{% endif %}
 {% for title, events in sections %}
-<section class="row">
+<section class="profile-section row">
   <h2>{{ title }}</h2>
   <div class="carousel">
     {% if events|length == 0 %}
     <div class="no-events">
-      <p>Nothing to show ;(</p>
+      <p>No events to show.</p>
     </div>
     {% else %}
     {% for event in events %}
@@ -76,19 +111,5 @@
   </div>
 </section>
 {% endfor %}
-<section class="row">
-  <h2>Following</h2>
-  <div class="carousel">
-    {% if following|length == 0 %}
-    <div class="no-events">
-      <p>Nothing to show ;(</p>
-    </div>
-    {% else %}
-    {% for user in following %}
-    {% include "components/user_tile.html" %}
-    {% endfor %}
-    {% endif %}
-  </div>
-</section>
-{% endif %}
+</div>
 {% endblock %}
