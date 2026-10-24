@@ -1,5 +1,3 @@
-from wtforms.validators import DataRequired, Length
-from wtforms import StringField
 from flask import (
     Flask,
     render_template,
@@ -11,29 +9,44 @@ from flask import (
     request,
     jsonify,
 )
-import validators
 import os
-from urllib.parse import urlencode, urlsplit
+import secrets
+from datetime import timezone
+from urllib.parse import urlencode
 from dotenv import load_dotenv
 from flask_wtf.csrf import CSRFProtect
 from authlib.integrations.flask_client import OAuth
+from io import BytesIO
+import warnings
+from botocore.exceptions import BotoCoreError, ClientError
+from PIL import Image, UnidentifiedImageError
+from psycopg.errors import UniqueViolation
 
 from developing_the_interactive_web_project_1_group_8 import db
 from developing_the_interactive_web_project_1_group_8.api import (
     api,
-    is_safe_avatar_url,
-    get_user_photo,
 )
 from developing_the_interactive_web_project_1_group_8.decorators import (
     requires_auth,
     requires_setup,
 )
-import developing_the_interactive_web_project_1_group_8.db as db
+from developing_the_interactive_web_project_1_group_8.avatars import (
+    MAX_AVATAR_BYTES,
+    prepare_avatar,
+    upload_avatar,
+)
 
 db.setup()
 
 load_dotenv()
 app = Flask(__name__)
+
+PROFILE_PRIVACY_FIELDS = (
+    ("hosted_events_visibility", "Hosted events"),
+    ("attending_events_visibility", "Attending events"),
+    ("friends_visibility", "Friends list and friend count"),
+    ("followers_visibility", "Follower count"),
+)
 
 # Auth0 code based on https://docs.authlib.org/en/stable/oauth2/client/web/flask.html
 app.config.update(
@@ -42,6 +55,14 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
 )
+
+FRIEND_LINK_DURATIONS = (
+    (1, "1 hour"),
+    (24, "1 day"),
+    (168, "7 days"),
+    (720, "30 days"),
+)
+
 
 oauth = OAuth(app)
 auth0 = oauth.register(
@@ -56,10 +77,113 @@ auth0 = oauth.register(
     ),
 )
 
-# https://flask-wtf.readthedocs.io/en/0.15.x/csrf/
+
+@app.before_request
+def require_account_setup():
+    profile = session.get("profile")
+    if profile is None:
+        return
+    if profile.get("setup_complete") and profile.get("username"):
+        return
+    if request.endpoint in {
+        "static",
+        "login",
+        "callback",
+        "logout",
+        "username",
+        "set_username",
+    }:
+        return
+    if (
+        request.endpoint == "api.avatar_image"
+        and request.view_args["user_id"] == profile["id"]
+    ):
+        return
+
+    if request.endpoint == "friend_invite":
+        session["friend_invite"] = request.view_args["token"]
+    if request.blueprint == "api":
+        return jsonify(
+            error="Choose a username before using the app.",
+            setup_url=url_for("username"),
+        ), 403
+    return redirect(url_for("username"))
+
+
+@app.before_request
+def limit_avatar_request():
+    if request.endpoint == "settings" and request.method == "POST":
+        request.max_content_length = MAX_AVATAR_BYTES + 64 * 1024
+
+
+@app.errorhandler(413)
+def upload_too_large(e):
+    return render_template(
+        "error.html",
+        message="Upload is too large. Choose an avatar of 5 MiB or smaller.",
+    ), 413
+
+
+# https://flask-wtf.readthedocs.io/en/1.2.x/csrf/
 CSRFProtect(app)
 
 app.register_blueprint(api)
+
+
+# https://flask.palletsprojects.com/en/stable/templating/#context-processors
+@app.context_processor
+def notification_summary():
+    profile = session.get("profile")
+    if profile and profile.get("setup_complete") and profile.get("username"):
+        return {
+            "unread_notification_count": db.get_unread_notification_count(profile["id"])
+        }
+    return {"unread_notification_count": 0}
+
+
+@app.route("/account/notifications", methods=["GET", "POST"])
+@requires_auth
+@requires_setup
+def notifications():
+    current_user = db.get_user_from_id(session["profile"]["id"])
+    if current_user is None:
+        session.clear()
+        return redirect(url_for("index"))
+
+    user_id = current_user["id"]
+    page = max(request.args.get("page", 1, type=int), 1)
+    if request.method == "POST":
+        action = request.form.get("action")
+        if action == "mark_read":
+            notification_id = request.form.get("notification_id", type=int)
+            if db.mark_notification_read(notification_id, user_id):
+                flash("Notification marked as read.")
+            else:
+                flash("That notification is already read or unavailable.")
+        elif action == "mark_all_read":
+            db.mark_all_notifications_read(user_id)
+            flash("All notifications are marked as read.")
+        else:
+            flash("Choose a notification action.")
+        return redirect(url_for("notifications", page=page))
+
+    entries = db.get_notifications(user_id, limit=21, offset=(page - 1) * 20)
+    has_older = len(entries) > 20
+    entries = entries[:20]
+    for entry in entries:
+        entry["created_at"] = entry["created_at"].astimezone(timezone.utc)
+        entry["url"] = None
+        if entry["kind"] == "friend_request":
+            entry["url"] = url_for("friend_requests")
+        elif entry["event_id"] is not None:
+            entry["url"] = url_for("event", event_id=entry["event_id"])
+    return render_template(
+        "account/notifications.html",
+        notifications=entries,
+        page=page,
+        has_older=has_older,
+        current_user=current_user,
+    )
 
 
 @app.route("/")
@@ -88,7 +212,10 @@ async def callback():
     user_exists = db.get_sub(user_info["sub"])
     user = db.get_or_create_user(user_info)
 
+    friend_invite = session.get("friend_invite")
     session.clear()
+    if friend_invite:
+        session["friend_invite"] = friend_invite
     session["profile"] = {
         "id": user["id"],
         "sub": user["auth0_sub"],
@@ -96,8 +223,10 @@ async def callback():
         "setup_complete": user["setup_complete"],
         "profile_pic": user["profile_pic"] or None,
     }
-    if user_exists and user["setup_complete"]:
-        return redirect(url_for("account"))
+    if user_exists and user["setup_complete"] and user["username"]:
+        if friend_invite:
+            return redirect(url_for("friend_invite", token=friend_invite))
+        return redirect(url_for("user", username=user["username"]))
     else:
         return redirect(url_for("username"))
 
@@ -135,7 +264,191 @@ def account():
         "profile_pic": user["profile_pic"] or None,
     }
 
-    return render_template("account.html", user=user)
+    return redirect(url_for("settings"))
+
+
+@app.route("/account/connections", methods=["GET", "POST"])
+@requires_auth
+@requires_setup
+def connections():
+    current_user = db.get_user_from_id(session["profile"]["id"])
+    if current_user is None:
+        session.clear()
+        return redirect(url_for("index"))
+
+    user_id = current_user["id"]
+    if request.method == "POST":
+        action = request.form.get("action")
+        if action not in {"unfollow", "unblock"}:
+            flash("Choose a connection action.")
+            return redirect(url_for("connections"))
+
+        other_user_id = request.form.get("user_id", type=int)
+        other_user = db.get_user_from_id(other_user_id)
+        if other_user is None:
+            flash("This account is no longer available.")
+        elif other_user_id == user_id:
+            flash("Choose another account.")
+        elif action == "unfollow":
+            if db.unfollow_user(user_id, other_user_id):
+                flash(
+                    f"You no longer follow @{other_user['username']}. Your friendships are unchanged."
+                )
+            else:
+                flash(f"You are not following @{other_user['username']}.")
+        elif action == "unblock":
+            if db.unblock_user(user_id, other_user_id):
+                flash(
+                    f"You unblocked @{other_user['username']}. Previous friendships and follows were not restored."
+                )
+            else:
+                flash(f"You have no block on @{other_user['username']}.")
+        return redirect(url_for("connections"))
+
+    sections = [
+        ("friends", "Friends", db.get_friends(user_id), "No friends yet."),
+        (
+            "following",
+            "Following",
+            db.get_following(user_id),
+            "You are not following anyone yet.",
+        ),
+        ("followers", "Followers", db.get_followers(user_id), "No followers yet."),
+        (
+            "blocked",
+            "Blocked",
+            db.get_blocked_users(user_id),
+            "You have not blocked anyone.",
+        ),
+    ]
+    return render_template(
+        "account/connections.html", current_user=current_user, sections=sections
+    )
+
+
+@app.after_request
+def keep_invitation_pages_private(response):
+    if request.endpoint in {
+        "invitations",
+        "friend_invite",
+        "friend_requests",
+        "notifications",
+    }:
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
+@app.route("/account/invitations", methods=["GET", "POST"], endpoint="invitations")
+@app.route("/account/friend-requests", methods=["GET", "POST"])
+@requires_auth
+@requires_setup
+def friend_requests():
+    current_user = db.get_user_from_id(session["profile"]["id"])
+    if current_user is None:
+        session.clear()
+        return redirect(url_for("index"))
+
+    if request.endpoint == "invitations" and request.method == "GET":
+        return redirect(url_for("friend_requests", _anchor="friend-links"))
+
+    current_user_id = current_user["id"]
+    errors = []
+    values = {"max_uses": "1", "duration_hours": "168"}
+    if request.method == "POST":
+        action = request.form.get("action")
+        if action == "create":
+            values = {
+                "max_uses": request.form.get("max_uses", ""),
+                "duration_hours": request.form.get("duration_hours", ""),
+            }
+            max_uses = request.form.get("max_uses", type=int)
+            duration_hours = request.form.get("duration_hours", type=int)
+            if max_uses is None or not 1 <= max_uses <= 100:
+                errors.append("Choose a use limit between 1 and 100.")
+            if duration_hours not in dict(FRIEND_LINK_DURATIONS):
+                errors.append("Choose one of the available durations.")
+            if not errors:
+                token = secrets.token_urlsafe(32)
+                db.create_friend_invitation(
+                    current_user["id"], token, max_uses, duration_hours
+                )
+                flash("Friend link created. Copy it from your active links below.")
+                return redirect(url_for("friend_requests"))
+        elif action == "revoke":
+            invitation_id = request.form.get("invitation_id", type=int)
+            if db.revoke_friend_invitation(invitation_id, current_user["id"]):
+                flash("Friend link revoked. Existing friendships are unchanged.")
+            else:
+                flash(
+                    "That invitation is not an active link belonging to your account."
+                )
+            return redirect(url_for("friend_requests"))
+        elif action == "send":
+            username = request.form.get("username", "").strip()
+            recipient = db.get_public_user(username)
+            if recipient is None:
+                flash("No user with that username was found.")
+            elif recipient["id"] == current_user_id:
+                flash("You cannot send a friend request to yourself.")
+            elif db.is_blocked(current_user_id, recipient["id"]) or db.is_blocked(
+                recipient["id"], current_user_id
+            ):
+                flash("Friend requests are unavailable for this user.")
+            elif db.are_friends(current_user_id, recipient["id"]):
+                flash("You are already friends with this user.")
+            else:
+                sent_request = db.send_friend_request(current_user_id, recipient["id"])
+                if sent_request:
+                    flash("Friend request sent. You are following this user.")
+                else:
+                    flash(
+                        "A friend request is already pending between you and this user."
+                    )
+        elif action == "accept":
+            requester_id = request.form.get("user_id", type=int)
+            accepted = db.accept_friend_request(requester_id, current_user_id)
+            if accepted:
+                flash(
+                    "Friend request accepted. You are now friends. You also follow each other."
+                )
+            else:
+                flash("That request is no longer available to accept.")
+        elif action == "cancel":
+            recipient_id = request.form.get("user_id", type=int)
+            removed = db.cancel_friend_request(current_user_id, recipient_id)
+            if removed:
+                flash("Friend request cancelled.")
+            else:
+                flash("That sent request is no longer pending.")
+        elif action == "decline":
+            requester_id = request.form.get("user_id", type=int)
+            removed = db.cancel_friend_request(requester_id, current_user_id)
+            if removed:
+                flash("Friend request declined.")
+            else:
+                flash("That received request is no longer pending.")
+        else:
+            flash("Choose a friend request action.")
+        if not errors:
+            return redirect(url_for("friend_requests"))
+
+    active_invitations = db.get_active_friend_invitations(current_user_id)
+    for invitation in active_invitations:
+        invitation["link"] = os.environ["APP_BASE_URL"].rstrip("/") + url_for(
+            "friend_invite", token=invitation["token"]
+        )
+        invitation["expires_at"] = invitation["expires_at"].astimezone(timezone.utc)
+    return render_template(
+        "account/friend_requests.html",
+        current_user=current_user,
+        received_requests=db.get_received_friend_requests(current_user_id),
+        sent_requests=db.get_sent_friend_requests(current_user_id),
+        invitations=active_invitations,
+        values=values,
+        errors=errors,
+        durations=FRIEND_LINK_DURATIONS,
+    )
 
 
 @app.route("/username")
@@ -146,28 +459,48 @@ def username():
     if current_user is None:
         session.clear()
         return redirect(url_for("index"))
-    elif current_user["setup_complete"]:
-        return redirect(url_for("account"))
+    elif current_user["setup_complete"] and current_user["username"]:
+        return redirect(url_for("user", username=current_user["username"]))
     else:
-        return render_template("username.html")
+        return render_template("account/username.html")
 
 
 @app.route("/set-username", methods=["POST"])
 @requires_auth
 def set_username():
-    username = request.form.get("username").strip()
-    current_user = session["profile"]["id"]
+    username = request.form.get("username", "")
+    current_user = db.get_user_from_id(session["profile"]["id"])
+    if current_user is None:
+        session.clear()
+        return redirect(url_for("index"))
 
+    setup_complete = current_user["setup_complete"] and bool(current_user["username"])
     errors = []
+    if not 3 <= len(username) <= 20:
+        errors.append("Username must be between 3 and 20 characters.")
+    if not username.isascii() or not username.isalnum():
+        errors.append(
+            "Username may contain only alphanumeric characters with no spaces."
+        )
 
-    if not 3 <= len(username) <= 30:
-        errors.append("Username must be between 3 and 30 characters.")
-    check_exists = db.get_public_user(username)
-    if check_exists:
-        errors.append("Username is already in use. Choose a unique display name.")
+    existing_user_id = db.get_id_for_username(username)
+    if existing_user_id is not None and existing_user_id != current_user["id"]:
+        errors.append("Username is already in use; choose something unique.")
+
     if not errors:
-        updated_user = db.update_username(current_user, username)
+        display_name = current_user["display_name"]
+        if not setup_complete:
+            display_name = username
 
+        # TODO: enforce 24 hr limit for username changes
+        try:
+            updated_user = db.update_username(
+                current_user["id"], username, display_name
+            )
+        except UniqueViolation:
+            errors.append("Username is already in use; choose something unique.")
+
+    if not errors:
         if updated_user is None:
             session.clear()
             return redirect(url_for("index"))
@@ -180,47 +513,190 @@ def set_username():
             "username": updated_user["username"],
             "setup_complete": updated_user["setup_complete"],
         }
-        flash("Username updated.")
-        return redirect(url_for("account"))
+        if setup_complete:
+            flash("Username updated.")
+            return redirect(url_for("settings"))
+        flash("Your account is ready.")
+        friend_invite = session.get("friend_invite")
+        if friend_invite:
+            return redirect(url_for("friend_invite", token=friend_invite))
+        return redirect(url_for("settings"))
+
+    if setup_complete:
+        values = {
+            "username": username,
+            "display_name": current_user["display_name"] or "",
+            "bio": current_user["bio"] or "",
+            "profile_pic": current_user["profile_pic"] or "",
+            "delete_avatar": False,
+        }
+        return render_template(
+            "account/settings.html",
+            user=current_user,
+            values=values,
+            errors=errors,
+            privacy_fields=PROFILE_PRIVACY_FIELDS,
+            privacy_values=current_user,
+        )
 
     return render_template(
-        "username.html",
+        "account/username.html",
         username=username,
         errors=errors,
     )
 
 
+@app.route("/friend-invite/<string:token>", methods=["GET", "POST"])
+def friend_invite(token):
+    invitation = db.get_friend_invitation(token)
+    if invitation is None:
+        return render_template(
+            "account/friend_invite.html",
+            unavailable=True,
+            unavailable_message="This link is invalid or no longer available. Ask for a new invitation.",
+        ), 404
+
+    owner_id = invitation["owner_id"]
+    owner = db.get_user_from_id(owner_id)
+    if owner is None or not owner["setup_complete"] or not owner["username"]:
+        return render_template("account/friend_invite.html", unavailable=True), 404
+
+    current_user = None
+    if "profile" in session:
+        current_user = db.get_user_from_id(session["profile"]["id"])
+        if current_user is None:
+            session.clear()
+    if current_user is not None and (
+        db.is_blocked(owner_id, current_user["id"])
+        or db.is_blocked(current_user["id"], owner_id)
+    ):
+        return render_template("account/friend_invite.html", unavailable=True), 403
+
+    if invitation["status"] != "active":
+        messages = {
+            "revoked": "This friend invitation has been revoked.",
+            "expired": "This friend invitation has expired.",
+            "exhausted": "This friend invitation has no uses remaining.",
+        }
+        return render_template(
+            "account/friend_invite.html",
+            unavailable=True,
+            unavailable_message=messages[invitation["status"]],
+        ), 410
+
+    if current_user is None:
+        session["friend_invite"] = token
+        return render_template(
+            "account/friend_invite.html", owner=owner, needs_login=True
+        )
+    if not current_user["setup_complete"]:
+        session["friend_invite"] = token
+        return redirect(url_for("username"))
+
+    session.pop("friend_invite", None)
+    current_user_id = current_user["id"]
+    own_link = owner_id == current_user_id
+    already_friends = db.are_friends(owner_id, current_user_id)
+    if request.method == "POST":
+        if own_link:
+            flash("This is your own friend link. Share it with someone else.")
+        elif already_friends:
+            flash("You are already friends with this user.")
+        elif db.accept_friend_invite(token, current_user_id):
+            flash(
+                "Friend invitation accepted. You are now friends and follow each other."
+            )
+            return redirect(url_for("user", username=owner["username"]))
+        else:
+            flash(
+                "This invitation is no longer available or you are already friends. Check the invitation again."
+            )
+        return redirect(url_for("friend_invite", token=token))
+
+    return render_template(
+        "account/friend_invite.html",
+        owner=owner,
+        current_user=current_user,
+        needs_login=False,
+        own_link=own_link,
+        already_friends=already_friends,
+    )
+
+
+@app.post("/user/<int:user_id>/remove-friend")
+@requires_auth
+@requires_setup
+def remove_friend(user_id):
+    other_user = db.get_user_from_id(user_id)
+    if other_user is None:
+        abort(404, "This user does not appear to exist.")
+    removed = db.remove_friend(session["profile"]["id"], user_id)
+    if removed:
+        flash("Friend removed. Your follow settings are unchanged.")
+    else:
+        flash("You are no longer friends with this user.")
+    return redirect(url_for("user", username=other_user["username"]))
+
+
+def can_view_profile_section(visibility, is_owner, is_friend):
+    return is_owner or visibility == "public" or (visibility == "friends" and is_friend)
+
+
 @app.route("/user/<string:username>")
 def user(username):
     profile = db.get_public_user(username)
-
     if profile is None:
         abort(404, "This user does not appear to exist.")
 
     profile_id = profile["id"]
-    profile["followers"] = db.get_follower_count(profile_id)
+    viewer_id = session["profile"]["id"] if "profile" in session else None
+    is_owner = viewer_id == profile_id
     profile["is_following"] = False
     profile["is_blocked"] = False
+    profile["is_friend"] = False
 
-    if "profile" in session and db.is_blocked(profile_id, session["profile"]["id"]):
-        # this is deception, we don't want to tell the user that they are blocked, we just want to make it look like the user doesn't exist
-        abort(403, "This user does not appear to exist.")
+    if viewer_id is not None and not is_owner:
+        blocked_by_owner = db.is_blocked(profile_id, viewer_id)
+        blocked_by_viewer = db.is_blocked(viewer_id, profile_id)
+        if blocked_by_owner or blocked_by_viewer:
+            return render_template(
+                "account/profile_blocked.html",
+                username=username,
+                blocked_by_owner=blocked_by_owner,
+                blocked_by_viewer=blocked_by_viewer,
+            ), 403
+        profile["is_following"] = db.is_following(viewer_id, profile_id)
+        profile["is_friend"] = db.are_friends(viewer_id, profile_id)
 
-    events = db.get_user_events(profile_id)
-    going_events = db.get_user_events_attending(profile_id)
-    followers = db.get_following(profile_id)
-    sections = [("Hosted Events", events), ("Events Going To", going_events)]
-
-    if "profile" in session:
-        current_user_id = session["profile"]["id"]
-        profile["is_following"] = db.is_following(current_user_id, profile_id)
-        profile["is_blocked"] = db.is_blocked(current_user_id, profile_id)
+    friends = None
+    profile["followers"] = None
+    sections = []
+    if can_view_profile_section(
+        profile["friends_visibility"], is_owner, profile["is_friend"]
+    ):
+        friends = db.get_friends(profile_id)
+    if can_view_profile_section(
+        profile["followers_visibility"], is_owner, profile["is_friend"]
+    ):
+        profile["followers"] = db.get_follower_count(profile_id)
+    if can_view_profile_section(
+        profile["hosted_events_visibility"], is_owner, profile["is_friend"]
+    ):
+        sections.append(("Hosted Events", db.get_user_events(profile_id)))
+    if can_view_profile_section(
+        profile["attending_events_visibility"], is_owner, profile["is_friend"]
+    ):
+        sections.append(("Events Going To", db.get_user_events_attending(profile_id)))
 
     return render_template(
-        "user.html", sections=sections, following=followers, user=profile
+        "account/user.html",
+        sections=sections,
+        friends=friends,
+        user=profile,
     )
 
 
+# https://flask.palletsprojects.com/en/stable/patterns/fileuploads/
 @app.route("/account/settings", methods=["GET", "POST"])
 @requires_auth
 @requires_setup
@@ -236,32 +712,63 @@ def settings():
             "display_name": current_user["display_name"] or "",
             "bio": current_user["bio"] or "",
             "profile_pic": current_user["profile_pic"] or "",
+            "delete_avatar": False,
         }
     errors = []
-    can_restore_avatar = is_safe_avatar_url(current_user["auth0_avatar_url"])
 
     if request.method == "POST":
-        if request.form.get("action") == "restore_avatar":
-            values["profile_pic"] = current_user["auth0_avatar_url"] or ""
-            if not can_restore_avatar:
-                errors.append("No valid Auth0 avatar is available to restore.")
-        else:
-            values = {
-                "display_name": request.form.get("display_name", "").strip(),
-                "bio": request.form.get("bio", ""),
-                "profile_pic": request.form.get("profile_pic", "").strip(),
-            }
-            if not 1 <= len(values["display_name"]) <= 80:
-                errors.append("Display name must be between 1 and 80 characters.")
-            if len(values["bio"]) > 200:
-                errors.append("Biography must be 200 characters or fewer.")
-            if values["profile_pic"] and (
-                len(values["profile_pic"]) > 2048
-                or not is_safe_avatar_url(values["profile_pic"])
-            ):
-                errors.append(
-                    "Avatar must be an HTTPS URL of 2,048 characters or fewer, without a username or password."
-                )
+        values["delete_avatar"] = request.form.get("delete_avatar") == "1"
+        values["display_name"] = request.form.get("display_name", "").strip()
+        values["bio"] = request.form.get("bio", "")
+        if not 1 <= len(values["display_name"]) <= 40:
+            errors.append("Display name must be between 1 and 40 characters.")
+        if len(values["bio"]) > 200:
+            errors.append("Biography must be 200 characters or fewer.")
+        if values["delete_avatar"]:
+            values["profile_pic"] = ""
+        elif not errors:
+            avatar_file = request.files.get("avatar")
+            if avatar_file is not None and avatar_file.filename:
+                image_data = avatar_file.stream.read(MAX_AVATAR_BYTES + 1)
+                if len(image_data) > MAX_AVATAR_BYTES:
+                    errors.append("Avatar must be 5 MB or smaller.")
+
+                if not errors:
+                    try:
+                        with warnings.catch_warnings():
+                            warnings.simplefilter(
+                                "error", Image.DecompressionBombWarning
+                            )
+                            with Image.open(BytesIO(image_data)) as image:
+                                if image.format not in {"JPEG", "PNG", "WEBP"}:
+                                    errors.append("Choose a JPEG, PNG, or WebP image.")
+                                if getattr(image, "is_animated", False):
+                                    errors.append(
+                                        "Choose a still image rather than an animation."
+                                    )
+                                if not errors:
+                                    prepared_image = prepare_avatar(image)
+                    except (
+                        UnidentifiedImageError,
+                        OSError,
+                        ValueError,
+                        Image.DecompressionBombWarning,
+                        Image.DecompressionBombError,
+                    ):
+                        errors.append("Choose a valid JPEG, PNG, or WebP image.")
+
+                if not errors:
+                    try:
+                        avatar_key = upload_avatar(prepared_image, current_user["id"])
+                        values["profile_pic"] = avatar_key
+                    except KeyError:
+                        errors.append(
+                            "Avatar storage is not configured yet. Your current avatar is unchanged."
+                        )
+                    except BotoCoreError, ClientError:
+                        errors.append(
+                            "Avatar upload failed. Your current avatar is unchanged."
+                        )
 
         if not errors:
             updated_user = db.update_profile(
@@ -286,11 +793,59 @@ def settings():
             return redirect(url_for("settings"))
 
     return render_template(
-        "settings.html",
+        "account/settings.html",
         user=current_user,
         values=values,
         errors=errors,
-        can_restore_avatar=can_restore_avatar,
+        privacy_fields=PROFILE_PRIVACY_FIELDS,
+        privacy_values=current_user,
+    )
+
+
+@app.post("/account/privacy")
+@requires_auth
+@requires_setup
+def privacy_settings():
+    current_user = db.get_user_from_id(session["profile"]["id"])
+    if current_user is None:
+        session.clear()
+        return redirect(url_for("index"))
+
+    privacy_values = {}
+    errors = []
+    for name, label in PROFILE_PRIVACY_FIELDS:
+        privacy_values[name] = request.form.get(name, "")
+        if privacy_values[name] not in {"public", "friends", "private"}:
+            errors.append("Choose who can see your " + label.lower() + ".")
+
+    if not errors:
+        updated_user = db.update_profile_privacy(
+            current_user["id"],
+            privacy_values["hosted_events_visibility"],
+            privacy_values["attending_events_visibility"],
+            privacy_values["friends_visibility"],
+            privacy_values["followers_visibility"],
+        )
+        if updated_user is None:
+            session.clear()
+            return redirect(url_for("index"))
+        flash("Profile privacy saved.")
+        return redirect(url_for("settings"))
+
+    values = {
+        "username": current_user["username"],
+        "display_name": current_user["display_name"] or "",
+        "bio": current_user["bio"] or "",
+        "profile_pic": current_user["profile_pic"] or "",
+        "delete_avatar": False,
+    }
+    return render_template(
+        "account/settings.html",
+        user=current_user,
+        values=values,
+        errors=errors,
+        privacy_fields=PROFILE_PRIVACY_FIELDS,
+        privacy_values=privacy_values,
     )
 
 
@@ -308,15 +863,54 @@ def my_events():
         if event["id"] not in hosted_ids
     ]
     # print(events)
-    return render_template("my_events.html", events=events)
+    return render_template("events/my_events.html", events=events)
 
 
 @app.route("/search")
 def search():
     """Search page, where users can search for events"""
     q = request.args.get("q", type=str)
+    game = request.args.get("game", "", type=str)
+    game_name = request.args.get("game-name", "", type=str)
+    category = request.args.get("category", "", type=str)
+    min_players = request.args.get("min", None, type=int)
+    max_players = request.args.get("max", None, type=int)
+    duration = request.args.get("duration", None, type=int)
+    recency = request.args.get('recency', "", type=str)
+    full = request.args.get("full", False, type=bool)
+    pending = request.args.get("pending", False, type=bool)
+    played = request.args.get("played", False, type=bool)
+    user_id = session['profile']['id'] if session.get("profile") else None;
 
-    return render_template("search.html", query=q, results=db.search_events(q))
+    results = db.search_events(
+        q,
+        user_id,
+        game,
+        category,
+        min_players,
+        max_players,
+        duration,
+        recency,
+        full,
+        pending,
+        played
+    )
+
+    return render_template(
+        "search.html", 
+        query=q,
+        game=game if game_name else "",
+        game_name = game_name,
+        category=category,
+        min_players=min_players,
+        max_players=max_players,
+        duration=duration,
+        recency=recency,
+        full=full,
+        pending=pending,
+        played=played,
+        results=results
+    )
 
 
 @app.route("/event/<int:event_id>")
@@ -331,7 +925,7 @@ def event(event_id):
     if event is None:
         abort(404, "This event does not appear to exist.")
     # print(db.get_event(event_id))
-    return render_template("event.html", event=event)
+    return render_template("events/event.html", event=event)
 
 
 @app.route("/create-event")
@@ -339,7 +933,7 @@ def event(event_id):
 def create_event():
     """Event form, where users can insert info about their event"""
     # print(database.get_event(event_id))
-    return render_template("event_info.html", event=None)
+    return render_template("events/event_info.html", event=None)
 
 
 @app.post("/add-event")
@@ -385,7 +979,7 @@ def edit_event(event_id):
     print(session["profile"])
     print(edited_event)
     if session["profile"]["id"] == edited_event["hostid"]:
-        return render_template("event_info.html", event=edited_event)
+        return render_template("events/event_info.html", event=edited_event)
     else:
         # print(session["profile"]["user"])
         return redirect("/event/" + str(event_id))
@@ -420,14 +1014,6 @@ def update_event(event_id):
     )
 
     return redirect("/")
-
-
-# @app.route("/user/<string:username>")
-# def user(username):
-#     """ User page, where users can view details about a specific user """
-#     if not username:
-#         return render_template("error.html", message="Username is required"), 400
-#     return render_template("user.html", username=username)
 
 
 # ---------- Error Handlers ----------

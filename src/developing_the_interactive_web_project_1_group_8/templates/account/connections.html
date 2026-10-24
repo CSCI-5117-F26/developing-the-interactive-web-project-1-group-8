@@ -1,0 +1,56 @@
+{% extends "account_base.html" %}
+{% block title %}Connections - GameMaster{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/user.css') }}">
+{% endblock %}
+{% block content %}
+<div class="settings-page page-panel">
+  <header>
+    <h1>Connections</h1>
+    <p>Your friends, follows, and blocked accounts. This page is private to your account.</p>
+    <nav class="settings-links">
+      <a class="pure-button" href="{{ url_for('user', username=current_user.username) }}">
+        <i class="fa fa-arrow-left"></i> Back to my profile
+      </a>
+      <a class="pure-button" href="{{ url_for('settings') }}">Settings</a>
+      <a class="pure-button" href="{{ url_for('friend_requests') }}">Friend requests</a>
+    </nav>
+  </header>
+
+  {% include "components/notices.html" %}
+
+  {% for section_id, title, people, empty_message in sections %}
+  <section class="profile-section" id="{{ section_id }}">
+    <h2>{{ title }} ({{ people|length }})</h2>
+    {% if people %}
+    <ul class="connections-list">
+      {% for person in people %}
+      <li>
+        <a class="profile-friend" href="{{ url_for('user', username=person.username) }}"
+          title="{{ person.display_name }} (@{{ person.username }})">
+          {% if section_id == 'blocked' %}
+          <img class="user-ico" src="{{ url_for('static', filename='images/avatar-default.svg') }}" width="64" height="64">
+          {% else %}
+          <img class="user-ico" src="{{ avatar_url(person) }}" width="64" height="64">
+          {% endif %}
+          <span>{{ person.display_name }}</span>
+          <span class="profile-username">@{{ person.username }}</span>
+        </a>
+        {% if section_id in ['following', 'blocked'] %}
+        <form class="pure-form" method="post" action="{{ url_for('connections') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="user_id" value="{{ person.id }}">
+          <input type="hidden" name="action" value="{{ 'unfollow' if section_id == 'following' else 'unblock' }}">
+          <button class="pure-button" type="submit">{{ 'Unfollow' if section_id == 'following' else 'Unblock' }}</button>
+        </form>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="pure-form-message">{{ empty_message }}</p>
+    {% endif %}
+  </section>
+  {% endfor %}
+</div>
+{% endblock %}

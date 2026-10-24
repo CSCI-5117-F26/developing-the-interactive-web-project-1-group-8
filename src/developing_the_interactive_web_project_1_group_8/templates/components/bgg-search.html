@@ -1,12 +1,11 @@
 {% macro autocomplete(searchid,placeholder) %}
-<form method="POST" autocomplete="off">
+<form class="pure-form" method="POST" autocomplete="off">
   <div class='bgg-search'>
     <div class='bgg-searchbar'>
-      <input id='bgg-games-{{ searchid }}' role="search" class='bgg-input' type='text' name='bgg_game' placeholder='{{ placeholder }}' />
-      <input type="hidden" name="{{ searchid }}-key" value="">
-      <input type="hidden" name="{{ searchid }}-value" value="">
+      <input id='bgg-games-{{ searchid }}' role="search" class='bgg-input' type='text' name='bgg_game' placeholder='{{ placeholder }}' value="{{ selected_game_name }}" />
+      <input type="hidden" name="{{ searchid }}-key" value="{{ selected_game_name }}">
+      <input type="hidden" name="{{ searchid }}-value" value="{{ selected_game_id }}">
     </div>
-
   </div>
 </form>
 {% endmacro %}
