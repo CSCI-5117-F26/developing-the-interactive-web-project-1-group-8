@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "account_base.html" %}
 {% block title %}Friend invitation - GameMaster{% endblock %}
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/user.css') }}">
@@ -6,6 +6,7 @@
 {% block content %}
 <div class="compact-screen">
   <section class="compact-page compact-card page-panel profile-section friend-invite-page">
+    {% include "components/account_notices.html" %}
     {% if unavailable %}
     <h1>Invitation unavailable</h1>
     <p>This friend invitation is unavailable.</p>

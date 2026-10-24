@@ -1,0 +1,10 @@
+{% for message in get_flashed_messages() %}
+<div class="account-notice">
+  <p class="account-notice-message">{{ message }}</p>
+  <button class="pure-button account-notice-dismiss" type="button" hidden>Dismiss</button>
+</div>
+{% endfor %}
+<div class="account-notice" id="profile-action-notice" hidden>
+  <p class="account-notice-message"></p>
+  <button class="pure-button account-notice-dismiss" type="button" hidden>Dismiss</button>
+</div>

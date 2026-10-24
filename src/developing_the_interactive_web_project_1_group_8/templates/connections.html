@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "account_base.html" %}
 {% block title %}Connections - GameMaster{% endblock %}
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/user.css') }}">
@@ -16,6 +16,8 @@
       <a class="pure-button" href="{{ url_for('friend_requests') }}">Friend requests</a>
     </nav>
   </header>
+
+  {% include "components/account_notices.html" %}
 
   {% for section_id, title, people, empty_message in sections %}
   <section class="profile-section" id="{{ section_id }}">

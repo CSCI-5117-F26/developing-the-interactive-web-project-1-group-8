@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "account_base.html" %}
 {% block title %}{{ user.display_name }} - GameMaster{% endblock %}
 
 
@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/user.css') }}">
 {% endblock %}
 
-{% block scripts %}
+{% block account_scripts %}
 <script src="{{ url_for('static', filename='javascript/user.js') }}"></script>
 {% endblock %}
 
@@ -80,10 +80,7 @@
 
 
 </section>
-<p id="profile-action-notice" role="status" hidden></p>
-{% if friend_link %}
-<p class="profile-help" id="friend-link-help" hidden>Anyone with your friend link can become your friend after signing in and confirming.</p>
-{% endif %}
+{% include "components/account_notices.html" %}
 
 {% if friends is not none %}
 <section class="profile-section row">

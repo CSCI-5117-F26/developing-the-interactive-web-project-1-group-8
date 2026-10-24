@@ -18,10 +18,11 @@
   {% include 'components/topbar.html' %}
 
   <main>
-    <!-- https://flask.palletsprojects.com/en/stable/patterns/flashing/ -->
+    {% block notifications %}
     {% for message in get_flashed_messages() %}
     <p>{{ message }}</p>
     {% endfor %}
+    {% endblock %}
     {% block content %}{% endblock %}
   </main>
 </body>

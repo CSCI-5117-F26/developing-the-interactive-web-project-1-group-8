@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "account_base.html" %}
 {% block title %}Profile Settings - GameMaster{% endblock %}
 {% block content %}
 <section class="settings-page page-panel">
@@ -11,6 +11,8 @@
       </a>
     </nav>
   </header>
+
+  {% include "components/account_notices.html" %}
 
   {% if errors %}
   <div class="settings-notice" role="alert">
@@ -80,7 +82,6 @@
     <fieldset>
       <legend>Profile privacy</legend>
       <p>Choose who can see each section on your profile. You can always see your own sections.</p>
-      <p class="pure-form-message">Friends means accepted friendships. Followers and pending requests do not get friends-only access.</p>
       {% for name, label in privacy_fields %}
       <label for="{{ name }}">{{ label }}</label>
       <select class="pure-input-1" id="{{ name }}" name="{{ name }}" required>
@@ -100,6 +101,6 @@
 </section>
 {% endblock %}
 
-{% block scripts %}
+{% block account_scripts %}
 <script src="{{ url_for('static', filename='javascript/avatar-selection.js') }}"></script>
 {% endblock %}

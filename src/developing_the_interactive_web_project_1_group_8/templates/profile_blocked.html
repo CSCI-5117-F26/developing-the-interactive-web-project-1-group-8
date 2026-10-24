@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "account_base.html" %}
 {% block title %}Profile unavailable - GameMaster{% endblock %}
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/user.css') }}">
@@ -20,10 +20,10 @@
       {% endif %}
       <a class="pure-button" href="{{ url_for('index') }}">Go to dashboard</a>
     </div>
-    <p id="profile-action-notice" role="status" hidden></p>
+    {% include "components/account_notices.html" %}
   </section>
 </div>
 {% endblock %}
-{% block scripts %}
+{% block account_scripts %}
 <script src="{{ url_for('static', filename='javascript/user.js') }}"></script>
 {% endblock %}

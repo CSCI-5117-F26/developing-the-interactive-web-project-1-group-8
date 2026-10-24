@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "account_base.html" %}
 {% block title %}Friend requests - GameMaster{% endblock %}
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/tile.css') }}">
@@ -14,6 +14,8 @@
       </a>
     </nav>
   </header>
+
+  {% include "components/account_notices.html" %}
 
   <form class="profile-section pure-form pure-form-stacked" method="post" action="{{ url_for('friend_requests') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

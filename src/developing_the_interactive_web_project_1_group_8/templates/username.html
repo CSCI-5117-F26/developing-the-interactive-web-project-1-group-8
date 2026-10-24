@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "account_base.html" %}
 {% block title %}Account setup - GameMaster{% endblock %}
 
 {% block content %}
@@ -7,6 +7,8 @@
     <h1>Welcome to Game Master</h1>
     <p>Choose a username to finish setting up your account.</p>
   </header>
+
+  {% include "components/account_notices.html" %}
 
   {% if errors %}
   <div class="settings-notice">

@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block notifications %}{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='javascript/account-notices.js') }}"></script>
+{% block account_scripts %}{% endblock %}
+{% endblock %}
