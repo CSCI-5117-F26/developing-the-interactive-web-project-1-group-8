@@ -1,7 +1,7 @@
 {% extends "account_base.html" %}
 {% block title %}Friend requests - GameMaster{% endblock %}
 {% block head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/tile.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/user.css') }}">
 {% endblock %}
 {% block content %}
 <div class="friend-requests-page page-panel">
@@ -35,7 +35,10 @@
     <div class="carousel">
       {% for user in received_requests %}
       <div class="friend-request">
-        {% include "components/user_tile.html" %}
+        <a class="profile-friend" href="{{ url_for('user', username=user.username) }}" title="{{ user.display_name }}">
+          <img class="user-ico" src="{{ avatar_url(user) }}" width="64" height="64">
+          <span>{{ user.display_name }}</span>
+        </a>
         <form class="friend-request-actions pure-form" method="post" action="{{ url_for('friend_requests') }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="user_id" value="{{ user.id }}">
@@ -56,7 +59,10 @@
     <div class="carousel">
       {% for user in sent_requests %}
       <div class="friend-request">
-        {% include "components/user_tile.html" %}
+        <a class="profile-friend" href="{{ url_for('user', username=user.username) }}" title="{{ user.display_name }}">
+          <img class="user-ico" src="{{ avatar_url(user) }}" width="64" height="64">
+          <span>{{ user.display_name }}</span>
+        </a>
         <form class="friend-request-actions pure-form" method="post" action="{{ url_for('friend_requests') }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="action" value="cancel">

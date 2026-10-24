@@ -310,10 +310,14 @@ main {
 }
 
 .friend-request {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   flex-shrink: 0;
 }
 
 .friend-request .friend-request-actions {
+  align-self: stretch;
   margin-top: 0.75em;
   flex-direction: column;
   align-items: stretch;
