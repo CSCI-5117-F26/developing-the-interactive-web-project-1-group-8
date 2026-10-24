@@ -9,7 +9,7 @@
     {% include "components/account_notices.html" %}
     {% if unavailable %}
     <h1>Invitation unavailable</h1>
-    <p>This friend invitation is unavailable.</p>
+    <p>{{ unavailable_message or "This friend invitation is unavailable." }}</p>
     <div class="settings-actions">
       <a class="pure-button" href="{{ url_for('index') }}">Go to dashboard</a>
     </div>

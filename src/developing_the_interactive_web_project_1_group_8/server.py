@@ -13,6 +13,8 @@ from flask import (
 )
 import validators
 import os
+import secrets
+from datetime import timezone
 from urllib.parse import urlencode, urlsplit
 from dotenv import load_dotenv
 from flask_wtf.csrf import CSRFProtect
@@ -61,9 +63,13 @@ app.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
 )
 
-# https://itsdangerous.palletsprojects.com/en/stable/url_safe/
-# https://itsdangerous.palletsprojects.com/en/stable/concepts/
-friend_link_signer = URLSafeSerializer(app.secret_key, salt="friend-invite")
+FRIEND_LINK_DURATIONS = (
+    (1, "1 hour"),
+    (24, "1 day"),
+    (168, "7 days"),
+    (720, "30 days"),
+)
+
 
 oauth = OAuth(app)
 auth0 = oauth.register(
@@ -243,6 +249,15 @@ def connections():
     )
 
 
+@app.after_request
+def keep_invitation_pages_private(response):
+    if request.endpoint in {"invitations", "friend_invite", "friend_requests"}:
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
+@app.route("/account/invitations", methods=["GET", "POST"], endpoint="invitations")
 @app.route("/account/friend-requests", methods=["GET", "POST"])
 @requires_auth
 @requires_setup
@@ -252,10 +267,42 @@ def friend_requests():
         session.clear()
         return redirect(url_for("index"))
 
+    if request.endpoint == "invitations" and request.method == "GET":
+        return redirect(url_for("friend_requests", _anchor="friend-links"))
+
     current_user_id = current_user["id"]
+    errors = []
+    values = {"max_uses": "1", "duration_hours": "168"}
     if request.method == "POST":
         action = request.form.get("action")
-        if action == "send":
+        if action == "create":
+            values = {
+                "max_uses": request.form.get("max_uses", ""),
+                "duration_hours": request.form.get("duration_hours", ""),
+            }
+            max_uses = request.form.get("max_uses", type=int)
+            duration_hours = request.form.get("duration_hours", type=int)
+            if max_uses is None or not 1 <= max_uses <= 100:
+                errors.append("Choose a use limit between 1 and 100.")
+            if duration_hours not in dict(FRIEND_LINK_DURATIONS):
+                errors.append("Choose one of the available durations.")
+            if not errors:
+                token = secrets.token_urlsafe(32)
+                db.create_friend_invitation(
+                    current_user["id"], token, max_uses, duration_hours
+                )
+                flash("Friend link created. Copy it from your active links below.")
+                return redirect(url_for("friend_requests"))
+        elif action == "revoke":
+            invitation_id = request.form.get("invitation_id", type=int)
+            if db.revoke_friend_invitation(invitation_id, current_user["id"]):
+                flash("Friend link revoked. Existing friendships are unchanged.")
+            else:
+                flash(
+                    "That invitation is not an active link belonging to your account."
+                )
+            return redirect(url_for("friend_requests"))
+        elif action == "send":
             username = request.form.get("username", "").strip()
             recipient = db.get_public_user(username)
             if recipient is None:
@@ -301,13 +348,24 @@ def friend_requests():
                 flash("That received request is no longer pending.")
         else:
             flash("Choose a friend request action.")
-        return redirect(url_for("friend_requests"))
+        if not errors:
+            return redirect(url_for("friend_requests"))
 
+    active_invitations = db.get_active_friend_invitations(current_user_id)
+    for invitation in active_invitations:
+        invitation["link"] = os.environ["APP_BASE_URL"].rstrip("/") + url_for(
+            "friend_invite", token=invitation["token"]
+        )
+        invitation["expires_at"] = invitation["expires_at"].astimezone(timezone.utc)
     return render_template(
         "friend_requests.html",
         current_user=current_user,
         received_requests=db.get_received_friend_requests(current_user_id),
         sent_requests=db.get_sent_friend_requests(current_user_id),
+        invitations=active_invitations,
+        values=values,
+        errors=errors,
+        durations=FRIEND_LINK_DURATIONS,
     )
 
 
@@ -408,20 +466,42 @@ def set_username():
 
 @app.route("/friend-invite/<string:token>", methods=["GET", "POST"])
 def friend_invite(token):
-    try:
-        owner_id = friend_link_signer.loads(token)
-    except BadSignature:
-        abort(404, "This friend link is invalid.")
+    invitation = db.get_friend_invitation(token)
+    if invitation is None:
+        return render_template(
+            "friend_invite.html",
+            unavailable=True,
+            unavailable_message="This link is invalid or no longer available. Ask for a new invitation.",
+        ), 404
 
+    owner_id = invitation["owner_id"]
     owner = db.get_user_from_id(owner_id)
-    if owner is None or not owner["setup_complete"]:
-        abort(404, "This friend link is no longer available.")
+    if owner is None or not owner["setup_complete"] or not owner["username"]:
+        return render_template("friend_invite.html", unavailable=True), 404
 
     current_user = None
     if "profile" in session:
         current_user = db.get_user_from_id(session["profile"]["id"])
         if current_user is None:
             session.clear()
+    if current_user is not None and (
+        db.is_blocked(owner_id, current_user["id"])
+        or db.is_blocked(current_user["id"], owner_id)
+    ):
+        return render_template("friend_invite.html", unavailable=True), 403
+
+    if invitation["status"] != "active":
+        messages = {
+            "revoked": "This friend invitation has been revoked.",
+            "expired": "This friend invitation has expired.",
+            "exhausted": "This friend invitation has no uses remaining.",
+        }
+        return render_template(
+            "friend_invite.html",
+            unavailable=True,
+            unavailable_message=messages[invitation["status"]],
+        ), 410
+
     if current_user is None:
         session["friend_invite"] = token
         return render_template("friend_invite.html", owner=owner, needs_login=True)
@@ -432,23 +512,21 @@ def friend_invite(token):
     session.pop("friend_invite", None)
     current_user_id = current_user["id"]
     own_link = owner_id == current_user_id
-    unavailable = db.is_blocked(owner_id, current_user_id) or db.is_blocked(
-        current_user_id, owner_id
-    )
     already_friends = db.are_friends(owner_id, current_user_id)
     if request.method == "POST":
         if own_link:
             flash("This is your own friend link. Share it with someone else.")
-        elif unavailable:
-            flash("This friend invitation is unavailable.")
         elif already_friends:
             flash("You are already friends with this user.")
-        elif db.accept_friend_invite(owner_id, current_user_id):
+        elif db.accept_friend_invite(token, current_user_id):
             flash(
                 "Friend invitation accepted. You are now friends and follow each other."
             )
+            return redirect(url_for("user", username=owner["username"]))
         else:
-            flash("This invitation was already accepted or is no longer available.")
+            flash(
+                "This invitation is no longer available or you are already friends. Check the invitation again."
+            )
         return redirect(url_for("friend_invite", token=token))
 
     return render_template(
@@ -457,7 +535,6 @@ def friend_invite(token):
         current_user=current_user,
         needs_login=False,
         own_link=own_link,
-        unavailable=unavailable,
         already_friends=already_friends,
     )
 
@@ -527,18 +604,10 @@ def user(username):
     ):
         sections.append(("Events Going To", db.get_user_events_attending(profile_id)))
 
-    friend_link = None
-    if is_owner and profile["setup_complete"]:
-        token = friend_link_signer.dumps(profile_id)
-        friend_link = os.environ["APP_BASE_URL"].rstrip("/") + url_for(
-            "friend_invite", token=token
-        )
-
     return render_template(
         "user.html",
         sections=sections,
         friends=friends,
-        friend_link=friend_link,
         user=profile,
     )
 

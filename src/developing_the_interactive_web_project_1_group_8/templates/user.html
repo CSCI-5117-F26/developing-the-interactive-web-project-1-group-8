@@ -50,10 +50,6 @@
         <i class="fa fa-users fa-fw"></i>
       </a>
     </div>
-    {% if friend_link %}
-    <button class="profile-button pure-button" type="button" id="copy-friend-link"
-      data-friend-link="{{ friend_link }}">Copy friend link</button>
-    {% endif %}
     {% endif %}
 
     {% if session.get('profile') and session['profile']['id'] != user.id and not user.is_blocked %}

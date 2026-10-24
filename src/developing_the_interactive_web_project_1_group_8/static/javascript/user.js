@@ -1,18 +1,5 @@
 const followButton = document.getElementById("follow-button");
 const blockButton = document.getElementById("block-button");
-const copyFriendLinkButton = document.getElementById("copy-friend-link");
-if (copyFriendLinkButton) {
-  copyFriendLinkButton.addEventListener("click", async function () {
-    const link = this.dataset.friendLink;
-    try {
-      await navigator.clipboard.writeText(link);
-      showProfileNotice("Friend link copied.");
-    } catch {
-      showProfileNotice(`Copy this friend link: ${link}`);
-    }
-  });
-}
-
 if (followButton) {
   followButton.addEventListener("click", function () {
     const username = this.dataset.username;

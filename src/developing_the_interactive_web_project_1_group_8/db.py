@@ -527,8 +527,86 @@ def accept_friend_request(requester_id, recipient_id):
         return accepted
 
 
-def accept_friend_invite(owner_id, recipient_id):
+def create_friend_invitation(owner_id, token, max_uses, duration_hours):
     with pool.connection() as conn:
+        return conn.execute(
+            """
+            INSERT INTO friend_invitations (owner_id, token, max_uses, expires_at)
+            VALUES (%s, %s, %s, CURRENT_TIMESTAMP + %s * INTERVAL '1 hour')
+            RETURNING id
+            """,
+            (owner_id, token, max_uses, duration_hours),
+        ).fetchone()
+
+
+def get_active_friend_invitations(owner_id):
+    with pool.connection() as conn:
+        return conn.execute(
+            """
+            SELECT id, token, max_uses, use_count, created_at, expires_at
+            FROM friend_invitations
+            WHERE owner_id = %s AND NOT revoked
+                AND expires_at > clock_timestamp() AND use_count < max_uses
+            ORDER BY created_at DESC, id DESC
+            """,
+            (owner_id,),
+        ).fetchall()
+
+
+def get_friend_invitation(token):
+    with pool.connection() as conn:
+        return conn.execute(
+            """
+            SELECT id, owner_id,
+                CASE
+                    WHEN revoked THEN 'revoked'
+                    WHEN expires_at <= clock_timestamp() THEN 'expired'
+                    WHEN use_count >= max_uses THEN 'exhausted'
+                    ELSE 'active'
+                END AS status
+            FROM friend_invitations WHERE token = %s
+            """,
+            (token,),
+        ).fetchone()
+
+
+def revoke_friend_invitation(invitation_id, owner_id):
+    with pool.connection() as conn:
+        result = conn.execute(
+            """
+            UPDATE friend_invitations SET revoked = TRUE
+            WHERE id = %s AND owner_id = %s AND NOT revoked
+                AND expires_at > clock_timestamp() AND use_count < max_uses
+            """,
+            (invitation_id, owner_id),
+        )
+        return result.rowcount > 0
+
+
+def accept_friend_invite(token, recipient_id):
+    with pool.connection() as conn:
+        invitation = conn.execute(
+            """
+            SELECT id, owner_id FROM friend_invitations
+            WHERE token = %s FOR UPDATE
+            """,
+            (token,),
+        ).fetchone()
+        if invitation is None or invitation["owner_id"] == recipient_id:
+            return False
+
+        available = conn.execute(
+            """
+            SELECT 1 FROM friend_invitations
+            WHERE id = %s AND NOT revoked
+                AND expires_at > clock_timestamp() AND use_count < max_uses
+            """,
+            (invitation["id"],),
+        ).fetchone()
+        if available is None:
+            return False
+
+        owner_id = invitation["owner_id"]
         blocked = conn.execute(
             """
             SELECT 1 FROM blocked
@@ -570,6 +648,13 @@ def accept_friend_invite(owner_id, recipient_id):
             ON CONFLICT (follower, followed) DO NOTHING
             """,
             (owner_id, recipient_id, recipient_id, owner_id),
+        )
+        conn.execute(
+            """
+            UPDATE friend_invitations SET use_count = use_count + 1
+            WHERE id = %s
+            """,
+            (invitation["id"],),
         )
         return True
 

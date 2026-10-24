@@ -7,7 +7,7 @@
 <div class="friend-requests-page page-panel">
   <header>
     <h1>Friend requests</h1>
-    <p>Find players and manage your requests.</p>
+    <p>Find players, manage requests, and share friend links.</p>
     <nav class="friend-request-actions">
       <a class="pure-button" href="{{ url_for('user', username=current_user.username) }}">
         <i class="fa fa-arrow-left"></i> Back to my profile
@@ -16,6 +16,17 @@
   </header>
 
   {% include "components/account_notices.html" %}
+
+  {% if errors %}
+  <div class="settings-notice">
+    <h2>Link could not be created</h2>
+    <ul>
+      {% for error in errors %}
+      <li>{{ error }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
 
   <form class="profile-section pure-form pure-form-stacked" method="post" action="{{ url_for('friend_requests') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -76,5 +87,9 @@
     <p class="pure-form-message">No sent requests.</p>
     {% endif %}
   </section>
+  {% include "invitations.html" %}
 </div>
+{% endblock %}
+{% block account_scripts %}
+<script src="{{ url_for('static', filename='javascript/friend-links.js') }}"></script>
 {% endblock %}

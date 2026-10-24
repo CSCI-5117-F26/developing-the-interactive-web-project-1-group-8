@@ -20,5 +20,3 @@ wheels/
 
 # Prettier
 .prettierignore
-
-uv.lock
