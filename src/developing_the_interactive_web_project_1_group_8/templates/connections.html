@@ -36,6 +36,14 @@
           <span>{{ person.display_name }}</span>
           <span class="profile-username">@{{ person.username }}</span>
         </a>
+        {% if section_id in ['following', 'blocked'] %}
+        <form class="pure-form" method="post" action="{{ url_for('connections') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="user_id" value="{{ person.id }}">
+          <input type="hidden" name="action" value="{{ 'unfollow' if section_id == 'following' else 'unblock' }}">
+          <button class="pure-button" type="submit">{{ 'Unfollow' if section_id == 'following' else 'Unblock' }}</button>
+        </form>
+        {% endif %}
       </li>
       {% endfor %}
     </ul>

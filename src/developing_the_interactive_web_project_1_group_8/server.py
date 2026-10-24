@@ -218,7 +218,7 @@ def account():
     return redirect(url_for("settings"))
 
 
-@app.get("/account/connections")
+@app.route("/account/connections", methods=["GET", "POST"])
 @requires_auth
 @requires_setup
 def connections():
@@ -228,6 +228,34 @@ def connections():
         return redirect(url_for("index"))
 
     user_id = current_user["id"]
+    if request.method == "POST":
+        action = request.form.get("action")
+        if action not in {"unfollow", "unblock"}:
+            flash("Choose a connection action.")
+            return redirect(url_for("connections"))
+
+        other_user_id = request.form.get("user_id", type=int)
+        other_user = db.get_user_from_id(other_user_id)
+        if other_user is None:
+            flash("This account is no longer available.")
+        elif other_user_id == user_id:
+            flash("Choose another account.")
+        elif action == "unfollow":
+            if db.unfollow_user(user_id, other_user_id):
+                flash(
+                    f"You no longer follow @{other_user['username']}. Your friendships are unchanged."
+                )
+            else:
+                flash(f"You are not following @{other_user['username']}.")
+        elif action == "unblock":
+            if db.unblock_user(user_id, other_user_id):
+                flash(
+                    f"You unblocked @{other_user['username']}. Previous friendships and follows were not restored."
+                )
+            else:
+                flash(f"You have no block on @{other_user['username']}.")
+        return redirect(url_for("connections"))
+
     sections = [
         ("friends", "Friends", db.get_friends(user_id), "No friends yet."),
         (

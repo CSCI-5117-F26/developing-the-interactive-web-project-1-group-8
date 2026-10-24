@@ -211,3 +211,10 @@
   margin: 0;
   padding: 0;
 }
+
+.connections-list > li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5em;
+}
