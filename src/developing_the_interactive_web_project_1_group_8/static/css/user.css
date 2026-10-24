@@ -49,7 +49,8 @@
   }
 }
 
-.profile-page .profile-content {
+.profile-page .profile-content,
+.friend-invite-page .profile-content {
   align-items: flex-start;
   flex-wrap: wrap;
   gap: 1.25em;
@@ -60,7 +61,8 @@
   flex-shrink: 0;
 }
 
-.profile-page .profile-desc {
+.profile-page .profile-desc,
+.friend-invite-page .profile-desc {
   flex: 1 1 14rem;
   min-width: 0;
 }
@@ -165,4 +167,8 @@
 .profile-page .profile-actions .pure-button:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+.friend-invite-page .profile-desc {
+  overflow-wrap: anywhere;
 }

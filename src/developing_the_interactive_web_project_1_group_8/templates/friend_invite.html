@@ -1,34 +1,57 @@
 {% extends "base.html" %}
 {% block title %}Friend invitation - GameMaster{% endblock %}
 {% block head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/tile.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/user.css') }}">
 {% endblock %}
 {% block content %}
-<section class="page-panel">
-  <h1>Friend invitation</h1>
-  {% if unavailable %}
-  <p>This friend invitation is unavailable.</p>
-  {% else %}
-  {% with user=owner %}
-  {% include "components/user_tile.html" %}
-  {% endwith %}
-  <p>{{ owner.display_name }} (@{{ owner.username }}) has shared a friend link.</p>
-  {% if needs_login %}
-  <p>Sign in to decide whether to accept this invitation.</p>
-  <a class="pure-button pure-button-primary" href="{{ url_for('login') }}">Sign in</a>
-  {% elif own_link %}
-  <p>This is your friend link. Share it with someone else to invite them.</p>
+<div class="settings-page friend-invite-page page-panel">
+  <header>
+    <h1>Friend invitation</h1>
+    <p>Connect with another player.</p>
+    <nav class="settings-links">
+      {% if needs_login %}
+      <a class="pure-button" href="{{ url_for('index') }}"><i class="fa fa-arrow-left"></i> Back to dashboard</a>
+      {% else %}
+      <a class="pure-button" href="{{ url_for('user', username=current_user.username) }}"><i class="fa fa-arrow-left"></i> Back to my profile</a>
+      {% endif %}
+    </nav>
+  </header>
 
-  {% elif already_friends %}
-  <p>You are already friends with {{ owner.display_name }}.</p>
+  {% if unavailable %}
+  <section class="settings-notice">
+    <h2>Invitation unavailable</h2>
+    <p>This friend invitation is unavailable.</p>
+  </section>
   {% else %}
-  <p>Accept a friend invitation from {{ owner.display_name }}?</p>
-  <form class="pure-form" method="post">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button class="pure-button pure-button-primary" type="submit">Accept invitation</button>
-    <a class="pure-button" href="{{ url_for('user', username=current_user.username) }}">Not now</a>
-  </form>
+  <section class="settings-section">
+    <div class="profile-content">
+      <img class="user-ico" src="{{ avatar_url(owner) }}" width="96" height="96">
+      <div class="profile-desc">
+        <h2>{{ owner.display_name }}</h2>
+        <p class="profile-username">@{{ owner.username }}</p>
+        <a class="pure-button" href="{{ url_for('user', username=owner.username) }}">View profile</a>
+      </div>
+    </div>
+
+    {% if needs_login %}
+    <p>Sign in to decide whether to accept this invitation.</p>
+    <div class="settings-actions">
+      <a class="pure-button pure-button-primary" href="{{ url_for('login') }}">Sign in</a>
+    </div>
+    {% elif own_link %}
+    <p>This is your friend link. Share it with someone else to invite them.</p>
+    {% elif already_friends %}
+    <p>You are already friends with {{ owner.display_name }}.</p>
+    {% else %}
+    <p>Accept a friend invitation from {{ owner.display_name }}?</p>
+    <p class="pure-form-message">You will become friends and follow each other.</p>
+    <form class="settings-actions pure-form" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="pure-button pure-button-primary" type="submit">Accept invitation</button>
+      <a class="pure-button" href="{{ url_for('user', username=current_user.username) }}">Not now</a>
+    </form>
+    {% endif %}
+  </section>
   {% endif %}
-  {% endif %}
-</section>
+</div>
 {% endblock %}
