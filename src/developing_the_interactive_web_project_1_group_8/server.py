@@ -46,6 +46,13 @@ db.setup()
 load_dotenv()
 app = Flask(__name__)
 
+PROFILE_PRIVACY_FIELDS = (
+    ("hosted_events_visibility", "Hosted events"),
+    ("attending_events_visibility", "Attending events"),
+    ("friends_visibility", "Friends list and friend count"),
+    ("followers_visibility", "Follower count"),
+)
+
 # Auth0 code based on https://docs.authlib.org/en/stable/oauth2/client/web/flask.html
 app.config.update(
     SECRET_KEY=os.environ["AUTH0_SECRET"],
@@ -357,6 +364,8 @@ def set_username():
             user=current_user,
             values=values,
             errors=errors,
+            privacy_fields=PROFILE_PRIVACY_FIELDS,
+            privacy_values=current_user,
         )
 
     return render_template(
@@ -437,39 +446,62 @@ def remove_friend(user_id):
     return redirect(url_for("user", username=other_user["username"]))
 
 
+def can_view_profile_section(visibility, is_owner, is_friend):
+    return is_owner or visibility == "public" or (visibility == "friends" and is_friend)
+
+
 @app.route("/user/<string:username>")
 def user(username):
     profile = db.get_public_user(username)
-
     if profile is None:
         abort(404, "This user does not appear to exist.")
 
     profile_id = profile["id"]
-    profile["followers"] = db.get_follower_count(profile_id)
+    viewer_id = session["profile"]["id"] if "profile" in session else None
+    is_owner = viewer_id == profile_id
     profile["is_following"] = False
     profile["is_blocked"] = False
     profile["is_friend"] = False
 
-    if "profile" in session and db.is_blocked(profile_id, session["profile"]["id"]):
-        # this is deception, we don't want to tell the user that they are blocked, we just want to make it look like the user doesn't exist
-        abort(403, "This user does not appear to exist.")
+    if viewer_id is not None and not is_owner:
+        blocked_by_owner = db.is_blocked(profile_id, viewer_id)
+        blocked_by_viewer = db.is_blocked(viewer_id, profile_id)
+        if blocked_by_owner or blocked_by_viewer:
+            return render_template(
+                "profile_blocked.html",
+                username=username,
+                blocked_by_owner=blocked_by_owner,
+                blocked_by_viewer=blocked_by_viewer,
+            ), 403
+        profile["is_following"] = db.is_following(viewer_id, profile_id)
+        profile["is_friend"] = db.are_friends(viewer_id, profile_id)
 
-    events = db.get_user_events(profile_id)
-    going_events = db.get_user_events_attending(profile_id)
-    friends = db.get_friends(profile_id)
+    friends = None
+    profile["followers"] = None
+    sections = []
+    if can_view_profile_section(
+        profile["friends_visibility"], is_owner, profile["is_friend"]
+    ):
+        friends = db.get_friends(profile_id)
+    if can_view_profile_section(
+        profile["followers_visibility"], is_owner, profile["is_friend"]
+    ):
+        profile["followers"] = db.get_follower_count(profile_id)
+    if can_view_profile_section(
+        profile["hosted_events_visibility"], is_owner, profile["is_friend"]
+    ):
+        sections.append(("Hosted Events", db.get_user_events(profile_id)))
+    if can_view_profile_section(
+        profile["attending_events_visibility"], is_owner, profile["is_friend"]
+    ):
+        sections.append(("Events Going To", db.get_user_events_attending(profile_id)))
+
     friend_link = None
-    sections = [("Hosted Events", events), ("Events Going To", going_events)]
-
-    if "profile" in session:
-        current_user_id = session["profile"]["id"]
-        profile["is_following"] = db.is_following(current_user_id, profile_id)
-        profile["is_blocked"] = db.is_blocked(current_user_id, profile_id)
-        profile["is_friend"] = db.are_friends(current_user_id, profile_id)
-        if current_user_id == profile_id and profile["setup_complete"]:
-            token = friend_link_signer.dumps(profile_id)
-            friend_link = os.environ["APP_BASE_URL"].rstrip("/") + url_for(
-                "friend_invite", token=token
-            )
+    if is_owner and profile["setup_complete"]:
+        token = friend_link_signer.dumps(profile_id)
+        friend_link = os.environ["APP_BASE_URL"].rstrip("/") + url_for(
+            "friend_invite", token=token
+        )
 
     return render_template(
         "user.html",
@@ -581,6 +613,55 @@ def settings():
         user=current_user,
         values=values,
         errors=errors,
+        privacy_fields=PROFILE_PRIVACY_FIELDS,
+        privacy_values=current_user,
+    )
+
+
+@app.post("/account/privacy")
+@requires_auth
+@requires_setup
+def privacy_settings():
+    current_user = db.get_user_from_id(session["profile"]["id"])
+    if current_user is None:
+        session.clear()
+        return redirect(url_for("index"))
+
+    privacy_values = {}
+    errors = []
+    for name, label in PROFILE_PRIVACY_FIELDS:
+        privacy_values[name] = request.form.get(name, "")
+        if privacy_values[name] not in {"public", "friends", "private"}:
+            errors.append("Choose who can see your " + label.lower() + ".")
+
+    if not errors:
+        updated_user = db.update_profile_privacy(
+            current_user["id"],
+            privacy_values["hosted_events_visibility"],
+            privacy_values["attending_events_visibility"],
+            privacy_values["friends_visibility"],
+            privacy_values["followers_visibility"],
+        )
+        if updated_user is None:
+            session.clear()
+            return redirect(url_for("index"))
+        flash("Profile privacy saved.")
+        return redirect(url_for("settings"))
+
+    values = {
+        "username": current_user["username"],
+        "display_name": current_user["display_name"] or "",
+        "bio": current_user["bio"] or "",
+        "profile_pic": current_user["profile_pic"] or "",
+        "delete_avatar": False,
+    }
+    return render_template(
+        "settings.html",
+        user=current_user,
+        values=values,
+        errors=errors,
+        privacy_fields=PROFILE_PRIVACY_FIELDS,
+        privacy_values=privacy_values,
     )
 
 

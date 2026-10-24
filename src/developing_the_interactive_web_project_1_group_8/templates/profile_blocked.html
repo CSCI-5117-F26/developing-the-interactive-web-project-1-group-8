@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Profile unavailable - GameMaster{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/user.css') }}">
+{% endblock %}
+{% block content %}
+<div class="profile-page page-panel">
+  <section class="profile-section">
+    <h1>Profile unavailable</h1>
+    {% if blocked_by_owner %}
+    <p>You are blocked by this user.</p>
+    {% endif %}
+    {% if blocked_by_viewer %}
+    <p>You have blocked this user.</p>
+    <div class="profile-actions">
+      <button class="profile-button pure-button" id="block-button" type="button"
+        data-action="unblock" data-username="{{ username }}" data-csrf-token="{{ csrf_token() }}">Unblock</button>
+    </div>
+    {% endif %}
+    <p><a href="{{ url_for('user', username=session['profile']['username']) }}">Back to my profile</a></p>
+    <p id="profile-action-notice" role="status" hidden></p>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='javascript/user.js') }}"></script>
+{% endblock %}

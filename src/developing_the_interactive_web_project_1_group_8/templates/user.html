@@ -19,18 +19,20 @@
   <div class="profile-desc">
     <h1>{{ user.display_name }}</h1>
     <p class="profile-username">@{{ user.username }}</p>
+    {% if friends is not none or user.followers is not none %}
     <p class="profile-counts">
+      {% if friends is not none %}
       <span>{{ friends|length }} {{ 'friend' if friends|length == 1 else 'friends' }}</span>
+      {% endif %}
+      {% if user.followers is not none %}
       <span>{{ user.followers }} {{ 'follower' if user.followers == 1 else 'followers' }}</span>
+      {% endif %}
     </p>
-    {% if user.is_blocked %}
-    <p>This user is blocked.</p>
-    {% else %}
+    {% endif %}
     {% if user.bio %}
     <p class="profile-bio">{{ user.bio }}</p>
     {% else %}
     <p>No biography yet.</p>
-    {% endif %}
     {% endif %}
   </div>
 
@@ -80,12 +82,7 @@
 <p class="profile-help" id="friend-link-help" hidden>Anyone with your friend link can become your friend after signing in and confirming.</p>
 {% endif %}
 
-{% if user.is_blocked %}
-<section class="profile-section">
-  <h2>This user is blocked.</h2>
-  <p>You will not see any events from this user, and they will not be able to see any of your events.</p>
-</section>
-{% else %}
+{% if friends is not none %}
 <section class="profile-section row">
   <h2>Friends</h2>
   <div class="carousel">
@@ -101,6 +98,7 @@
     {% endfor %}
   </div>
 </section>
+{% endif %}
 {% for title, events in sections %}
 <section class="profile-section row">
   <h2>{{ title }}</h2>
@@ -117,6 +115,5 @@
   </div>
 </section>
 {% endfor %}
-{% endif %}
 </div>
 {% endblock %}

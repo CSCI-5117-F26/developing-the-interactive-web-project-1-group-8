@@ -75,6 +75,28 @@
     </div>
   </form>
 
+  <form class="settings-section pure-form pure-form-stacked" method="post" action="{{ url_for('privacy_settings') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <fieldset>
+      <legend>Profile privacy</legend>
+      <p>Choose who can see each section on your profile. You can always see your own sections.</p>
+      <p class="pure-form-message">Friends means accepted friendships. Followers and pending requests do not get friends-only access.</p>
+      {% for name, label in privacy_fields %}
+      <label for="{{ name }}">{{ label }}</label>
+      <select class="pure-input-1" id="{{ name }}" name="{{ name }}" required>
+        <option value="public"{% if privacy_values[name] == 'public' %} selected{% endif %}>Everyone</option>
+        <option value="friends"{% if privacy_values[name] == 'friends' %} selected{% endif %}>Friends</option>
+        <option value="private"{% if privacy_values[name] == 'private' %} selected{% endif %}>Only me</option>
+      </select>
+      {% endfor %}
+      <p class="pure-form-message">These choices hide sections on your profile. Event pages and dashboard listings keep their existing visibility rules.</p>
+    </fieldset>
+    <div class="settings-actions">
+      <button class="pure-button pure-button-primary" type="submit">Save privacy</button>
+      <span class="pure-form-message">Saves privacy choices separately from your profile details and picture.</span>
+    </div>
+  </form>
+
 </section>
 {% endblock %}
 

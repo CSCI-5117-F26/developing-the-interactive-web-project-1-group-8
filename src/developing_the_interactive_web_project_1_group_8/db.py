@@ -83,9 +83,11 @@ def get_public_user(username):
     with pool.connection() as conn:
         return conn.execute(
             """
-      SELECT id, display_name, username, email, bio, profile_pic, setup_complete
-      FROM users WHERE username = %s
-      """,
+            SELECT id, display_name, username, email, bio, profile_pic, setup_complete,
+                hosted_events_visibility, attending_events_visibility,
+                friends_visibility, followers_visibility
+            FROM users WHERE username = %s
+            """,
             (username,),
         ).fetchone()
 
@@ -116,13 +118,40 @@ def update_profile(id, display_name, bio, profile_pic):
     with pool.connection() as conn:
         return conn.execute(
             """
-      UPDATE users
-      SET display_name = %s, bio = %s, profile_pic = %s,
-        updated_at = CURRENT_TIMESTAMP
-      WHERE id = %s
-      RETURNING id, auth0_sub, display_name, bio, profile_pic, username, setup_complete
-      """,
+            UPDATE users
+            SET display_name = %s, bio = %s, profile_pic = %s,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+            RETURNING id, auth0_sub, display_name, bio, profile_pic, username, setup_complete
+            """,
             (display_name, bio, profile_pic, id),
+        ).fetchone()
+
+
+def update_profile_privacy(
+    user_id,
+    hosted_events_visibility,
+    attending_events_visibility,
+    friends_visibility,
+    followers_visibility,
+):
+    with pool.connection() as conn:
+        return conn.execute(
+            """
+            UPDATE users
+            SET hosted_events_visibility = %s, attending_events_visibility = %s,
+                friends_visibility = %s, followers_visibility = %s,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+            RETURNING id
+            """,
+            (
+                hosted_events_visibility,
+                attending_events_visibility,
+                friends_visibility,
+                followers_visibility,
+                user_id,
+            ),
         ).fetchone()
 
 
@@ -130,11 +159,11 @@ def update_username(id, username, display_name):
     with pool.connection() as conn:
         return conn.execute(
             """
-      UPDATE users
-      SET username = %s, display_name = %s, setup_complete = %s, updated_at = CURRENT_TIMESTAMP
-      WHERE id = %s
-      RETURNING id, auth0_sub, display_name, bio, profile_pic, setup_complete, username
-      """,
+            UPDATE users
+            SET username = %s, display_name = %s, setup_complete = %s, updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+            RETURNING id, auth0_sub, display_name, bio, profile_pic, setup_complete, username
+            """,
             (username, display_name, True, id),
         ).fetchone()
 
@@ -162,11 +191,11 @@ def get_event_info(id):
         with conn.cursor() as cur:
             cur.execute(
                 """select e.*, (select count(*) from event_participation p where p.id = e.id), 
-            (select g.name as game_name from games g where g.id = e.gameid), 
-            (select g.image_url from games g where g.id = e.gameid),
-            (select u.display_name from users u where u.id = e.hostid)
-            from events e 
-            where e.id = %s""",
+                (select g.name as game_name from games g where g.id = e.gameid), 
+                (select g.image_url from games g where g.id = e.gameid),
+                (select u.display_name from users u where u.id = e.hostid)
+                from events e 
+                where e.id = %s""",
                 (id,),
             )
             return cur.fetchone()
