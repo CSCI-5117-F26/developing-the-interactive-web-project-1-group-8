@@ -1,5 +1,5 @@
 from functools import wraps
-from flask import redirect, session, url_for, current_app
+from flask import redirect, session, current_app
 
 
 def requires_auth(f):

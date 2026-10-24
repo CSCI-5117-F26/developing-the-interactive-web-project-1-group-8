@@ -1,10 +1,8 @@
 from datetime import timedelta
 from developing_the_interactive_web_project_1_group_8.CacheBackendPostgres import (
     CacheBackendPostgres,
-    PostgresCache,
-    PostgresDict,
 )
-from boardgamegeek import BGGClient, CacheBackendMemory
+from boardgamegeek import BGGClient
 from psycopg_pool import ConnectionPool
 from psycopg.rows import dict_row
 import os
@@ -325,6 +323,79 @@ def attend_event(event_id, user_id, is_host):
             return cur.fetchone()
 
 
+def create_notification(conn, recipient_id, kind, message, user_id=None, event_id=None):
+    return conn.execute(
+        """
+        INSERT INTO notifications (recipient_id, kind, message, user_id, event_id)
+        VALUES (%s, %s, %s, %s, %s)
+        RETURNING id
+        """,
+        (recipient_id, kind, message, user_id, event_id),
+    ).fetchone()
+
+
+def get_notifications(recipient_id, limit=21, offset=0):
+    with pool.connection() as conn:
+        return conn.execute(
+            """
+            SELECT n.id, n.kind, n.message, n.event_id, n.is_read, n.created_at,
+                users.display_name AS user_name
+            FROM notifications n
+            LEFT JOIN users ON users.id = n.user_id
+            WHERE n.recipient_id = %s
+            ORDER BY n.created_at DESC, n.id DESC
+            LIMIT %s OFFSET %s
+            """,
+            (recipient_id, limit, offset),
+        ).fetchall()
+
+
+def get_unread_notification_count(recipient_id):
+    with pool.connection() as conn:
+        return conn.execute(
+            """
+            SELECT COUNT(*) AS unread_count FROM notifications
+            WHERE recipient_id = %s AND NOT is_read
+            """,
+            (recipient_id,),
+        ).fetchone()["unread_count"]
+
+
+def mark_notification_read(notification_id, recipient_id):
+    with pool.connection() as conn:
+        result = conn.execute(
+            """
+            UPDATE notifications SET is_read = TRUE
+            WHERE id = %s AND recipient_id = %s AND NOT is_read
+            """,
+            (notification_id, recipient_id),
+        )
+        return result.rowcount > 0
+
+
+def mark_all_notifications_read(recipient_id):
+    with pool.connection() as conn:
+        return conn.execute(
+            """
+            UPDATE notifications SET is_read = TRUE
+            WHERE recipient_id = %s AND NOT is_read
+            """,
+            (recipient_id,),
+        ).rowcount
+
+
+def clear_friend_request_notifications(conn, first_user_id, second_user_id):
+    conn.execute(
+        """
+        DELETE FROM notifications WHERE kind = 'friend_request' AND (
+            (recipient_id = %s AND user_id = %s)
+            OR (recipient_id = %s AND user_id = %s)
+        )
+        """,
+        (first_user_id, second_user_id, second_user_id, first_user_id),
+    )
+
+
 # ---------- Follow ----------
 
 
@@ -484,6 +555,13 @@ def send_friend_request(requester_id, recipient_id):
                 """,
                 (requester_id, recipient_id),
             )
+            create_notification(
+                conn,
+                recipient_id,
+                "friend_request",
+                "You received a friend request.",
+                user_id=requester_id,
+            )
         return sent_request
 
 
@@ -496,7 +574,10 @@ def cancel_friend_request(requester_id, recipient_id):
             """,
             (requester_id, recipient_id),
         )
-        return result.rowcount > 0
+        removed = result.rowcount > 0
+        if removed:
+            clear_friend_request_notifications(conn, requester_id, recipient_id)
+        return removed
 
 
 def accept_friend_request(requester_id, recipient_id):
@@ -525,6 +606,7 @@ def accept_friend_request(requester_id, recipient_id):
                 """,
                 (requester_id, recipient_id, recipient_id, requester_id),
             )
+            clear_friend_request_notifications(conn, requester_id, recipient_id)
         return accepted
 
 
@@ -657,6 +739,7 @@ def accept_friend_invite(token, recipient_id):
             """,
             (invitation["id"],),
         )
+        clear_friend_request_notifications(conn, owner_id, recipient_id)
         return True
 
 
@@ -753,6 +836,7 @@ def block_user(blocking_id, blocked_id):
                 """,
                 (blocking_id, blocked_id, blocked_id, blocking_id),
             )
+            clear_friend_request_notifications(conn, blocking_id, blocked_id)
             return blocked
 
 

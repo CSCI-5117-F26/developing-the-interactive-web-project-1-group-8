@@ -15,7 +15,7 @@
     </nav>
   </header>
 
-  {% include "components/account_notices.html" %}
+  {% include "components/notices.html" %}
 
   {% if errors %}
   <div class="settings-notice">
@@ -87,7 +87,7 @@
     <p class="pure-form-message">No sent requests.</p>
     {% endif %}
   </section>
-  {% include "invitations.html" %}
+  {% include "components/invitations.html" %}
 </div>
 {% endblock %}
 {% block account_scripts %}
