@@ -4,20 +4,22 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/user.css') }}">
 {% endblock %}
 {% block content %}
-<div class="profile-page page-panel">
-  <section class="profile-section">
+<div class="compact-screen">
+  <section class="compact-page compact-card page-panel profile-section">
     <h1>Profile unavailable</h1>
     {% if blocked_by_owner %}
     <p>You are blocked by this user.</p>
     {% endif %}
     {% if blocked_by_viewer %}
     <p>You have blocked this user.</p>
-    <div class="profile-actions">
-      <button class="profile-button pure-button" id="block-button" type="button"
-        data-action="unblock" data-username="{{ username }}" data-csrf-token="{{ csrf_token() }}">Unblock</button>
-    </div>
     {% endif %}
-    <p><a href="{{ url_for('user', username=session['profile']['username']) }}">Back to my profile</a></p>
+    <div class="settings-actions">
+      {% if blocked_by_viewer %}
+      <button class="pure-button pure-button-primary" id="block-button" type="button"
+        data-action="unblock" data-username="{{ username }}" data-csrf-token="{{ csrf_token() }}">Unblock</button>
+      {% endif %}
+      <a class="pure-button" href="{{ url_for('index') }}">Go to dashboard</a>
+    </div>
     <p id="profile-action-notice" role="status" hidden></p>
   </section>
 </div>

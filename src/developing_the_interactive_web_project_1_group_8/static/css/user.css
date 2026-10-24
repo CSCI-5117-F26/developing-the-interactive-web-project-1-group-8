@@ -146,14 +146,16 @@
   background-color: transparent;
 }
 
-.profile-page .profile-actions .pure-button {
+.profile-page .profile-actions .pure-button,
+.compact-card .pure-button {
   color: var(--color-text-primary);
   background-color: var(--color-surface);
   border: 1px solid var(--color-primary);
 }
 
 .profile-page #copy-friend-link,
-.profile-page #follow-button[data-action="follow"] {
+.profile-page #follow-button[data-action="follow"],
+.compact-card .pure-button-primary {
   color: var(--color-text-inverse);
   background-color: var(--color-primary);
 }
@@ -164,11 +166,38 @@
   border-color: var(--color-danger);
 }
 
-.profile-page .profile-actions .pure-button:focus-visible {
+.profile-page .profile-actions .pure-button:focus-visible,
+.compact-card .pure-button:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
 .friend-invite-page .profile-desc {
   overflow-wrap: anywhere;
+}
+
+.compact-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  padding: 1.5rem 0;
+  box-sizing: border-box;
+}
+
+/* https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/clamp */
+.compact-page {
+  width: clamp(20rem, 48vw, 34rem);
+  max-width: 100%;
+  margin: 0 auto;
+  overflow-wrap: anywhere;
+}
+
+.compact-page h1 {
+  margin-top: 0;
+}
+
+.compact-card .pure-form-message {
+  color: var(--color-text-secondary);
+  line-height: 1.3;
 }
