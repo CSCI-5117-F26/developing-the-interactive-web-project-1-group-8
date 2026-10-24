@@ -1,0 +1,52 @@
+{% extends "account_base.html" %}
+{% block title %}Notifications - GameMaster{% endblock %}
+{% block content %}
+<section class="settings-page page-panel">
+  <header>
+    <h1>Notifications</h1>
+    <p>Unread notifications: {{ unread_notification_count }}</p>
+    <nav class="settings-links">
+      <a class="pure-button" href="{{ url_for('user', username=current_user.username) }}">
+        <i class="fa fa-arrow-left"></i> Back to my profile
+      </a>
+      {% if unread_notification_count %}
+      <form method="post" action="{{ url_for('notifications', page=page) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="mark_all_read">
+        <button class="pure-button" type="submit">Mark all read</button>
+      </form>
+      {% endif %}
+    </nav>
+  </header>
+  {% include "components/account_notices.html" %}
+  {% for notification in notifications %}
+  <article class="profile-section notification-entry{% if not notification.is_read %} notification-unread{% endif %}">
+    <h2 class="notification-message">{{ notification.message }}</h2>
+    {% if notification.user_name %}<p>From {{ notification.user_name }}</p>{% endif %}
+    <p>
+      <strong>{{ 'Read' if notification.is_read else 'Unread' }}</strong>
+      - <time datetime="{{ notification.created_at.isoformat() }}">{{ notification.created_at.strftime('%b %d, %Y at %H:%M UTC') }}</time>
+    </p>
+    <div class="settings-actions">
+      {% if notification.url %}
+      <a class="pure-button" href="{{ notification.url }}">{{ 'View request' if notification.kind == 'friend_request' else 'View event' }}</a>
+      {% endif %}
+      {% if not notification.is_read %}
+      <form method="post" action="{{ url_for('notifications', page=page) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="mark_read">
+        <input type="hidden" name="notification_id" value="{{ notification.id }}">
+        <button class="pure-button" type="submit">Mark read</button>
+      </form>
+      {% endif %}
+    </div>
+  </article>
+  {% else %}
+  <section class="profile-section"><p>{{ 'No notifications on this page.' if page > 1 else 'No notifications yet.' }}</p></section>
+  {% endfor %}
+  <nav class="settings-actions">
+    {% if page > 1 %}<a class="pure-button" href="{{ url_for('notifications', page=page - 1) }}">Newer notifications</a>{% endif %}
+    {% if has_older %}<a class="pure-button" href="{{ url_for('notifications', page=page + 1) }}">Older notifications</a>{% endif %}
+  </nav>
+</section>
+{% endblock %}

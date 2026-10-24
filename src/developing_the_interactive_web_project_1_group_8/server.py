@@ -137,6 +137,62 @@ CSRFProtect(app)
 app.register_blueprint(api)
 
 
+# https://flask.palletsprojects.com/en/stable/templating/#context-processors
+@app.context_processor
+def notification_summary():
+    profile = session.get("profile")
+    if profile and profile.get("setup_complete") and profile.get("username"):
+        return {
+            "unread_notification_count": db.get_unread_notification_count(profile["id"])
+        }
+    return {"unread_notification_count": 0}
+
+
+@app.route("/account/notifications", methods=["GET", "POST"])
+@requires_auth
+@requires_setup
+def notifications():
+    current_user = db.get_user_from_id(session["profile"]["id"])
+    if current_user is None:
+        session.clear()
+        return redirect(url_for("index"))
+
+    user_id = current_user["id"]
+    page = max(request.args.get("page", 1, type=int), 1)
+    if request.method == "POST":
+        action = request.form.get("action")
+        if action == "mark_read":
+            notification_id = request.form.get("notification_id", type=int)
+            if db.mark_notification_read(notification_id, user_id):
+                flash("Notification marked as read.")
+            else:
+                flash("That notification is already read or unavailable.")
+        elif action == "mark_all_read":
+            db.mark_all_notifications_read(user_id)
+            flash("All notifications are marked as read.")
+        else:
+            flash("Choose a notification action.")
+        return redirect(url_for("notifications", page=page))
+
+    entries = db.get_notifications(user_id, limit=21, offset=(page - 1) * 20)
+    has_older = len(entries) > 20
+    entries = entries[:20]
+    for entry in entries:
+        entry["created_at"] = entry["created_at"].astimezone(timezone.utc)
+        entry["url"] = None
+        if entry["kind"] == "friend_request":
+            entry["url"] = url_for("friend_requests")
+        elif entry["event_id"] is not None:
+            entry["url"] = url_for("event", event_id=entry["event_id"])
+    return render_template(
+        "notifications.html",
+        notifications=entries,
+        page=page,
+        has_older=has_older,
+        current_user=current_user,
+    )
+
+
 @app.route("/")
 def index():
     """Dashboard page, where users can explore for new events"""
@@ -279,7 +335,12 @@ def connections():
 
 @app.after_request
 def keep_invitation_pages_private(response):
-    if request.endpoint in {"invitations", "friend_invite", "friend_requests"}:
+    if request.endpoint in {
+        "invitations",
+        "friend_invite",
+        "friend_requests",
+        "notifications",
+    }:
         response.headers["Cache-Control"] = "no-store"
         response.headers["Referrer-Policy"] = "no-referrer"
     return response
