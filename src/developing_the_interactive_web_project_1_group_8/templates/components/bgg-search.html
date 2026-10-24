@@ -1,20 +1,18 @@
-{% block head %}
-{% endblock %}
-
-{% block bggsearch %}
-
+{% macro search-autocomplete(searchid) %}
 <form method="POST" autocomplete="off">
   <div class='bgg-search'>
     <div class='bgg-searchbar'>
-      <input id="autocomplete" role="search" class='bgg-input' type='text' name='bgg_game' placeholder='Game...' />
+      <input id={{ searchid }} role="search" class='bgg-input' type='text' name='bgg_game' placeholder='Game...' />
       <input type="hidden" name="game-name" value="">
       <input type="hidden" name="game-id" value="">
     </div>
 
   </div>
 </form>
+{% endmacro %}
 
-{% endblock %}
-
-{% block scripts %}
-{% endblock %}
+<!-- 
+how to use
+{% import 'components/bgg-search.html' %}
+<p>{{ search-autocomplete('bgg-games-search') }}</p>
+-->

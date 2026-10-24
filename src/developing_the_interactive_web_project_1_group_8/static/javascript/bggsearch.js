@@ -1,4 +1,9 @@
 function autocomplete ( inp, uri ) {
+  if ( !inp ) {
+    return;
+  }
+
+
   /*the autocomplete function takes two arguments,
   the text field element and an array of possible autocompleted values:*/
   var currentFocus;
@@ -155,6 +160,7 @@ function autocomplete ( inp, uri ) {
   } );
 }
 
-if ( document.getElementById( "autocomplete" ) ) {
-  autocomplete( document.getElementById( "autocomplete" ), "/api/search-games" );
-}
+
+
+autocomplete( document.getElementById( "bgg-games-search" ), "/api/search-games" );
+
