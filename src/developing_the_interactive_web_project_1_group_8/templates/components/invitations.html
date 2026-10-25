@@ -1,28 +1,28 @@
 <section class="profile-section" id="friend-links">
-  <h2>Friend links</h2>
+  <h2>Friend Links</h2>
   <p>Anyone with an active link can become your friend after signing in and confirming.</p>
 
   <form class="pure-form pure-form-stacked" method="post" action="{{ url_for('friend_requests') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="action" value="create">
     <fieldset>
-      <legend>Create a friend link</legend>
-      <label for="max-uses">Maximum uses</label>
+      <legend>Create a Friend Link</legend>
+      <label for="max-uses">Maximum Uses</label>
       <input class="pure-input-1" id="max-uses" name="max_uses" type="number" min="1" max="100"
         value="{{ values.max_uses }}" required>
       <p class="pure-form-message">Choose 1-100 uses. Only new friendships count toward this limit.</p>
-      <label for="duration-hours">Link duration</label>
+      <label for="duration-hours">Link Duration</label>
       <select class="pure-input-1" id="duration-hours" name="duration_hours" required>
         {% for hours, label in durations %}
         <option value="{{ hours }}"{% if values.duration_hours == hours|string %} selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>
-      <button class="pure-button pure-button-primary" type="submit">Create friend link</button>
+      <button class="pure-button pure-button-primary" type="submit">Create Friend Link</button>
     </fieldset>
   </form>
 
   <section class="pure-form pure-form-stacked">
-    <h3>Active friend links</h3>
+    <h3>Active Friend Links</h3>
     {% for invitation in invitations %}
     <article class="invitation-entry">
       <h4>Uses remaining: {{ invitation.max_uses - invitation.use_count }} / {{ invitation.max_uses }}</h4>
@@ -35,7 +35,7 @@
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="action" value="revoke">
           <input type="hidden" name="invitation_id" value="{{ invitation.id }}">
-          <button class="pure-button" type="submit">Revoke link</button>
+          <button class="pure-button" type="submit">Revoke Friend Link</button>
         </form>
       </div>
     </article>
