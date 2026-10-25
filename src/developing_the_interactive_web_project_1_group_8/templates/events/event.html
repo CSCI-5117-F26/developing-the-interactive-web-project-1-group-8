@@ -7,17 +7,17 @@
 {% endblock %}
 
 {% block content %}
-<section class="page-panel">
+<section class="event-page page-panel">
     <!-- <div class="event-container"> -->
-        <div class="event-heading-container">
-            <img class="event-image" 
+        <div class="event-heading-container profile-section">
             {% if event.image_url %}
-            src="{{ event.image_url }}"
+            <img class="event-image" src="{{ event.image_url }}">
+            {% else %}
+            <div class="event-image event-image-placeholder">No image</div>
             {% endif %}
-            >
 
             <div class="event-heading-info-conatiner">
-                <div class="event-title">{{ event.name }}</div>
+                <h1 class="event-title">{{ event.name }}</h1>
                 <div class="event-info-container">
                     <div class="event-info">
                         {% if event.game_name %}
@@ -26,18 +26,7 @@
                         Unknown Game
                         {% endif %}
                     </div>
-                    <div class="event-status-container">
-                        {% if event.status == "scheduled" %}
-                            <div class="event-status-circle"></div>
-                        {% elif event.status == "pending" %}
-                            <div class="event-status-circle" 
-                            style="background-color: var(--color-warning);"></div>
-                        {% else %}
-                            <div class="event-status-circle" 
-                            style="background-color: var(--color-danger);"></div>
-                        {% endif %}
-                        <div class="status-text">{{event.status}}</div>
-                    </div>
+                    {% include "components/event_status.html" %}
                 </div>
                 <div class="event-info">
                     Hosted By: {% if event.display_name %}{{ event.display_name }}
@@ -49,37 +38,40 @@
                         <div class="event-icon-container">
                             <img class="event-icon" 
                         src="{{ url_for('static', filename='images/calendar.svg') }}">
-                        {{ event.time }}
+                            <div>{{ event.time | format_page_time}}</div>
                         </div>
-                        
                     </div>
                     <div class="event-info-left">
                         <div class="event-icon-container">
                             <img class="event-icon" 
-                        src="{{ url_for('static', filename='images/location.svg') }}">{{ event.address }} 
+                        src="{{ url_for('static', filename='images/location.svg') }}">
+                            <div>{{ event.address }}</div>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="event-back-button-container">
-                <img src="{{ url_for('static', filename='images/x.svg') }}" 
-                class="event-back-button" alt="x" onclick="history.back()">
+                <button class="pure-button" type="button" onclick="history.back()">
+                    <i class="fa fa-arrow-left"></i> Back
+                </button>
             </div>
         </div>
+    <section class="profile-section">
         <div class="event-info">
-            {{ event.count }} out of {{event.max_attendees}} Maximum
+            {{ event.count }} / {{event.max_attendees}} going
         </div>
-        <div class="description-label">
-            Description:
-        </div>
+        <h2 class="description-label">
+            Description
+        </h2>
         
         <div class="description">{{event.description}}</div>
 
-        <div class="event-buttons-container">
+        <div class="event-buttons-container settings-actions">
             <!-- If pending, calandar button, otherwise RSVP -->
-            <a class="event-button-href" href="/rsvp/{{ event.id }}">RSVP</a>
-            <button class="event-button" onclick="copyURL()" id="copyButton">Share</button>
+            <a class="event-button-href pure-button pure-button-primary" href="/rsvp/{{ event.id }}">RSVP</a>
+            <button class="event-button pure-button" onclick="copyURL()" id="copyButton">Share</button>
         </div>
+    </section>
     <!-- </div> -->
 
 </section>
@@ -93,10 +85,12 @@
             const button = document.getElementById("copyButton");
             button.innerText = "Link Copied";
             button.style.backgroundColor = "var(--color-topbar-hover)"
+            button.style.color = "var(--color-text-inverse)"
             // button.style.backgroundColor = 
             setTimeout(() => {
                 button.innerText = "Share";
-                button.style.backgroundColor = "var(--color-primary)"
+                button.style.backgroundColor = "var(--color-surface)"
+                button.style.color = "var(--color-text-primary)"
             }, 600);
         })
         .catch(err => {

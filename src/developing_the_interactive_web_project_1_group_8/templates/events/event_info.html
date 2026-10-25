@@ -5,21 +5,24 @@
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/event.css') }}">
 <script>
+    
     document.addEventListener("DOMContentLoaded", ()=>{
-        const checkbox = document.getElementById("checkbox-competitive");
-        const list = document.getElementById("competitive-list");
+        const max = document.getElementById("event-max");
+        const min = document.getElementById("event-min");
 
-        if (!checkbox || !list) return;
-        checkbox.addEventListener('change', function() {
-            console.log("checked");
-            console.log(checkbox.checked);
-            if (checkbox.checked) {
-                list.style.display = 'block';
-            } else {
-                list.style.display = 'none';
+        if (!max || !min) return;
+        max.addEventListener('change', function() {
+            if (max.value < min.value) {
+                max.value = min.value;
             }
         });
-    })
+
+        min.addEventListener('change', function() {
+            if (max.value < min.value) {
+                max.value = min.value;
+            }
+        });
+    });
 </script>
 {% endblock %}
 
@@ -42,15 +45,20 @@
 
             <label for="address">Location</label>
             <input id="event-address" type="text" value="{{ event.address }}" required 
-             pattern="^[a-zA-Z 0-9,.!]+$" name="address" class="pure-u-2-3"/>
+             pattern="^[a-zA-Z 0-9,.!']+$" name="address" class="pure-u-2-3"/>
 
-            <label for="expected-duration">Expected duration in decimal format (This will change)</label>
-            <input id="event-expected" type="text" value="{{ event.expected_duration }}" required 
-             pattern="^[0-9.]+$" name="expected_duration" class="pure-u-1-5"/>
+            <label for="expected-duration">Expected event duration (minutes)</label>
+            <input id="event-expected" type="number" value="{{ event.expected_duration }}" required 
+              name="expected_duration" class="pure-u-1-5" min="0"/>
 
+            <label for="min_attendees">Minimum number of players</label>
+            <input id="event-min" type="number" 
+            value="{% if event %}{{ event.min_attendees }}{% else %}1{% endif %}" required 
+              name="min_attendees" class="pure-u-1-5" min="1"/>
+            
             <label for="max_attendees">Maximum number of players</label>
-            <input id="event-max" type="text" value="{{ event.max_attendees }}" required 
-             pattern="^[0-9]+$" name="max_attendees" class="pure-u-1-5"/>
+            <input id="event-max" type="number" value="{{ event.max_attendees }}" required 
+            name="max_attendees" class="pure-u-1-5" min="1"/>
 
             <label for="description">Description</label>
             <textarea id="event-description" name="description"

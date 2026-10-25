@@ -185,6 +185,22 @@ def notifications():
         current_user=current_user,
     )
 
+def format_time(dt):
+    if dt is None:
+        return "N/A"
+
+    return f"{dt.hour % 12 or 12}:{dt.strftime('%M %p, %a %b')} {dt.day} {dt.year}"
+
+
+@app.template_filter()
+def format_tile_time(dt):
+    return format_time(dt)
+
+
+@app.template_filter()
+def format_page_time(dt):
+    return format_time(dt)
+
 
 @app.route("/")
 def index():
@@ -951,6 +967,7 @@ def add_event():
         request.form.get("address"),
         request.form.get("time") or None,
         request.form.get("expected_duration"),
+        request.form.get("min_attendees"),
         request.form.get("max_attendees"),
         request.form.get("description"),
         "scheduled",
@@ -1011,6 +1028,7 @@ def update_event(event_id):
         request.form.get("address"),
         request.form.get("time") or None,
         request.form.get("expected_duration"),
+        request.form.get("min_attendees"),
         request.form.get("max_attendees"),
         request.form.get("description"),
         "scheduled",
