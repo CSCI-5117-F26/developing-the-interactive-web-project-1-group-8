@@ -303,6 +303,7 @@ def search():
     q = request.args.get("q", type=str)
     game = request.args.get("game", "", type=str)
     category = request.args.get("category", "", type=str)
+    category_name = request.args.get("category-name", "", type=str)
     min_players = request.args.get("min", None, type=int)
     max_players = request.args.get("max", None, type=int)
     duration = request.args.get("duration", None, type=int)
@@ -317,6 +318,7 @@ def search():
         user_id,
         game,
         category,
+        category_name,
         min_players,
         max_players,
         duration,

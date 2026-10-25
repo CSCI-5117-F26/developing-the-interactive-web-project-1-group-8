@@ -23,31 +23,33 @@ searchInput.addEventListener("input", async function (event) {
   delayTimer = setTimeout(function () {
     if (query.trim() === "") return; // Don't make an API call for empty queries
     var game = document.getElementsByName("search-value")[0]?.value ?? "";
-    var gameFilter = game ? `&game=${game}` : "";
     var gameName = document.getElementsByName("search-key")[0]?.value ?? "";
-    var gameNameFilter = gameName ? `&game-name=${encodeURIComponent(gameName)}` : "";
-    var category = document.getElementsByName("categories-value")?.value ?? "";
-    var categoryFilter = category ? `&category=${category}` : "";
+    var category = document.getElementsByName("categories-value")[0]?.value ?? "";
     var categoryName = document.getElementsByName("categories-key")[0]?.value ?? "";
-    var categoryNameFilter = gameName ? `&category-name=${encodeURIComponent(categoryName)}` : "";
-    var usePlayerCounts = document.getElementById("use-num-players")?.checked;
+    var usePlayerCounts = document.getElementById("use-num-players")?.checked ?? false;
     var minPlayer = document.getElementById("players-1")?.value ?? "";
-    var minFilter = usePlayerCounts && minPlayer ? `&min=${minPlayer}` : "";
     var maxPlayer = document.getElementById("players-2")?.value ?? "";
-    var maxFilter = usePlayerCounts && maxPlayer ? `&max=${maxPlayer}` : "";
     var duration = document.getElementById("duration")?.value ?? "";
-    var durationFilter = duration ? `&duration=${duration}` : "";
     var recency = document.getElementById("recency")?.value ?? "";
-    var recencyFilter = recency ? `&recency=${recency}` : "";
     var full = document.getElementById("hide-full")?.checked ?? "";
-    var fullFilter = full ? `&full=${full}` : "";
     var pending = document.getElementById("pending")?.checked ?? "";
-    var pendingFilter = pending ? `&pending=${pending}` : "";
     var played = document.getElementById("played-before")?.checked ?? "";
-    var playedFilter = played ? `&played=${played}` : "";
-    var filterString = `${gameFilter}${gameNameFilter}${categoryFilter}${categoryNameFilter}${minFilter}${maxFilter}${durationFilter}${recencyFilter}${fullFilter}${pendingFilter}${playedFilter}`;
+
+    const params = new URLSearchParams();
+    if (gameName && game) params.set("game", game);
+    if (gameName) params.set("game-name", gameName)
+    if (categoryName && category) params.set("category", category);
+    if (categoryName) params.set("category-name", categoryName)
+    if (usePlayerCounts && minPlayer) params.set("min", minPlayer);
+    if (usePlayerCounts && maxPlayer) params.set("max", maxPlayer);
+    if (duration) params.set("duration", duration);
+    if (recency) params.set("recency", recency);
+    if (full) params.set("full", full);
+    if (pending) params.set("pending", pending);
+    if (played) params.set("played", played);
+        
     // Make an API call to the search endpoint with the query
-    fetch(`/api/search?q=${encodeURIComponent(query)}${filterString}`)
+    fetch(`/api/search?q=${encodeURIComponent(query)}&${params.toString()}`)
       .then((response) => response.json())
       .then((data) => {
         console.log("fire")
