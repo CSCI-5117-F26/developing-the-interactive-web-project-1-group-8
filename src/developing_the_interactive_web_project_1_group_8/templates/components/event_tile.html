@@ -1,44 +1,31 @@
-<div class="event-tile">
+<div class="event-tile profile-section">
   <div class="event-header-container">
     <div class="event-header-game-info">
       <!-- <div class="event-game-image"></div> -->
-      <img class="event-game-image" 
-        {% if event.image_url %}
-        src="{{ event.image_url }}"
-        {% endif %}
-        >
+      {% if event.image_url %}
+      <img class="event-game-image" src="{{ event.image_url }}">
+      {% else %}
+      <div class="event-game-image event-image-placeholder">No image</div>
+      {% endif %}
+
+    </div>
+    <div class="event-info-header">
+      <h3 class="event-name" title="{{ event.name }}">{{event.name}}</h3>
       <div class="event-game-name">
         {% if event.game_name %}
         {{ event.game_name }}
-        {% else %}Game Name{% endif %}
+        {% else %}Unknown Game{% endif %}
       </div>
-    </div>
-    <div class="event-info-header">
-      <div class="event-name">{{event.name}}</div>
       <div class="event-date-time">{{event.time | format_tile_time}}</div>
-      <div class="event-location">{{event.address}}</div>
+      <div class="event-location" title="{{ event.address }}">{{event.address}}</div>
     </div>
-    <div>
-      <div class="event-status-container">
-        {% if event.status == "Canceled" %}
-        <div class="event-status-circle" style="background-color: var(--color-muted);"></div>
-        <div>Canceled</div>
-        {% elif event.min_attendees > event.count %}
-        <div class="event-status-circle" style="background-color: var(--color-warning);"></div>
-        <div>Pending</div>
-        {% elif event.count >= event.max_attendees %}
-        <div class="event-status-circle" style="background-color: var(--color-success);"></div>
-        <div>Full</div>
-        {% else %}
-        <div class="event-status-circle"></div>
-        <div>On Track</div>
-        {% endif %}
-      </div>
+    <div class="event-attendance">
+      {% include "components/event_status.html" %}
       <div>{{ event.count }}/{{event.max_attendees}} Going</div>
     </div>
   </div>
-  <div class="event-buttons-container">
-    <a href="{{ url_for('rsvp', event_id=event.id) }}" class="event-button">RSVP</a>
-    <a href="{{ url_for('event', event_id=event.id) }}" class="event-button">Details</a>
+  <div class="event-buttons-container settings-actions">
+    <a href="{{ url_for('rsvp', event_id=event.id) }}" class="event-button pure-button pure-button-primary">RSVP</a>
+    <a href="{{ url_for('event', event_id=event.id) }}" class="event-button pure-button">Details</a>
   </div>
 </div>
