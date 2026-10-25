@@ -1,6 +1,5 @@
 const followButton = document.getElementById("follow-button");
 const blockButton = document.getElementById("block-button");
-
 if (followButton) {
   followButton.addEventListener("click", function () {
     const username = this.dataset.username;
@@ -13,8 +12,8 @@ if (followButton) {
         "X-CSRFToken": this.dataset.csrfToken,
       },
     })
-      .then((data) => {
-        if (data.ok) {
+      .then(async (response) => {
+        if (response.ok) {
           // Update the button text and action
           if (action === "follow") {
             this.innerHTML =
@@ -26,11 +25,22 @@ if (followButton) {
             this.dataset.action = "follow";
           }
         } else {
-          console.error("Error:", data.error);
+          if (
+            response.headers.get("Content-Type")?.includes("application/json")
+          ) {
+            const data = await response.json();
+            showProfileNotice(data.error);
+          } else {
+            showProfileNotice(
+              "This action could not be completed. Refresh the page and try again.",
+            );
+          }
         }
       })
-      .catch((error) => {
-        console.error("Error:", error);
+      .catch(() => {
+        showProfileNotice(
+          "This action could not be completed. Please try again.",
+        );
       });
   });
 }
@@ -47,8 +57,8 @@ if (blockButton) {
         "X-CSRFToken": this.dataset.csrfToken,
       },
     })
-      .then((data) => {
-        if (data.ok) {
+      .then(async (response) => {
+        if (response.ok) {
           window.location.reload(); // Reload the page to reflect the block action
 
           // // Update the button text and action
@@ -61,11 +71,22 @@ if (blockButton) {
 
           // }
         } else {
-          console.error("Error:", data.error);
+          if (
+            response.headers.get("Content-Type")?.includes("application/json")
+          ) {
+            const data = await response.json();
+            showProfileNotice(data.error);
+          } else {
+            showProfileNotice(
+              "This action could not be completed. Refresh the page and try again.",
+            );
+          }
         }
       })
-      .catch((error) => {
-        console.error("Error:", error);
+      .catch(() => {
+        showProfileNotice(
+          "This action could not be completed. Please try again.",
+        );
       });
   });
 }

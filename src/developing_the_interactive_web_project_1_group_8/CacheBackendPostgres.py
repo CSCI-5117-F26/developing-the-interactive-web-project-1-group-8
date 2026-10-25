@@ -7,21 +7,17 @@
 
 from datetime import timedelta
 from time import time
-from cmath import sqrt
 from psycopg import sql
-from psycopg import Connection
 from psycopg_pool.abc import CT
 import requests
-from contextlib import contextmanager
 import threading
 
 # import requests_cache
-from boardgamegeek import BGGValueError
-from boardgamegeek.cache import CacheBackend, StrOrPath
+from boardgamegeek.cache import CacheBackend
 from psycopg_pool import ConnectionPool
 
 from logging import getLogger
-from typing import Iterable, List, Optional, Iterator, Tuple
+from typing import Iterable, List, Optional
 
 
 from requests_cache._utils import get_valid_kwargs, decode, encode

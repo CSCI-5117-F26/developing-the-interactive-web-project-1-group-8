@@ -1,0 +1,95 @@
+{% extends "account_base.html" %}
+{% block title %}Friend requests - GameMaster{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/user.css') }}">
+{% endblock %}
+{% block content %}
+<div class="friend-requests-page page-panel">
+  <header>
+    <h1>Friend requests</h1>
+    <p>Find players, manage requests, and share friend links.</p>
+    <nav class="friend-request-actions">
+      <a class="pure-button" href="{{ url_for('user', username=current_user.username) }}">
+        <i class="fa fa-arrow-left"></i> Back to my profile
+      </a>
+    </nav>
+  </header>
+
+  {% include "components/notices.html" %}
+
+  {% if errors %}
+  <div class="settings-notice">
+    <h2>Link could not be created</h2>
+    <ul>
+      {% for error in errors %}
+      <li>{{ error }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <form class="profile-section pure-form pure-form-stacked" method="post" action="{{ url_for('friend_requests') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="send">
+    <fieldset>
+      <legend>Send a request</legend>
+      <label for="friend-username">Username</label>
+      <input class="pure-input-1" id="friend-username" name="username" type="text" maxlength="30" required>
+      <p class="pure-form-message" id="friend-username-help">Enter their username without @. Sending a request also follows this player.</p>
+      <button class="pure-button pure-button-primary" type="submit">Send friend request</button>
+    </fieldset>
+  </form>
+
+  <section class="profile-section">
+    <h2>Received requests</h2>
+    {% if received_requests %}
+    <div class="carousel">
+      {% for user in received_requests %}
+      <div class="friend-request">
+        <a class="profile-friend" href="{{ url_for('user', username=user.username) }}" title="{{ user.display_name }}">
+          <img class="user-ico" src="{{ avatar_url(user) }}" width="64" height="64">
+          <span>{{ user.display_name }}</span>
+        </a>
+        <form class="friend-request-actions pure-form" method="post" action="{{ url_for('friend_requests') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="user_id" value="{{ user.id }}">
+          <button class="pure-button pure-button-primary" type="submit" name="action" value="accept">Accept request</button>
+          <button class="pure-button" type="submit" name="action" value="decline">Decline request</button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="pure-form-message">No received requests.</p>
+    {% endif %}
+  </section>
+
+  <section class="profile-section">
+    <h2>Sent requests</h2>
+    {% if sent_requests %}
+    <div class="carousel">
+      {% for user in sent_requests %}
+      <div class="friend-request">
+        <a class="profile-friend" href="{{ url_for('user', username=user.username) }}" title="{{ user.display_name }}">
+          <img class="user-ico" src="{{ avatar_url(user) }}" width="64" height="64">
+          <span>{{ user.display_name }}</span>
+        </a>
+        <form class="friend-request-actions pure-form" method="post" action="{{ url_for('friend_requests') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="cancel">
+          <input type="hidden" name="user_id" value="{{ user.id }}">
+          <button class="pure-button" type="submit">Cancel request</button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="pure-form-message">No sent requests.</p>
+    {% endif %}
+  </section>
+  {% include "components/invitations.html" %}
+</div>
+{% endblock %}
+{% block account_scripts %}
+<script src="{{ url_for('static', filename='javascript/friend-links.js') }}"></script>
+{% endblock %}

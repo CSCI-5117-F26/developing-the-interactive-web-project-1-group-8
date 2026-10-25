@@ -5,22 +5,101 @@ var currentFocus = -1;
 // a lot of code is from https://dev.to/brunooliveira/flask-series-part-6-improving-user-input-with-autocomplete-4e06
 
 // the timer is implemented to avoid making too many API calls while the user is typing
-searchInput.addEventListener("input", function (event) {
+searchInput.addEventListener("input", async function (event) {
   const query = event.target.value;
 
+  closeAllLists();
   if (delayTimer) {
     clearTimeout(delayTimer);
   }
 
+  a = document.createElement("DIV");
+  a.setAttribute("id", this.id + "autocomplete-list");
+  a.setAttribute("class", "autocomplete-items");
+  /*append the DIV element as a child of the autocomplete container:*/
+  this.parentNode.parentNode.appendChild(a);
+
   delayTimer = setTimeout(function () {
     if (query.trim() === "") return; // Don't make an API call for empty queries
-
+    var game = document.getElementsByName("game-id")[0]?.value ?? "";
+    var gameFilter = game ? `&game=${game}` : "";
+    var gameName = document.getElementsByName("game-name")[0]?.value ?? "";
+    var gameNameFilter = gameName ? `&game-name=${encodeURIComponent(gameName)}` : "";
+    var category = document.getElementById("category")?.value ?? "";
+    var categoryFilter = category ? `&category=${category}` : "";
+    var usePlayerCounts = document.getElementById("use-num-players")?.checked;
+    var minPlayer = document.getElementById("players-1")?.value ?? "";
+    var minFilter = usePlayerCounts && minPlayer ? `&min=${minPlayer}` : "";
+    var maxPlayer = document.getElementById("players-2")?.value ?? "";
+    var maxFilter = usePlayerCounts && maxPlayer ? `&max=${maxPlayer}` : "";
+    var duration = document.getElementById("duration")?.value ?? "";
+    var durationFilter = duration ? `&duration=${duration}` : "";
+    var recency = document.getElementById("recency")?.value ?? "";
+    var recencyFilter = recency ? `&recency=${recency}` : "";
+    var full = document.getElementById("hide-full")?.checked ?? "";
+    var fullFilter = full ? `&full=${full}` : "";
+    var pending = document.getElementById("pending")?.checked ?? "";
+    var pendingFilter = pending ? `&pending=${pending}` : "";
+    var played = document.getElementById("played-before")?.checked ?? "";
+    var playedFilter = played ? `&played=${played}` : "";
+    var filterString = `${gameFilter}${gameNameFilter}${categoryFilter}${minFilter}${maxFilter}${durationFilter}${recencyFilter}${fullFilter}${pendingFilter}${playedFilter}`;
     // Make an API call to the search endpoint with the query
-    fetch(`/api/search?q=${encodeURIComponent(query)}`)
+    fetch(`/api/search?q=${encodeURIComponent(query)}${filterString}`)
       .then((response) => response.json())
       .then((data) => {
-        console.log("Search results:", data);
-        // Update the UI with the search results here
+        console.log("fire")
+        console.log(data)
+        if (!data.length) return;
+
+        /*for each item in the array...*/
+          for (i = 0; i < data.length; i++) {
+            /*create a DIV element for each matching element:*/
+            b = document.createElement("DIV");
+
+            /*make the matching letters bold:*/
+            const name = data[i].name;
+            let start = 0,
+              matchIndex;
+            while (
+              (matchIndex = name
+                .toLowerCase()
+                .indexOf(query.toLowerCase(), start)) !== -1
+            ) {
+              b.append(name.slice(start, matchIndex));
+              const strong = document.createElement("strong");
+              strong.textContent = name.slice(
+                matchIndex,
+                matchIndex + query.length,
+              );
+              b.appendChild(strong);
+              start = matchIndex + query.length;
+            }
+            b.append(name.slice(start));
+
+            /*insert a input field that will hold the current array item's value:*/
+            for (const [field, value] of [
+              ["name", name],
+              ["id", data[i].id],
+            ]) {
+              const hidden = document.createElement("input");
+              hidden.type = "hidden";
+              hidden.name = field;
+              hidden.value = value;
+              b.appendChild(hidden);
+            }
+
+            /*execute a function when someone clicks on the item value (DIV element):*/
+            b.addEventListener("click", function (e) {
+              /*insert the value for the autocomplete text field:*/
+              searchInput.value = this.getElementsByTagName("input")[0].value;
+              /*close the list of autocompleted values,
+              (or any other open lists of autocompleted values:*/
+              closeAllLists();
+              handleSearch();
+            });
+            a.appendChild(b);
+            // }
+          }
       })
       .catch((error) => {
         console.error("Error fetching search results:", error);
@@ -28,6 +107,8 @@ searchInput.addEventListener("input", function (event) {
     delayTimer = null;
   }, 500); // Delay of 500 milliseconds
 });
+
+
 
 /*execute a function presses a key on the keyboard:*/
 searchInput.addEventListener("keydown", function (e) {
@@ -60,12 +141,7 @@ searchInput.addEventListener("keydown", function (e) {
 searchForm.addEventListener("submit", function (event) {
   event.preventDefault();
 
-  const query = searchInput.value.trim();
-  if (query == "") {
-    return;
-  }
-
-  event.target.submit(); // Submit the form if the query is not empty
+  handleSearch(); // Submit the form if the query is not empty
 });
 
 function closeAllLists(elmnt) {
@@ -95,4 +171,38 @@ function addActive(x) {
   if (currentFocus < 0) currentFocus = x.length - 1;
   /*add class "autocomplete-active":*/
   x[currentFocus].classList.add("autocomplete-active");
+}
+
+document.addEventListener("click", function (e) {
+  closeAllLists(e.target);
+});
+
+function handleSearch() {
+  var q = searchInput.value.trim();
+  console.log("FIRE:" +q)
+  var game = document.getElementsByName("game-id")[0]?.value ?? "";
+  var gameName = document.getElementsByName("game-name")[0]?.value ?? "";
+  var category = document.getElementById("category")?.value ?? "";
+  var usePlayerCounts = document.getElementById("use-num-players")?.checked ?? false;
+  var minPlayer = document.getElementById("players-1")?.value ?? "";
+  var maxPlayer = document.getElementById("players-2")?.value ?? "";
+  var duration = document.getElementById("duration")?.value ?? "";
+  var recency = document.getElementById("recency")?.value ?? "";
+  var full = document.getElementById("hide-full")?.checked ?? "";
+  var pending = document.getElementById("pending")?.checked ?? "";
+  var played = document.getElementById("played-before")?.checked ?? "";
+
+  const params = new URLSearchParams({ q });
+  console.log("hit endpoint")
+  if (gameName && game) params.set("game", game);
+  if (gameName) params.set("game-name", gameName)
+  if (category) params.set("category", category);
+  if (usePlayerCounts && minPlayer) params.set("min", minPlayer);
+  if (usePlayerCounts && maxPlayer) params.set("max", maxPlayer);
+  if (duration) params.set("duration", duration);
+  if (recency) params.set("recency", recency);
+  if (full) params.set("full", full);
+  if (pending) params.set("pending", pending);
+  if (played) params.set("played", played);
+  window.location.href = "/search?" + params.toString();
 }

@@ -1,30 +1,22 @@
-import os
+from io import BytesIO
+from botocore.exceptions import BotoCoreError, ClientError
 import psycopg
-import faker
-from flask import Flask, jsonify, Blueprint, request, render_template
-from boardgamegeek import BGGClient, CacheBackendSqlite
-from developing_the_interactive_web_project_1_group_8.CacheBackendPostgres import (
-    PostgresCache,
-    CacheBackendPostgres,
-)
+from flask import jsonify, Blueprint, request
 from developing_the_interactive_web_project_1_group_8.decorators import requires_auth
 import validators
-from urllib.parse import urlencode, urlsplit
+from urllib.parse import urlsplit
 from developing_the_interactive_web_project_1_group_8 import db
-import psycopg
-import faker
 from flask import (
-    Flask,
-    jsonify,
-    Blueprint,
-    request,
-    render_template,
     abort,
     url_for,
     session,
     redirect,
 )
 
+from flask import send_file
+from developing_the_interactive_web_project_1_group_8.avatars import (
+    download_avatar,
+)
 # this module holds all of the api endpoints
 
 
@@ -101,6 +93,43 @@ def is_safe_avatar_url(url):
     )
 
 
+@api.app_template_global()
+def avatar_url(profile):
+    picture = profile["profile_pic"]
+    if picture and picture.startswith("avatars/"):
+        return url_for("api.avatar_image", user_id=profile["id"])
+
+    if is_safe_avatar_url(picture):
+        return picture
+
+    return url_for("static", filename="images/avatar-default.svg")
+
+
+@api.get("/api/user/<int:user_id>/avatar")
+def avatar_image(user_id):
+    profile = db.get_user_from_id(user_id)
+    if profile is None:
+        abort(404)
+    if "profile" in session and session["profile"]["id"] != profile["id"]:
+        viewer_id = session["profile"]["id"]
+        if db.is_blocked(viewer_id, profile["id"]) or db.is_blocked(
+            profile["id"], viewer_id
+        ):
+            return redirect(url_for("static", filename="images/avatar-default.svg"))
+
+    avatar_key = profile["profile_pic"]
+    if not avatar_key or not avatar_key.startswith("avatars/"):
+        return redirect(avatar_url(profile))
+
+    try:
+        image_data = download_avatar(avatar_key)
+    except KeyError, BotoCoreError, ClientError:
+        return redirect(url_for("static", filename="images/avatar-default.svg"))
+
+    # https://tedboy.github.io/flask/generated/flask.send_file.html
+    return send_file(BytesIO(image_data), mimetype="image/jpeg", etag=avatar_key)
+
+
 # get user account photo
 @api.route("/api/user/<string:username>/photo", methods=["GET"])
 def get_user_photo(username):
@@ -114,13 +143,14 @@ def get_user_photo(username):
 
     if profile is None:
         abort(404)
+    if "profile" in session and session["profile"]["id"] != profile["id"]:
+        viewer_id = session["profile"]["id"]
+        if db.is_blocked(viewer_id, profile["id"]) or db.is_blocked(
+            profile["id"], viewer_id
+        ):
+            return url_for("static", filename="images/avatar-default.svg")
 
-    avatar_url = profile["profile_pic"]
-
-    if not is_safe_avatar_url(avatar_url):
-        avatar_url = url_for("static", filename="images/avatar-default.svg")
-
-    return avatar_url
+    return avatar_url(profile)
 
 
 # ---------- Follow ----------
@@ -147,6 +177,10 @@ def follow_user(username):
 
     if current_user_id == user_id:
         return jsonify({"error": "You cannot follow yourself"}), 400
+    if db.is_blocked(current_user_id, user_id) or db.is_blocked(
+        user_id, current_user_id
+    ):
+        return jsonify({"error": "Following is unavailable for this user"}), 400
     if db.is_following(current_user_id, user_id):
         return jsonify({"error": "You are already following this user"}), 400
 
@@ -219,10 +253,6 @@ def block_user(username):
 
     try:
         db.block_user(current_user_id, user_id)
-        if db.is_following(current_user_id, user_id):
-            db.unfollow_user(current_user_id, user_id)
-        if db.is_following(user_id, current_user_id):
-            db.unfollow_user(user_id, current_user_id)
         return jsonify({"message": "User blocked successfully"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -270,14 +300,38 @@ def search():
     Parameters:
       query (str): The search query.
     """
-    query = request.args.get("q", type=str)
+    q = request.args.get("q", type=str)
+    game = request.args.get("game", "", type=str)
+    category = request.args.get("category", "", type=str)
+    min_players = request.args.get("min", None, type=int)
+    max_players = request.args.get("max", None, type=int)
+    duration = request.args.get("duration", None, type=int)
+    recency = request.args.get('recency', "", type=str)
+    full = request.args.get("full", False, type=bool)
+    pending = request.args.get("pending", False, type=bool)
+    played = request.args.get("played", False, type=bool)
+    user_id = session['profile']['id'] if session.get("profile") else None;
 
-    if not query:
+    results = db.search_events(
+        q,
+        user_id,
+        game,
+        category,
+        min_players,
+        max_players,
+        duration,
+        recency,
+        full,
+        pending,
+        played
+    )
+
+    if not q:
         return jsonify({"error": "Search query is required"}), 400
 
     # search users, events, games ( ? )
-    r = db.search_events(query)
-    print(r)
+    r = results
+    #print(r)
 
     return jsonify(r), 200
 
