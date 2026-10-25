@@ -358,6 +358,4 @@ def searchGames():
     r.sort(key=lambda game: game.name.lower().find(query.lower()))
     r = [{"id": game.id, "name": game.name} for game in r]
     r = r[:10]  # limit to 10 results
-    # print(r)
-
     return jsonify(r), 200

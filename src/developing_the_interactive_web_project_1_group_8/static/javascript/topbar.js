@@ -16,17 +16,20 @@ searchInput.addEventListener("input", async function (event) {
   a = document.createElement("DIV");
   a.setAttribute("id", this.id + "autocomplete-list");
   a.setAttribute("class", "autocomplete-items");
+  a.style.width = searchInput.offsetWidth + "px";
   /*append the DIV element as a child of the autocomplete container:*/
   this.parentNode.parentNode.appendChild(a);
 
   delayTimer = setTimeout(function () {
     if (query.trim() === "") return; // Don't make an API call for empty queries
-    var game = document.getElementsByName("game-id")[0]?.value ?? "";
+    var game = document.getElementsByName("search-value")[0]?.value ?? "";
     var gameFilter = game ? `&game=${game}` : "";
-    var gameName = document.getElementsByName("game-name")[0]?.value ?? "";
+    var gameName = document.getElementsByName("search-key")[0]?.value ?? "";
     var gameNameFilter = gameName ? `&game-name=${encodeURIComponent(gameName)}` : "";
-    var category = document.getElementById("category")?.value ?? "";
+    var category = document.getElementsByName("categories-value")?.value ?? "";
     var categoryFilter = category ? `&category=${category}` : "";
+    var categoryName = document.getElementsByName("categories-key")[0]?.value ?? "";
+    var categoryNameFilter = gameName ? `&category-name=${encodeURIComponent(categoryName)}` : "";
     var usePlayerCounts = document.getElementById("use-num-players")?.checked;
     var minPlayer = document.getElementById("players-1")?.value ?? "";
     var minFilter = usePlayerCounts && minPlayer ? `&min=${minPlayer}` : "";
@@ -42,7 +45,7 @@ searchInput.addEventListener("input", async function (event) {
     var pendingFilter = pending ? `&pending=${pending}` : "";
     var played = document.getElementById("played-before")?.checked ?? "";
     var playedFilter = played ? `&played=${played}` : "";
-    var filterString = `${gameFilter}${gameNameFilter}${categoryFilter}${minFilter}${maxFilter}${durationFilter}${recencyFilter}${fullFilter}${pendingFilter}${playedFilter}`;
+    var filterString = `${gameFilter}${gameNameFilter}${categoryFilter}${categoryNameFilter}${minFilter}${maxFilter}${durationFilter}${recencyFilter}${fullFilter}${pendingFilter}${playedFilter}`;
     // Make an API call to the search endpoint with the query
     fetch(`/api/search?q=${encodeURIComponent(query)}${filterString}`)
       .then((response) => response.json())
@@ -173,16 +176,12 @@ function addActive(x) {
   x[currentFocus].classList.add("autocomplete-active");
 }
 
-document.addEventListener("click", function (e) {
-  closeAllLists(e.target);
-});
-
 function handleSearch() {
   var q = searchInput.value.trim();
-  console.log("FIRE:" +q)
-  var game = document.getElementsByName("game-id")[0]?.value ?? "";
-  var gameName = document.getElementsByName("game-name")[0]?.value ?? "";
-  var category = document.getElementById("category")?.value ?? "";
+  var game = document.getElementsByName("search-value")[0]?.value ?? "";
+  var gameName = document.getElementsByName("search-key")[0]?.value ?? "";
+  var category = document.getElementsByName("categories-value")[0]?.value ?? "";
+  var categoryName = document.getElementsByName("categories-key")[0]?.value ?? "";
   var usePlayerCounts = document.getElementById("use-num-players")?.checked ?? false;
   var minPlayer = document.getElementById("players-1")?.value ?? "";
   var maxPlayer = document.getElementById("players-2")?.value ?? "";
@@ -193,10 +192,10 @@ function handleSearch() {
   var played = document.getElementById("played-before")?.checked ?? "";
 
   const params = new URLSearchParams({ q });
-  console.log("hit endpoint")
   if (gameName && game) params.set("game", game);
   if (gameName) params.set("game-name", gameName)
-  if (category) params.set("category", category);
+  if (categoryName && category) params.set("category", category);
+  if (categoryName) params.set("category-name", categoryName)
   if (usePlayerCounts && minPlayer) params.set("min", minPlayer);
   if (usePlayerCounts && maxPlayer) params.set("max", maxPlayer);
   if (duration) params.set("duration", duration);

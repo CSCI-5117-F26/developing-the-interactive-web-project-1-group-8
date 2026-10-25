@@ -870,7 +870,7 @@ def is_blocked(blocking_id, blocked_id):
 # ---------- Search ----------
 
 
-def search_events(q, user_id, game, category, min_players, max_players, duration, recency, full, pending, played):
+def search_events(q, user_id, game, category, category_name, min_players, max_players, duration, recency, full, pending, played):
     with pool.connection() as conn:
         with conn.cursor() as cur:
             # cur.execute(
@@ -883,10 +883,10 @@ def search_events(q, user_id, game, category, min_players, max_players, duration
             #     (f"%{name_query}%",),
             # )
             # return cur.fetchall()
-            query, params = build_query(q, user_id, game, category, min_players, max_players, duration, recency, full, pending, played)
+            query, params = build_query(q, user_id, game, category, category_name, min_players, max_players, duration, recency, full, pending, played)
             return cur.execute(query, params).fetchall()
 
-def build_query(q, user_id, game, category, min_players, max_players, duration, recency, full, pending, played):
+def build_query(q, user_id, game, category, category_name, min_players, max_players, duration, recency, full, pending, played):
     conditions = []
     params = []
     conditions.append("LOWER(e.name) LIKE LOWER(%s)")
@@ -933,6 +933,7 @@ def build_query(q, user_id, game, category, min_players, max_players, duration, 
     if pending:
         conditions.append("e.status = 'pending'")
 
+    print(params)
     cond_clause ="WHERE " + " AND ".join(conditions) if conditions else ""
     query = f"""SELECT e.*, (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count
         FROM events e LEFT JOIN event_participation ep ON ep.id = e.id

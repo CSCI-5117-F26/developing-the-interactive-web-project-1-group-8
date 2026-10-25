@@ -7,8 +7,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/sliders.css') }}">
 {% endblock %}
 
-{% set selected_game_id = game %}
-{% set selected_game_name = game_name %}
+{% from 'components/bgg-search.html' import autocomplete %}
 
 {% block content %}
 <div class="pure-g">
@@ -19,16 +18,17 @@
         BGG Game Search
       #}
       <div class="label-pad">
-        <label for="autocomplete">Event Game:</label>
-        {% include "components/bgg-search.html"%}
+        <label for="bgg-games-search">Event Game:</label>
+        {{ autocomplete('search', 'Games...', game_name, game_name, game) }}
         <button class="pure-button pure-button-primary" id="clear-bgg" onclick="clearBGG()">Clear</button>
       </div>
       {#
         BGG Category Search
       #}
       <div class="label-pad">
-        <label class="label-pad" for="category">Game Category:</label>
-        <input id="category" value="{{ category }}"/>
+        <label for="bgg-games-categories">Game Category:</label>
+        {{ autocomplete('categories', 'Categories...', category_name, category_name, category) }}
+        <button class="pure-button pure-button-primary" id="clear-bgg" onclick="clearCategories()">Clear</button>
       </div>
       {#
         This element was pulled from a tutorial by https://codingartistweb.com/2021/06/double-range-slider-html-css-javascript/
@@ -113,13 +113,16 @@
 <script src="{{ url_for('static', filename='javascript/slider.js')}}"></script>
 <script>
   function redirectSearch() {
+    console.log("fire")
     const apply = document.getElementById("apply-filters");
-    var game = document.getElementsByName("game-id")[0]?.value ?? "";
-    var gameFilter = game ? `&game=${game}` : "";
-    var gameName = document.getElementsByName("game-name")[0]?.value ?? "";
+    var gameID = document.getElementsByName("search-value")[0]?.value ?? "";
+    var gameFilter = gameID ? `&game=${gameID}` : "";
+    var gameName = document.getElementsByName("search-key")[0]?.value ?? "";
     var gameNameFilter = gameName ? `&game-name=${encodeURIComponent(gameName)}` : "";
-    var category = document.getElementById("category")?.value ?? "";
-    var categoryFilter = category ? `&category=${category}` : "";
+    var categoryID = document.getElementsByName("categories-value")[0]?.value ?? "";
+    var categoryFilter = categoryID ? `&category=${categoryID}` : "";
+    var categoryName = document.getElementsByName("categories-key")[0]?.value ?? "";
+    var categoryNameFilter = categoryName ? `&category-name=${encodeURIComponent(categoryName)}` : "";
     var usePlayerCounts = document.getElementById("use-num-players").checked;
     var minPlayer = document.getElementById("players-1")?.value ?? "";
     var minFilter = usePlayerCounts && minPlayer ? `&min=${minPlayer}` : "";
@@ -135,16 +138,30 @@
     var pendingFilter = pending ? `&pending=${pending}` : "";
     var played = document.getElementById("played-before")?.checked ?? "";
     var playedFilter = played ? `&played=${played}` : "";
-    var filterString = `${gameFilter}${gameNameFilter}${categoryFilter}${minFilter}${maxFilter}${durationFilter}${recencyFilter}${fullFilter}${pendingFilter}${playedFilter}`;
+    var filterString = `${gameFilter}${gameNameFilter}${categoryFilter}${categoryNameFilter}${minFilter}${maxFilter}${durationFilter}${recencyFilter}${fullFilter}${pendingFilter}${playedFilter}`;
     const searchQuery = document.getElementById("search").value.trim();
     const baseUrl = `{{ url_for('search') }}`;
     window.location.href=`${baseUrl}?q=${searchQuery}${filterString}`
   }
 
   function clearBGG() {
-    document.getElementsByName("game-id")[0]?.setAttribute('value', "");
-    document.getElementsByName("game-name")[0]?.setAttribute('value', "");
-    document.getElementById("autocomplete")?.setAttribute('value', "");
+    document.getElementsByName("search-value")[0]?.setAttribute('value', "");
+    document.getElementsByName("search-key")[0]?.setAttribute('value', "");
+    document.getElementById("bgg-games-search")?.setAttribute('value', "");
+    obj = document.getElementById("bgg-games-search");
+    if (obj) {
+      obj.value = "";
+      obj.setAttribute('value', "");
+    }
+  }
+  function clearCategories() {
+    document.getElementsByName("categories-value")[0]?.setAttribute('value', "");
+    document.getElementsByName("categories-key")[0]?.setAttribute('value', "");
+    obj = document.getElementById("bgg-games-categories");
+    if (obj) {
+      obj.value = "";
+      obj.setAttribute('value', "");
+    }
   }
 </script>
 {% endblock %}
