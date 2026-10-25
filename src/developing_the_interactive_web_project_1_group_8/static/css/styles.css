@@ -20,6 +20,9 @@
   --color-accent-soft: hsl(351, 37%, 89%);
   --color-muted: hsl(0, 0%, 59%);
 
+  /* Drop Shadows */
+  --color-shadow: hsl(32, 7%, 48%);
+
   /* Top Bar */
   --color-topbar-background: var(--color-primary);
   --color-topbar-background-secondary: hsl(213, 63%, 35%);
@@ -69,6 +72,11 @@ main {
   /* max-width: 1120px; */
   /* margin: 30px auto; */
   padding: 0 40px;
+  margin-bottom: 40px;
+}
+
+section {
+  filter: drop-shadow(2px 2px 1px var(--color-shadow));
 }
 
 /* --- Topbar Styles --- */
