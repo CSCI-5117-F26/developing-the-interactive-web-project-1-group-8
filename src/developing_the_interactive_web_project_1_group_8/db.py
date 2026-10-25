@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, datetime
 from developing_the_interactive_web_project_1_group_8.CacheBackendPostgres import (
     CacheBackendPostgres,
 )
@@ -247,6 +247,7 @@ def create_event(
     address,
     time,
     expected_duration,
+    min_attendees,
     max_attendees,
     description,
     status,
@@ -255,8 +256,9 @@ def create_event(
         with conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO events (name, gameID, hostID, address, time, expected_duration, max_attendees, description, status)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO events (name, gameID, hostID, address, time, expected_duration,
+                min_attendees, max_attendees, description, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING *
                 """,
                 (
@@ -266,6 +268,7 @@ def create_event(
                     address,
                     time,
                     expected_duration,
+                    min_attendees,
                     max_attendees,
                     description,
                     status,
@@ -281,6 +284,7 @@ def update_event(
     address,
     time,
     expected_duration,
+    min_attendees,
     max_attendees,
     description,
     status,
@@ -289,8 +293,8 @@ def update_event(
         with conn.cursor() as cur:
             cur.execute(
                 """
-                UPDATE events SET name = %s, gameID = %s, address = %s,
-                time = %s, expected_duration = %s, max_attendees = %s, description = %s,
+                UPDATE events SET name = %s, gameID = %s, address = %s, time = %s, 
+                expected_duration = %s, min_attendees = %s, max_attendees = %s, description = %s,
                 status = %s
                 WHERE id = %s
                 """,
@@ -300,6 +304,7 @@ def update_event(
                     address,
                     time,
                     expected_duration,
+                    min_attendees,
                     max_attendees,
                     description,
                     status,

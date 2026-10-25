@@ -15,19 +15,24 @@
     </div>
     <div class="event-info-header">
       <div class="event-name">{{event.name}}</div>
-      <div class="event-date-time">{{event.time}}</div>
+      <div class="event-date-time">{{event.time | format_tile_time}}</div>
       <div class="event-location">{{event.address}}</div>
     </div>
     <div>
       <div class="event-status-container">
-        {% if event.status == "scheduled" %}
-        <div class="event-status-circle"></div>
-        {% elif event.status == "pending" %}
+        {% if event.status == "Canceled" %}
+        <div class="event-status-circle" style="background-color: var(--color-muted);"></div>
+        <div>Canceled</div>
+        {% elif event.min_attendees > event.count %}
         <div class="event-status-circle" style="background-color: var(--color-warning);"></div>
+        <div>Pending</div>
+        {% elif event.count >= event.max_attendees %}
+        <div class="event-status-circle" style="background-color: var(--color-success);"></div>
+        <div>Full</div>
         {% else %}
-        <div class="event-status-circle" style="background-color: var(--color-danger);"></div>
+        <div class="event-status-circle"></div>
+        <div>On Track</div>
         {% endif %}
-        <div>{{event.status}}</div>
       </div>
       <div>{{ event.count }}/{{event.max_attendees}} Going</div>
     </div>
