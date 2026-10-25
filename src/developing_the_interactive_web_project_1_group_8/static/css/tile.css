@@ -46,89 +46,92 @@
   text-align: center;
 }
 
-
-
 .event-tile {
-  background-color: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
   box-sizing: border-box;
   width: 22rem;
-  min-height: 12rem;
-  border-radius: 1rem;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 14rem;
+  margin: 0;
+  border: 0.0625rem solid var(--color-primary);
+  background-color: var(--color-surface);
+}
 
-  padding: 1rem;
-  font-family: Verdana, Geneva, Tahoma, sans-serif;
+.event-tile .event-header-container {
+  display: grid;
+  grid-template-columns: 5rem minmax(0, 1fr);
+  align-items: start;
+  gap: 0.75em;
+}
+
+.event-tile .event-header-game-info,
+.event-tile .event-info-header {
+  min-width: 0;
+}
+
+.event-tile .event-game-image {
+  width: 5rem;
+  height: 5rem;
+}
+
+.event-tile .event-name {
+  margin: 0 0 0.35em;
+  font-size: 1.1rem;
+}
+
+.event-tile .event-name,
+.event-tile .event-game-name,
+.event-tile .event-location {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.event-tile .event-game-name,
+.event-tile .event-date-time,
+.event-tile .event-location {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.event-tile .event-game-name {
+  margin-bottom: 0.4em;
+}
+
+.event-tile .event-attendance {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5em;
+  color: var(--color-text-secondary);
   font-size: 0.9rem;
 }
 
-.event-header-container {
-  display: flex;
-  gap: 0.5rem;
-  height: 7rem;
+.event-tile .event-buttons-container {
+  margin-top: auto;
 }
 
-.event-header-game-info {
-  width: 6rem;
+.event-row {
+  height: auto;
+  border-bottom: 0;
 }
 
-.event-game-image {
-  width: 5rem;
-  height: 5rem;
-  background-color: var(--color-muted);
+.event-carousel {
+  min-width: 0;
+  overflow: hidden;
 }
 
-.event-game-name {
-  font-size: 0.8rem;
-  color: var(--color-text-secondary);
-}
-
-.event-info-header {
-  width: 8rem;
-}
-
-.event-name {
-  font-weight: bold;
-  font-size: 1rem;
-  height: 2rem;
-}
-
-.event-date-time {
-  height: 2rem;
-}
-
-.event-location {
-  height: 2rem;
-}
-
-.event-status-container {
-  display: flex;
-  height: 2rem;
-}
-
-.event-status-circle {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 0.25rem;
-  background-color: var(--color-success);
-  margin: 0.25rem;
-}
-
-.event-buttons-container {
-  margin-top: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.event-button {
-  background-color: var(--color-primary);
-  border: none;
-  border-radius: 2rem;
-  color: var(--color-text-inverse);
-  padding: 1rem;
-  text-align: center;
-  text-decoration: none;
-  font-size: 1.5rem;
-  font-weight: bolder;
-  margin: 1vh;
-  cursor: pointer;
+.profile-page .row > .carousel,
+.event-row .event-carousel > .carousel {
+  border-radius: 0;
+  height: auto;
+  align-items: stretch;
+  padding: 0 0 0.75rem;
+  background-color: transparent;
 }

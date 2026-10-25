@@ -9,12 +9,14 @@
 {% block content %}
 
 {% for title, events in sections %}
-<section class="row">
+<section class="profile-section row event-row">
   <h2>{{ title }}</h2>
-  <div class="carousel">
-    {% for event in events %}
-    {% include "components/event_tile.html" %}
-    {% endfor %}
+  <div class="event-carousel">
+    <div class="carousel">
+      {% for event in events %}
+      {% include "components/event_tile.html" %}
+      {% endfor %}
+    </div>
   </div>
 </section>
 {% endfor %}

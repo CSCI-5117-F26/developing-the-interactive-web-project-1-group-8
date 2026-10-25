@@ -96,18 +96,20 @@
 </section>
 {% endif %}
 {% for title, events in sections %}
-<section class="profile-section row">
+<section class="profile-section row event-row">
   <h2>{{ title }}</h2>
-  <div class="carousel">
-    {% if events|length == 0 %}
-    <div class="no-events">
-      <p>No events to show.</p>
+  <div class="event-carousel">
+    <div class="carousel">
+      {% if events|length == 0 %}
+      <div class="no-events">
+        <p>No events to show.</p>
+      </div>
+      {% else %}
+      {% for event in events %}
+      {% include "components/event_tile.html" %}
+      {% endfor %}
+      {% endif %}
     </div>
-    {% else %}
-    {% for event in events %}
-    {% include "components/event_tile.html" %}
-    {% endfor %}
-    {% endif %}
   </div>
 </section>
 {% endfor %}
