@@ -62,17 +62,22 @@ CSRFProtect(app)
 
 app.register_blueprint(api)
 
-@app.template_filter()
-def format_tile_time(datetime):
-    if datetime is None:
+def format_time(dt):
+    if dt is None:
         return "N/A"
-    return datetime.strftime("%-I:%M %p, %a %b %-d")
+
+    return f"{dt.hour % 12 or 12}:{dt.strftime('%M %p, %a %b')} {dt.day} {dt.year}"
+
 
 @app.template_filter()
-def format_page_time(datetime):
-    if datetime is None:
-        return "N/A"
-    return datetime.strftime("%-I:%M %p, %a %b %-d %Y")
+def format_tile_time(dt):
+    return format_time(dt)
+
+
+@app.template_filter()
+def format_page_time(dt):
+    return format_time(dt)
+
 
 @app.route("/")
 def index():
