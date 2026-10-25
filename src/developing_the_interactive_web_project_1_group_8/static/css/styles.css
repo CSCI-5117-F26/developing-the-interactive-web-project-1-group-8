@@ -7,8 +7,8 @@
   */
 
   /* Backgrounds & Surfaces */
-  --color-background: hsl(30, 27%, 96%);
-  --color-background-outset: hsl(180, 12%, 91%);
+  --color-background: hsl(30, 57%, 95%);
+  --color-background-outset: hsl(30, 31%, 89%);
   --color-foreground: hsl(0, 0%, 0%);
   --color-surface: hsl(0, 0%, 100%);
   --color-surface-muted: hsl(18, 25%, 92%);
@@ -22,7 +22,7 @@
 
   /* Top Bar */
   --color-topbar-background: var(--color-primary);
-  --color-topbar-background-secondary: hsl(213, 37%, 30%);
+  --color-topbar-background-secondary: hsl(213, 63%, 35%);
   --color-topbar-text: hsl(213, 86%, 84%);
   --color-topbar-hover: hsl(213, 42%, 20%);
 
@@ -32,7 +32,7 @@
   --color-text-inverse: var(--color-surface);
 
   /* Borders */
-  --color-border: hsl(15, 15%, 89%);
+  --color-border: #ffd79d;
 
   /* Status: Success / Going */
   --color-success: hsl(160, 39%, 35%);
@@ -70,16 +70,18 @@ main {
 
 /* --- Topbar Styles --- */
 #topbar {
+  z-index: 1000;
   line-height: 1.5;
   position: sticky;
   top: 0;
-  background-color: var(--color-topbar-background);
+  background: linear-gradient(to bottom, var(--color-topbar-background), var(--color-topbar-background-secondary));
+  border-bottom: 2px solid var(--color-border);
   color: var(--color-topbar-text);
   margin-bottom: 1em;
   -webkit-font-smoothing: antialiased;
   /* padding: 12px 24px; */
   min-height: 2.5em;
-  height: auto;
+  height: 40px;
   /* overflow: hidden; */
 
   .pure-menu-link:hover {
@@ -95,10 +97,18 @@ main {
     text-align: right;
   }
 
+  #search-form {
+    display: flex;
+    justify-content: center;
+    max-width: 500px;
+    min-width: 250px;
+    width:100%
+  }
+
   #search-container {
     display: grid;
     position: relative;
-    grid-template-columns: minmax(250px, 7fr) 30px;
+    grid-template-columns: minmax(50px, 5fr) 30px;
     margin: 0.25em;
     /* align-items: center; */
     justify-content: center;
@@ -117,6 +127,7 @@ main {
       font-size: 17px;
       border: none;
       background: none;
+      
     }
 
     button {
@@ -143,7 +154,7 @@ main {
     padding: 0.5em 0;
     right: 0;
     left: auto;
-    background-color: var(--color-topbar-background-secondary);
+    background-color: var(--color-topbar-background);
     text-align: center;
   }
 
