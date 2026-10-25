@@ -13,6 +13,7 @@ from flask import (
 )
 import validators
 import os
+from datetime import datetime
 from urllib.parse import urlencode, urlsplit
 from dotenv import load_dotenv
 from flask_wtf.csrf import CSRFProtect
@@ -61,6 +62,17 @@ CSRFProtect(app)
 
 app.register_blueprint(api)
 
+@app.template_filter()
+def format_tile_time(datetime):
+    if datetime is None:
+        return "N/A"
+    return datetime.strftime("%-I:%M %p, %a %b %-d")
+
+@app.template_filter()
+def format_page_time(datetime):
+    if datetime is None:
+        return "N/A"
+    return datetime.strftime("%-I:%M %p, %a %b %-d %Y")
 
 @app.route("/")
 def index():
@@ -354,6 +366,7 @@ def add_event():
         request.form.get("address"),
         request.form.get("time") or None,
         request.form.get("expected_duration"),
+        request.form.get("min_attendees"),
         request.form.get("max_attendees"),
         request.form.get("description"),
         "scheduled",
@@ -414,6 +427,7 @@ def update_event(event_id):
         request.form.get("address"),
         request.form.get("time") or None,
         request.form.get("expected_duration"),
+        request.form.get("min_attendees"),
         request.form.get("max_attendees"),
         request.form.get("description"),
         "scheduled",

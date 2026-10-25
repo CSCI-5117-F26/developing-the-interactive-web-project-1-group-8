@@ -49,14 +49,14 @@
                         <div class="event-icon-container">
                             <img class="event-icon" 
                         src="{{ url_for('static', filename='images/calendar.svg') }}">
-                        {{ event.time }}
+                            <div>{{ event.time | format_page_time}}</div>
                         </div>
-                        
                     </div>
                     <div class="event-info-left">
                         <div class="event-icon-container">
                             <img class="event-icon" 
-                        src="{{ url_for('static', filename='images/location.svg') }}">{{ event.address }} 
+                        src="{{ url_for('static', filename='images/location.svg') }}">
+                            <div>{{ event.address }}</div>
                         </div>
                     </div>
                 </div>

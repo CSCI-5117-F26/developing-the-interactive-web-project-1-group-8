@@ -38,6 +38,9 @@
   --color-success: hsl(160, 39%, 35%);
   --color-success-soft: hsl(148, 30%, 92%);
 
+  /* Status: Scheduled / On Track */
+  --color-success: hsl(90, 75%, 35%);
+
   /* Status: Warning / Maybe */
   --color-warning: hsl(27, 50%, 43%);
   --color-warning-soft: hsl(30, 61%, 91%);

@@ -96,6 +96,7 @@
   /* height: 3vw; */
   font-size: 1.4rem;
   align-items: center;
+  display: flex;
 }
 
 .event-icon {
@@ -103,6 +104,7 @@
     width: 1.4rem;
     align-self: center;
     align-self: center;
+    padding-right: 0.6rem;
 }
 
 .description-label {
