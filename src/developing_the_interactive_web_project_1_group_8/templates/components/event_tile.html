@@ -14,7 +14,7 @@
       <div class="event-game-name">
         {% include "components/bgg_game_link.html" %}
       </div>
-      <div class="event-date-time">{{event.time | format_tile_time}}</div>
+      <div class="event-date-time">{% if event.time %}<time datetime="{{ event.time.isoformat() }}">{{event.time | format_tile_time}}</time>{% else %}N/A{% endif %}</div>
       <div class="event-location" title="{{ event.address }}">{{event.address}}</div>
     </div>
     <div class="event-attendance">

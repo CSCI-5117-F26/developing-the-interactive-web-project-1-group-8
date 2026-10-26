@@ -24,6 +24,9 @@
                     </div>
                     {% include "components/event_status.html" %}
                 </div>
+                {% if event.game_categories %}
+                <div class="event-info">Categories: {{ event.game_categories | join(', ') }}</div>
+                {% endif %}
                 <div class="event-info">
                     Hosted By: {% if event.host_username %}
                     <a href="{{ url_for('user', username=event.host_username) }}">{{ event.display_name or event.host_username }}</a>
@@ -36,7 +39,7 @@
                         <div class="event-icon-container">
                             <img class="event-icon" 
                         src="{{ url_for('static', filename='images/calendar.svg') }}">
-                            <div>{{ event.time | format_page_time}}</div>
+                            <div>{% if event.time %}<time datetime="{{ event.time.isoformat() }}">{{ event.time | format_page_time}}</time>{% else %}N/A{% endif %}</div>
                         </div>
                     </div>
                     <div class="event-info-left">

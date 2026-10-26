@@ -23,6 +23,7 @@ dependencies = [
     "bgg-api>=1.1.19",
     "boto3>=1.43.118",
     "pillow>=13.0.0",
+    "tzdata>=2026.5",
 ]
 
 [project.scripts]
