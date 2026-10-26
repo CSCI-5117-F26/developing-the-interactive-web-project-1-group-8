@@ -24,9 +24,12 @@ searchInput.addEventListener("input", async function (event) {
     if (query.trim() === "") return; // Don't make an API call for empty queries
     var game = document.getElementsByName("search-value")[0]?.value ?? "";
     var gameName = document.getElementsByName("search-key")[0]?.value ?? "";
-    var category = document.getElementsByName("categories-value")[0]?.value ?? "";
-    var categoryName = document.getElementsByName("categories-key")[0]?.value ?? "";
-    var usePlayerCounts = document.getElementById("use-num-players")?.checked ?? false;
+    var category =
+      document.getElementsByName("categories-value")[0]?.value ?? "";
+    var categoryName =
+      document.getElementsByName("categories-key")[0]?.value ?? "";
+    var usePlayerCounts =
+      document.getElementById("use-num-players")?.checked ?? false;
     var minPlayer = document.getElementById("players-1")?.value ?? "";
     var maxPlayer = document.getElementById("players-2")?.value ?? "";
     var duration = document.getElementById("duration")?.value ?? "";
@@ -37,9 +40,9 @@ searchInput.addEventListener("input", async function (event) {
 
     const params = new URLSearchParams();
     if (gameName && game) params.set("game", game);
-    if (gameName) params.set("game-name", gameName)
+    if (gameName) params.set("game-name", gameName);
     if (categoryName && category) params.set("category", category);
-    if (categoryName) params.set("category-name", categoryName)
+    if (categoryName) params.set("category-name", categoryName);
     if (usePlayerCounts && minPlayer) params.set("min", minPlayer);
     if (usePlayerCounts && maxPlayer) params.set("max", maxPlayer);
     if (duration) params.set("duration", duration);
@@ -47,64 +50,64 @@ searchInput.addEventListener("input", async function (event) {
     if (full) params.set("full", full);
     if (pending) params.set("pending", pending);
     if (played) params.set("played", played);
-        
+
     // Make an API call to the search endpoint with the query
     fetch(`/api/search?q=${encodeURIComponent(query)}&${params.toString()}`)
       .then((response) => response.json())
       .then((data) => {
-        console.log("fire")
-        console.log(data)
+        console.log("fire");
+        console.log(data);
         if (!data.length) return;
 
         /*for each item in the array...*/
-          for (i = 0; i < data.length; i++) {
-            /*create a DIV element for each matching element:*/
-            b = document.createElement("DIV");
+        for (i = 0; i < data.length; i++) {
+          /*create a DIV element for each matching element:*/
+          b = document.createElement("DIV");
 
-            /*make the matching letters bold:*/
-            const name = data[i].name;
-            let start = 0,
-              matchIndex;
-            while (
-              (matchIndex = name
-                .toLowerCase()
-                .indexOf(query.toLowerCase(), start)) !== -1
-            ) {
-              b.append(name.slice(start, matchIndex));
-              const strong = document.createElement("strong");
-              strong.textContent = name.slice(
-                matchIndex,
-                matchIndex + query.length,
-              );
-              b.appendChild(strong);
-              start = matchIndex + query.length;
-            }
-            b.append(name.slice(start));
-
-            /*insert a input field that will hold the current array item's value:*/
-            for (const [field, value] of [
-              ["name", name],
-              ["id", data[i].id],
-            ]) {
-              const hidden = document.createElement("input");
-              hidden.type = "hidden";
-              hidden.name = field;
-              hidden.value = value;
-              b.appendChild(hidden);
-            }
-
-            /*execute a function when someone clicks on the item value (DIV element):*/
-            b.addEventListener("click", function (e) {
-              /*insert the value for the autocomplete text field:*/
-              searchInput.value = this.getElementsByTagName("input")[0].value;
-              /*close the list of autocompleted values,
-              (or any other open lists of autocompleted values:*/
-              closeAllLists();
-              handleSearch();
-            });
-            a.appendChild(b);
-            // }
+          /*make the matching letters bold:*/
+          const name = data[i].name;
+          let start = 0,
+            matchIndex;
+          while (
+            (matchIndex = name
+              .toLowerCase()
+              .indexOf(query.toLowerCase(), start)) !== -1
+          ) {
+            b.append(name.slice(start, matchIndex));
+            const strong = document.createElement("strong");
+            strong.textContent = name.slice(
+              matchIndex,
+              matchIndex + query.length,
+            );
+            b.appendChild(strong);
+            start = matchIndex + query.length;
           }
+          b.append(name.slice(start));
+
+          /*insert a input field that will hold the current array item's value:*/
+          for (const [field, value] of [
+            ["name", name],
+            ["id", data[i].id],
+          ]) {
+            const hidden = document.createElement("input");
+            hidden.type = "hidden";
+            hidden.name = field;
+            hidden.value = value;
+            b.appendChild(hidden);
+          }
+
+          /*execute a function when someone clicks on the item value (DIV element):*/
+          b.addEventListener("click", function (e) {
+            /*insert the value for the autocomplete text field:*/
+            searchInput.value = this.getElementsByTagName("input")[0].value;
+            /*close the list of autocompleted values,
+              (or any other open lists of autocompleted values:*/
+            closeAllLists();
+            handleSearch();
+          });
+          a.appendChild(b);
+          // }
+        }
       })
       .catch((error) => {
         console.error("Error fetching search results:", error);
@@ -112,8 +115,6 @@ searchInput.addEventListener("input", async function (event) {
     delayTimer = null;
   }, 500); // Delay of 500 milliseconds
 });
-
-
 
 /*execute a function presses a key on the keyboard:*/
 searchInput.addEventListener("keydown", function (e) {
@@ -183,8 +184,10 @@ function handleSearch() {
   var game = document.getElementsByName("search-value")[0]?.value ?? "";
   var gameName = document.getElementsByName("search-key")[0]?.value ?? "";
   var category = document.getElementsByName("categories-value")[0]?.value ?? "";
-  var categoryName = document.getElementsByName("categories-key")[0]?.value ?? "";
-  var usePlayerCounts = document.getElementById("use-num-players")?.checked ?? false;
+  var categoryName =
+    document.getElementsByName("categories-key")[0]?.value ?? "";
+  var usePlayerCounts =
+    document.getElementById("use-num-players")?.checked ?? false;
   var minPlayer = document.getElementById("players-1")?.value ?? "";
   var maxPlayer = document.getElementById("players-2")?.value ?? "";
   var duration = document.getElementById("duration")?.value ?? "";
@@ -195,9 +198,9 @@ function handleSearch() {
 
   const params = new URLSearchParams({ q });
   if (gameName && game) params.set("game", game);
-  if (gameName) params.set("game-name", gameName)
+  if (gameName) params.set("game-name", gameName);
   if (categoryName && category) params.set("category", category);
-  if (categoryName) params.set("category-name", categoryName)
+  if (categoryName) params.set("category-name", categoryName);
   if (usePlayerCounts && minPlayer) params.set("min", minPlayer);
   if (usePlayerCounts && maxPlayer) params.set("max", maxPlayer);
   if (duration) params.set("duration", duration);

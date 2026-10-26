@@ -62,11 +62,9 @@
         
         <div class="description">{{event.description}}</div>
 
-        <div class="event-buttons-container settings-actions">
-            <!-- If pending, calandar button, otherwise RSVP -->
-            <a class="event-button-href pure-button pure-button-primary" href="/rsvp/{{ event.id }}">RSVP</a>
-            <button class="event-button pure-button" onclick="copyURL()" id="copyButton">Share</button>
-        </div>
+        {% with show_event_details=False, show_event_share=True %}
+        {% include "components/event_button_container.html" %}
+        {% endwith %}
     </section>
     <!-- </div> -->
 

@@ -176,32 +176,41 @@ def get_all_events():
             return cur.fetchall()
 
 
-def get_all_event_info():
+def get_all_event_info(user_id=None):
     with pool.connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
                 SELECT e.*,
+                    EXISTS (SELECT 1 FROM event_participation p
+                        WHERE p.id = e.id AND p.user_interested = %s) AS is_attending,
                     (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count
                 FROM events e
-                """
+                """,
+                (user_id,),
             )
             events = cur.fetchall()
     return add_game_info(events)
 
 
-def get_event_info(id):
+def get_all_user_event_info(id):
+    return get_all_event_info(id)
+
+
+def get_event_info(id, user_id=None):
     with pool.connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
                 SELECT e.*,
+                    EXISTS (SELECT 1 FROM event_participation p
+                        WHERE p.id = e.id AND p.user_interested = %s) AS is_attending,
                     (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count,
                     (SELECT u.display_name FROM users u WHERE u.id = e.hostid) AS display_name
                 FROM events e
                 WHERE e.id = %s
                 """,
-                (id,),
+                (user_id, id),
             )
             event = cur.fetchone()
     if event is None:
@@ -217,32 +226,74 @@ def get_event(id):
             return cur.fetchone()
 
 
-def get_user_events(user_id):
+def get_user_events(user_id, viewer_id=None):
     with pool.connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
                 SELECT e.*,
+                    EXISTS (SELECT 1 FROM event_participation p
+                        WHERE p.id = e.id AND p.user_interested = %s) AS is_attending,
                     (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count
                 FROM events e
                 WHERE e.hostID = %s
                 """,
-                (user_id,),
+                (viewer_id, user_id),
             )
             events = cur.fetchall()
     return add_game_info(events)
 
 
-def get_user_events_attending(user_id):
+def get_user_events_attending(user_id, viewer_id=None):
     with pool.connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
                 SELECT e.*,
+                    EXISTS (SELECT 1 FROM event_participation p
+                        WHERE p.id = e.id AND p.user_interested = %s) AS is_attending,
                     (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count
                 FROM events e
                 JOIN event_participation ea ON e.id = ea.id
-                WHERE ea.user_interested = %s
+                WHERE ea.user_interested = %s AND NOT ea.is_host
+                """,
+                (viewer_id, user_id),
+            )
+            events = cur.fetchall()
+    return add_game_info(events)
+
+
+def get_all_friend_events(id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT e.*,
+                    (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count,
+                    EXISTS (SELECT 1 FROM event_participation p
+                        WHERE p.id = e.id AND p.user_interested = %s) AS is_attending
+                FROM events e JOIN friends f ON f.followed = e.hostid
+                WHERE f.follower = %s
+                ORDER BY e.time DESC
+                """,
+                (id, id),
+            )
+            events = cur.fetchall()
+    return add_game_info(events)
+
+
+def get_events_in_week(user_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT e.*,
+                    (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count,
+                    EXISTS (SELECT 1 FROM event_participation p
+                        WHERE p.id = e.id AND p.user_interested = %s) AS is_attending
+                FROM events e
+                WHERE e.time >= NOW() AND e.time < NOW() + INTERVAL '7 days'
+                ORDER BY e.time
                 """,
                 (user_id,),
             )
@@ -327,6 +378,45 @@ def update_event(
         return conn.commit()
 
 
+def cancel_event(id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE events SET status = 'Canceled'
+                WHERE id = %s
+                """,
+                (id,),
+            )
+            return conn.commit()
+
+
+def restore_event(id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE events SET status = 'scheduled'
+                WHERE id = %s
+                """,
+                (id,),
+            )
+            return conn.commit()
+
+
+def delete_event(id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                DELETE FROM events
+                WHERE id = %s
+                """,
+                (id,),
+            )
+            return conn.commit()
+
+
 def attend_event(event_id, user_id, is_host):
     with pool.connection() as conn:
         with conn.cursor() as cur:
@@ -342,6 +432,34 @@ def attend_event(event_id, user_id, is_host):
             return cur.fetchone()
 
 
+def decommit_event(event_id, user_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                DELETE FROM event_participation 
+                WHERE id = %s AND user_interested = %s AND NOT is_host
+                """,
+                (event_id, user_id),
+            )
+        return cur.rowcount > 0
+
+
+def remove_event_followers(
+    event_id,
+):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                DELETE FROM event_participation 
+                WHERE id = %s
+                """,
+                (event_id,),
+            )
+        return conn.commit()
+
+
 def create_notification(conn, recipient_id, kind, message, user_id=None, event_id=None):
     return conn.execute(
         """
@@ -351,6 +469,51 @@ def create_notification(conn, recipient_id, kind, message, user_id=None, event_i
         """,
         (recipient_id, kind, message, user_id, event_id),
     ).fetchone()
+
+
+def notify_event_attendees(event_id, kind, message):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+            INSERT INTO notifications (recipient_id, kind, message, user_id, event_id)
+            SELECT p.user_interested, %s, %s, e.hostid, e.id
+            FROM event_participation p JOIN events e ON e.id = p.id
+            WHERE p.id = %s AND NOT p.is_host
+            """,
+                (kind, message, event_id),
+            )
+        return conn.commit()
+
+
+def notify_event_attendees_of_delete(event_id, kind, message):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+            INSERT INTO notifications (recipient_id, kind, message, user_id)
+            SELECT p.user_interested, %s, %s, e.hostid
+            FROM event_participation p JOIN events e ON e.id = p.id
+            WHERE p.id = %s AND NOT p.is_host
+            """,
+                (kind, message, event_id),
+            )
+        return conn.commit()
+
+
+def notify_event_host(event_id, kind, message, user_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+            INSERT INTO notifications (recipient_id, kind, message, user_id, event_id)
+            SELECT hostid, %s, %s, %s, id
+            FROM events
+            WHERE id = %s
+            """,
+                (kind, message, user_id, event_id),
+            )
+        return conn.commit()
 
 
 def get_notifications(recipient_id, limit=21, offset=0):
@@ -998,11 +1161,13 @@ def build_query(
 
     print(params)
     cond_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
-    query = f"""SELECT e.*, (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count
+    query = f"""SELECT e.*, (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count,
+        EXISTS (SELECT 1 FROM event_participation p
+            WHERE p.id = e.id AND p.user_interested = %s) AS is_attending
         FROM events e LEFT JOIN event_participation ep ON ep.id = e.id
         {cond_clause}
         GROUP BY e.id"""
-    return query, params
+    return query, [user_id] + params
 
 
 # https://bgg-api.readthedocs.io/en/stable/modules.html#boardgamegeek.api.BGGClient.game

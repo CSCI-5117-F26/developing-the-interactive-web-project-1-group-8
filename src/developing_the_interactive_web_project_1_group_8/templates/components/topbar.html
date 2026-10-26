@@ -29,6 +29,9 @@
 
         {% if not setup_required %}
         <li class="pure-menu-item">
+          <a id="create-event-link" class="pure-menu-link" href="{{ url_for('create_event') }}"><i class="fa fa-plus"></i> Create Event</a>
+        </li>
+        <li class="pure-menu-item">
           <a id="notifications-link" class="pure-menu-link" href="{{ url_for('notifications') }}" title="Notifications">
             <i class="fa fa-bell"></i>
             {% if unread_notification_count %}<span class="notification-count">{{ unread_notification_count }} unread</span>{% endif %}

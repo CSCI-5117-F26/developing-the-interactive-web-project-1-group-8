@@ -7,7 +7,6 @@
   border-radius: 8px;
 
   .autocomplete-items {
-
     .active {
       background-color: var(--color-primary);
       color: var(--color-on-primary);

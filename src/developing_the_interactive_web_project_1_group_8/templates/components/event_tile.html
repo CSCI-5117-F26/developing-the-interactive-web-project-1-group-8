@@ -22,8 +22,5 @@
       <div>{{ event.count }}/{{event.max_attendees}} Going</div>
     </div>
   </div>
-  <div class="event-buttons-container settings-actions">
-    <a href="{{ url_for('rsvp', event_id=event.id) }}" class="event-button pure-button pure-button-primary">RSVP</a>
-    <a href="{{ url_for('event', event_id=event.id) }}" class="event-button pure-button">Details</a>
-  </div>
+  {% include "components/event_button_container.html" %}
 </div>
