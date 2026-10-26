@@ -6,28 +6,34 @@
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button class="event-button pure-button" type="submit">Restore</button>
     </form>
-    {% else %}
+    {% endif %}
     <button type="button" class="event-button pure-button button-cancel"
-    onclick="this.nextElementSibling.showModal()">Cancel</button>
-    <dialog onclick="event.stopPropagation()" class="cancel-popup">
+    onclick="this.nextElementSibling.showModal()">{% if event.status == 'Canceled' %}Delete permanently{% else %}Cancel{% endif %}</button>
+    <dialog onclick="event.stopPropagation()" class="cancel-popup profile-section">
       <form action="{{ url_for('cancel_event', event_id=event.id)}}" method="post">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" formmethod="dialog" formnovalidate class="cancel-close"
-        ><i class="fa fa-times"></i> Close</button>
-        <p>Cancel {{ event.name }}? If you press 'Delete permanently', the event along with
-          the list of attendees will be gone forever. Alternatively, if you want the option to
-          restore the event in the future, you can choose 'Cancel for now'
-        </p>
-        <button type="submit" class="event-button pure-button" name="action" value="temporary">
-          Cancel for now
-        </button>
-        <button type="submit" class="event-button pure-button button-cancel"
-         name="action" value="permanent">Delete Permanently
-        </button>
+        <header class="settings-links">
+          <h2>{% if event.status == 'Canceled' %}Delete{% else %}Cancel{% endif %} {{ event.name }}?</h2>
+        </header>
+        {% if event.status == 'Canceled' %}
+        <p>This permanently deletes the event and its attendee list.</p>
+        {% else %}
+        <p>Cancel for now to keep the event and restore it later. Delete permanently removes the event and its attendee list.</p>
+        {% endif %}
+        <div class="settings-actions">
+          <button type="submit" formmethod="dialog" formnovalidate class="pure-button">Never mind</button>
+          {% if event.status != 'Canceled' %}
+          <button type="submit" class="event-button pure-button" name="action" value="temporary">
+            Cancel for now
+          </button>
+          {% endif %}
+          <button type="submit" class="event-button pure-button button-cancel"
+           name="action" value="permanent">Delete Permanently
+          </button>
+        </div>
       </form>
 
     </dialog>
-    {% endif %}
     {% if show_event_details is not defined or show_event_details %}<a href="{{ url_for('event', event_id=event.id) }}" class="event-button pure-button">Details</a>{% endif %}
     <a href="{{ url_for('edit_event', event_id=event.id)}} " class="event-button pure-button">Edit</a>
     {% else %}

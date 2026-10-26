@@ -1,12 +1,12 @@
 {% block topbar %}
 {% set setup_required = session.get('profile') and (not session['profile'].get('setup_complete') or not session['profile'].get('username')) %}
 <div id="topbar" class="pure-g">
-  <div>
+  <div class="topbar-brand">
     <div class="pure-menu" style="width: fit-content;">
       <a href="{{ url_for('username' if setup_required else 'index') }}" class="pure-menu-link">Game Master</a>
     </div>
   </div>
-  <div style="flex-grow: 1;">
+  <div class="topbar-search">
     <div class="pure-menu pure-menu-horizontal" style="justify-content: center;display: flex;">
       <form id="search-form" role="search" method="GET" aria-label="Site search"
         class="pure-form pure-g">
@@ -21,7 +21,7 @@
       </form>
     </div>
   </div>
-  <div>
+  <div class="topbar-actions">
     <div class="pure-menu pure-menu-horizontal menu-3">
       <ul class="pure-menu-list">
         {% if session.get('profile') %}

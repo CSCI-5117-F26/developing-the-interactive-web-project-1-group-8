@@ -25,7 +25,9 @@
                     {% include "components/event_status.html" %}
                 </div>
                 <div class="event-info">
-                    Hosted By: {% if event.display_name %}{{ event.display_name }}
+                    Hosted By: {% if event.host_username %}
+                    <a href="{{ url_for('user', username=event.host_username) }}">{{ event.display_name or event.host_username }}</a>
+                    {% elif event.display_name %}{{ event.display_name }}
                     {% else %}Anonymous{% endif %}
                 </div>
                 <div class="event-info-container">

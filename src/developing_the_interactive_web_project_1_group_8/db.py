@@ -206,7 +206,8 @@ def get_event_info(id, user_id=None):
                     EXISTS (SELECT 1 FROM event_participation p
                         WHERE p.id = e.id AND p.user_interested = %s) AS is_attending,
                     (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count,
-                    (SELECT u.display_name FROM users u WHERE u.id = e.hostid) AS display_name
+                    (SELECT u.display_name FROM users u WHERE u.id = e.hostid) AS display_name,
+                    (SELECT u.username FROM users u WHERE u.id = e.hostid) AS host_username
                 FROM events e
                 WHERE e.id = %s
                 """,
