@@ -1001,7 +1001,7 @@ def add_event():
     print(session["profile"]["id"])
     result = db.create_event(
         request.form.get("name"),
-        request.form.get("gameid"),
+        request.form.get("search-value"),
         session["profile"]["id"],
         request.form.get("address"),
         request.form.get("time") or None,
