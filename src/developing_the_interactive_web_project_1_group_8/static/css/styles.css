@@ -75,6 +75,10 @@ main {
   margin-bottom: 40px;
 }
 
+textarea {
+  resize: none;
+}
+
 .settings-section,
 .settings-notice,
 section.profile-section,

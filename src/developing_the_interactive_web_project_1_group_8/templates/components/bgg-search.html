@@ -1,6 +1,6 @@
 {% macro autocomplete(searchid,placeholder,public_value="",hidden_key="",hidden_value="") %}
 <form class="pure-form" method="POST" autocomplete="off">
-  <div class='bgg-search'>
+  <div class='bgg-search pure-u-2-3'>
     <div class='bgg-searchbar'>
       <input id='bgg-games-{{ searchid }}' role="search" class='bgg-input' type='text' name='bgg_game' placeholder='{{ placeholder }}' value="{{ public_value }}" />
       <input type="hidden" name="{{ searchid }}-key" value="{{ hidden_key }}">
