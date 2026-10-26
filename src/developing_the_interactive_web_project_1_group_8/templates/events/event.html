@@ -4,6 +4,7 @@
 
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/event.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/user.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -30,7 +31,6 @@
                 </div>
                 <div class="event-info-container">
                     <div class="event-info">
-                        <!-- Date + Time if scheduled, Date range otherwise -->
                         <div class="event-icon-container">
                             <img class="event-icon" 
                         src="{{ url_for('static', filename='images/calendar.svg') }}">
@@ -54,13 +54,26 @@
         </div>
     <section class="profile-section">
         <div class="event-info">
-            {{ event.count }} / {{event.max_attendees}} going
+            {{ event.count }} / {{event.max_attendees}} attendees
         </div>
+        {% if attendees %}
+        <br>
+        <div class="carousel event-user-carousel">
+            {% for user in attendees %}
+            <a class="profile-friend" href="{{ url_for('user', username=user.username) }}" title="{{ user.display_name }}">
+            <img class="user-ico" src="{{ avatar_url(user) }}" width="64" height="64">
+            <span>{{ user.display_name }}</span>
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
         <h2 class="description-label">
             Description
         </h2>
         
         <div class="description">{{event.description}}</div>
+
+        <br>
 
         {% with show_event_details=False, show_event_share=True %}
         {% include "components/event_button_container.html" %}

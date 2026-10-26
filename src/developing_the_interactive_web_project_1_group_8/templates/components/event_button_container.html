@@ -39,7 +39,9 @@
     {% elif event.status != 'Canceled' %}
     <form method="post" action="{{ url_for('rsvp', event_id=event.id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% if event.count < event.max_attendees %}
       <button class="event-button pure-button pure-button-primary" type="submit">Commit</button>
+      {% endif %}
     </form>
     {% endif %}
     {% if show_event_details is not defined or show_event_details %}<a href="{{ url_for('event', event_id=event.id) }}" class="event-button pure-button">Details</a>{% endif %}

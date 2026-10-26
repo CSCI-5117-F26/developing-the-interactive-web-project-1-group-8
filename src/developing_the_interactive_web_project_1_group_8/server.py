@@ -976,11 +976,16 @@ def event(event_id):
     """
 
     event = db.get_event_info(event_id, session.get("profile", {}).get("id"))
+    attendees = None
     # print(event)
     if event is None:
         abort(404, "This event does not appear to exist.")
+
+    if event['hostid'] == session.get("profile", {}).get("id"):
+        attendees = db.get_all_event_attendees(event_id)
+        print(attendees)
     # print(db.get_event(event_id))
-    return render_template("events/event.html", event=event)
+    return render_template("events/event.html", event=event, attendees=attendees)
 
 
 @app.route("/create-event")
@@ -1017,10 +1022,12 @@ def add_event():
 @app.post("/rsvp/<int:event_id>")
 @requires_auth
 def rsvp(event_id):
-    event = db.get_event(event_id)
+    event = db.get_event_info(event_id)
     if event is None:
         abort(404, "This event does not appear to exist.")
     user_id = session["profile"]["id"]
+    if event["count"] >= event["max_attendees"]:
+        abort(404, "This event is already at maximum capacity.")
     if event["status"] == "Canceled" or event["hostid"] == user_id:
         return redirect(url_for("event", event_id=event_id))
     if db.attend_event(event_id, user_id, False):

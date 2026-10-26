@@ -292,7 +292,7 @@ def get_events_in_week(user_id):
                     EXISTS (SELECT 1 FROM event_participation p
                         WHERE p.id = e.id AND p.user_interested = %s) AS is_attending
                 FROM events e
-                WHERE e.time >= NOW() AND e.time < NOW() + INTERVAL '7 days'
+                WHERE e.time >= NOW() AND e.time < NOW() + INTERVAL '7 days' AND e.status <> 'Canceled'
                 ORDER BY e.time
                 """,
                 (user_id,),
@@ -377,6 +377,14 @@ def update_event(
             )
         return conn.commit()
 
+def get_all_event_attendees(event_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+            SELECT * FROM users u, event_participation p
+            WHERE u.id = p.user_interested AND p.id = %s AND NOT p.is_host
+            """, (event_id,))
+            return cur.fetchall()
 
 def cancel_event(id):
     with pool.connection() as conn:
