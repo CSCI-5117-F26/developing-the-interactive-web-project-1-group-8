@@ -122,6 +122,18 @@
   border-bottom: 0;
 }
 
+.event-button {
+  border-radius: 1.5rem;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.button-error, .button-error {
+  background-color: var(--color-danger) !important;
+  border: 1px solid var(--color-danger) !important;
+  color: white !important;
+}
+
 .event-carousel {
   min-width: 0;
   overflow: hidden;

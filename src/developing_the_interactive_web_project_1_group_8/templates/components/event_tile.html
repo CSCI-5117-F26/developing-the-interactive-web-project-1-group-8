@@ -25,7 +25,18 @@
     </div>
   </div>
   <div class="event-buttons-container settings-actions">
-    <a href="{{ url_for('rsvp', event_id=event.id) }}" class="event-button pure-button pure-button-primary">RSVP</a>
+    {% if 'profile' in session and 'id' in session['profile'] 
+    and session['profile']['id'] == event.hostid %}
+    <a href="{{ url_for('delete_event', event_id=event.id)}}" class="event-button pure-button button-error">Cancel</a>
     <a href="{{ url_for('event', event_id=event.id) }}" class="event-button pure-button">Details</a>
+    <a href="{{ url_for('edit_event', event_id=event.id)}} " class="event-button pure-button">Edit</a>
+    {% else %}
+    {% if event.is_attending %}
+    <a href="{{ url_for('decommit', event_id=event.id) }}" class="event-button pure-button button-error">Decommit</a>
+    {% else %}
+    <a href="{{ url_for('rsvp', event_id=event.id) }}" class="event-button pure-button pure-button-primary">Commit</a>
+    {% endif %}
+    <a href="{{ url_for('event', event_id=event.id) }}" class="event-button pure-button">Details</a>
+    {% endif %}
   </div>
 </div>

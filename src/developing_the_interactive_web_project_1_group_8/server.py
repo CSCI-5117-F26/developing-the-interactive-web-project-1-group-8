@@ -205,13 +205,24 @@ def format_page_time(dt):
 @app.route("/")
 def index():
     """Dashboard page, where users can explore for new events"""
-    events = db.get_all_event_info()
-    sections = [
-        ("Events from Popular Games", events),
-        ("Events from Games You've Played", events),
-        ("Events in the Next Week", events),
-        ("Friend Events!", events),
-    ]
+    if "profile" not in session:
+        events = db.get_all_event_info()
+    
+        sections = [
+            ("Events from Popular Games", events),
+            ("Events from Games You've Played", events),
+            ("Events in the Next Week", events),
+            ("Friend Events!", events),
+        ]
+    else:
+        events = db.get_all_user_event_info(session["profile"]["id"])
+
+        sections = [
+            ("Events from Popular Games", events),
+            ("Events from Games You've Played", events),
+            ("Events in the Next Week", events),
+            ("Friend Events!", events),
+        ]
     return render_template("index.html", sections=sections)
 
 
@@ -983,6 +994,13 @@ def rsvp(event_id):
 
     return redirect("/")
 
+@app.route("/decommit/<int:event_id>")
+@requires_auth
+def decommit(event_id):
+
+    db.decommit_event(event_id, session["profile"]["id"])
+
+    return redirect("/")
 
 @app.route("/event/<int:event_id>/edit")
 @requires_auth
@@ -1032,6 +1050,21 @@ def update_event(event_id):
     )
 
     return redirect("/")
+
+@app.route("/delete-event/<int:event_id>")
+@requires_auth
+def delete_event(event_id):
+    check_event = db.get_event_info(event_id)
+    if check_event is None:
+        abort(404, "This event does not appear to exist.")
+    
+    if check_event["hostid"] != session["profile"]["id"]:
+        abort(404, "This event does not belong to you.")
+    
+    db.delete_event(event_id)
+    
+    return redirect("/")
+
 
 
 # ---------- Error Handlers ----------
