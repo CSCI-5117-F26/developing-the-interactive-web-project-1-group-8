@@ -2,7 +2,7 @@
 <form class="pure-form" method="POST" autocomplete="off">
   <div class='bgg-search'>
     <div class='bgg-searchbar'>
-      <input id='bgg-games-{{ searchid }}' role="search" class='bgg-input' type='text' name='bgg_game' placeholder='{{ placeholder }}' value="{{ public_value }}" />
+      <input id='bgg-games-{{ searchid }}' role="search" class='bgg-input' type='text' name='bgg_game' placeholder='{{ placeholder }}' value="{{ public_value }}" noautocomplete/>
       <input type="hidden" name="{{ searchid }}-key" value="{{ hidden_key }}">
       <input type="hidden" name="{{ searchid }}-value" value="{{ hidden_value }}">
     </div>
