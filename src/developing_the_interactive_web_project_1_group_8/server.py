@@ -1059,8 +1059,11 @@ def edit_event(public_id):
     event_id = edited_event["id"]
     # TODO There should be a check as to whether edited_event.hostid == the
     # userID of the session holder, 403 otherwise
+    edited_event["gamename"] = db.bgg.game(game_id=edited_event["gameid"]).name
+    
     print(session["profile"])
     print(edited_event)
+    
     if session["profile"]["id"] == edited_event["hostid"]:
         return render_template("events/event_info.html", event=edited_event)
     else:
@@ -1091,7 +1094,7 @@ def update_event(public_id):
     db.update_event(
         event_id,
         request.form.get("name"),
-        request.form.get("gameid"),
+        request.form.get("search-value"),
         request.form.get("address"),
         request.form.get("time") or None,
         request.form.get("expected_duration"),

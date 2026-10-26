@@ -49,7 +49,7 @@
                 <div class="pure-control-group">
 
                 <label for="bgg-games-search">Game</label>
-                {{ autocomplete('search', 'Games...', event.gameid) }}
+                {{ autocomplete('search', 'Games...', event.gamename, event.gamename, event.gameid) }}
                 </div>
 
                 {# <input id="event-gameid" type="text" value="{{ event.gameid }}" required pattern="^[0-9]+$"
