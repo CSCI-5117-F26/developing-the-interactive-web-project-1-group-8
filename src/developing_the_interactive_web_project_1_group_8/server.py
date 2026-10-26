@@ -1048,11 +1048,7 @@ def rsvp(public_id):
         or event["hostid"] == user_id
     ):
         return redirect(url_for("event", public_id=public_id))
-    if db.attend_event(event_id, user_id, False):
-        message = (
-            f"{session['profile']['username']} has committed to attend your event."
-        )
-        db.notify_event_host(event_id, "host_update", message, user_id)
+    db.attend_event(event_id, user_id, False)
     return redirect("/")
 
 
@@ -1066,9 +1062,7 @@ def decommit(public_id):
     if event["is_completed"]:
         return redirect(url_for("event", public_id=public_id))
     user_id = session["profile"]["id"]
-    if db.decommit_event(event_id, user_id):
-        message = f"{session['profile']['username']} has decommitted from attending your event."
-        db.notify_event_host(event_id, "host_update", message, user_id)
+    db.decommit_event(event_id, user_id)
     return redirect("/")
 
 
@@ -1082,11 +1076,8 @@ def edit_event(public_id):
     event_id = edited_event["id"]
     # TODO There should be a check as to whether edited_event.hostid == the
     # userID of the session holder, 403 otherwise
-    edited_event["gamename"] = db.bgg.game(game_id=edited_event["gameid"]).name
-    
     print(session["profile"])
     print(edited_event)
-    
     if session["profile"]["id"] == edited_event["hostid"]:
         db.add_game_info([edited_event])
         return render_template("events/event_info.html", event=edited_event)
@@ -1135,11 +1126,6 @@ def update_event(public_id):
         "scheduled",
     )
 
-    message = (
-        f"The details of the event '{request.form.get('name')}' have been updated."
-    )
-    db.notify_event_attendees(event_id, "event_update", message)
-
     return redirect("/")
 
 
@@ -1160,19 +1146,8 @@ def cancel_event(public_id):
         abort(404, "This event does not belong to you.")
 
     if choice == "permanent":
-        message = f"""The event '{check_event["name"]}' has been permanently canceled"""
-
-        db.notify_event_attendees_of_delete(event_id, "event_cancelation", message)
-
-        db.remove_event_followers(event_id)
-
         db.delete_event(event_id)
-
     else:
-        message = f"""The event '{check_event["name"]}' has been canceled"""
-
-        db.notify_event_attendees(event_id, "event_cancelation", message)
-
         db.cancel_event(event_id)
 
     return redirect("/")
@@ -1188,11 +1163,6 @@ def restore_event(public_id):
 
     if check_event["hostid"] != session["profile"]["id"]:
         abort(404, "This event does not belong to you.")
-
-    message = f"""The event '{check_event["name"]}' has been restored and its info
-    can be viewed below"""
-
-    db.notify_event_attendees(event_id, "event_cancelation", message)
 
     db.restore_event(event_id)
 
