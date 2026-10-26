@@ -36,6 +36,11 @@ from developing_the_interactive_web_project_1_group_8.avatars import (
     upload_avatar,
 )
 
+from developing_the_interactive_web_project_1_group_8.event_times import (
+    CENTRAL,
+    parse_utc_time,
+)
+
 db.setup()
 
 load_dotenv()
@@ -190,7 +195,8 @@ def format_time(dt):
     if dt is None:
         return "N/A"
 
-    return f"{dt.hour % 12 or 12}:{dt.strftime('%M %p, %a %b')} {dt.day} {dt.year}"
+    dt = dt.astimezone(CENTRAL)
+    return f"{dt.hour % 12 or 12}:{dt.strftime('%M %p, %a %b')} {dt.day} {dt.year} {dt.tzname()}"
 
 
 @app.template_filter()
@@ -201,6 +207,11 @@ def format_tile_time(dt):
 @app.template_filter()
 def format_page_time(dt):
     return format_time(dt)
+
+
+@app.template_filter()
+def format_event_input(dt):
+    return dt.astimezone(CENTRAL).strftime("%Y-%m-%dT%H:%M") if dt else ""
 
 
 @app.route("/")
@@ -999,12 +1010,18 @@ def create_event():
 def add_event():
     print(request.form)
     print(session["profile"]["id"])
+    try:
+        event_time = parse_utc_time(request.form.get("time"))
+    except ValueError:
+        return render_template(
+            "error.html", message="Choose a valid event time in Central Time (CT)."
+        ), 400
     result = db.create_event(
         request.form.get("name"),
-        request.form.get("search-value"),
+        request.form.get("search-value") or request.form.get("gameid"),
         session["profile"]["id"],
         request.form.get("address"),
-        request.form.get("time") or None,
+        event_time,
         request.form.get("expected_duration"),
         request.form.get("min_attendees"),
         request.form.get("max_attendees"),
@@ -1025,7 +1042,11 @@ def rsvp(public_id):
         abort(404, "This event does not appear to exist.")
     event_id = event["id"]
     user_id = session["profile"]["id"]
-    if event["status"] == "Canceled" or event["hostid"] == user_id:
+    if (
+        event["status"] == "Canceled"
+        or event["is_completed"]
+        or event["hostid"] == user_id
+    ):
         return redirect(url_for("event", public_id=public_id))
     if db.attend_event(event_id, user_id, False):
         message = (
@@ -1042,6 +1063,8 @@ def decommit(public_id):
     if event is None:
         abort(404, "This event does not appear to exist.")
     event_id = event["id"]
+    if event["is_completed"]:
+        return redirect(url_for("event", public_id=public_id))
     user_id = session["profile"]["id"]
     if db.decommit_event(event_id, user_id):
         message = f"{session['profile']['username']} has decommitted from attending your event."
@@ -1065,6 +1088,7 @@ def edit_event(public_id):
     print(edited_event)
     
     if session["profile"]["id"] == edited_event["hostid"]:
+        db.add_game_info([edited_event])
         return render_template("events/event_info.html", event=edited_event)
     else:
         # print(session["profile"]["user"])
@@ -1091,12 +1115,19 @@ def update_event(public_id):
             "Cannot adjust an event's max attendees lower than the number of participants.",
         )
 
+    try:
+        event_time = parse_utc_time(request.form.get("time"), check_event["time"])
+    except ValueError:
+        return render_template(
+            "error.html", message="Choose a valid event time in Central Time (CT)."
+        ), 400
+
     db.update_event(
         event_id,
         request.form.get("name"),
-        request.form.get("search-value"),
+        request.form.get("search-value") or request.form.get("gameid"),
         request.form.get("address"),
-        request.form.get("time") or None,
+        event_time,
         request.form.get("expected_duration"),
         request.form.get("min_attendees"),
         request.form.get("max_attendees"),

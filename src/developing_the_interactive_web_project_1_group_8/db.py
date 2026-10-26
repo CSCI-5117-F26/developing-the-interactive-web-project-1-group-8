@@ -13,6 +13,11 @@ import random
 import secrets
 from datetime import datetime, timedelta
 
+from developing_the_interactive_web_project_1_group_8.event_times import (
+    CENTRAL,
+    is_event_completed,
+)
+
 
 load_dotenv()
 
@@ -1152,7 +1157,7 @@ def build_query(
         params.append(max_duration)
     if recency:
         conditions.append("e.time >= %s AND e.time < %s")
-        start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        start = datetime.now(CENTRAL).replace(hour=0, minute=0, second=0, microsecond=0)
         if recency == "today":
             end = start + timedelta(days=1)
         else:
@@ -1180,10 +1185,12 @@ def build_query(
 def add_game_info(events):
     games = {}
     for event in events:
+        event["is_completed"] = is_event_completed(event)
         game_id = event["gameid"]
         if game_id is None or game_id <= 0:
             event["game_name"] = None
             event["image_url"] = None
+            event["game_categories"] = []
             continue
         if game_id not in games:
             try:
@@ -1193,11 +1200,16 @@ def add_game_info(events):
         game = games[game_id]
         event["game_name"] = game.name if game else None
         event["image_url"] = (game.image or game.thumbnail) if game else None
+        if game:
+            event["game_categories"] = game.categories
     return events
 
 
 def get_event_by_public_id(public_id):
     with pool.connection() as conn:
-        return conn.execute(
+        event = conn.execute(
             "SELECT * FROM events WHERE public_id = %s", (public_id,)
         ).fetchone()
+    if event is not None:
+        event["is_completed"] = is_event_completed(event)
+    return event

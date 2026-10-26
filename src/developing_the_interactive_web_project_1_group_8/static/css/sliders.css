@@ -1,4 +1,6 @@
 .num-players-wrapper {
+  --player-thumb-size: 1.7em;
+  --player-track-size: 0.3125rem;
   position: relative;
   border-radius: 10px;
   margin-bottom: 60px;
@@ -6,6 +8,7 @@
   .container {
     position: relative;
     width: 100%;
+    height: var(--player-thumb-size);
     margin-top: 30px;
   }
   input[type="range"] {
@@ -13,17 +16,24 @@
     -moz-appearance: none;
     appearance: none;
     width: 100%;
+    height: var(--player-thumb-size);
+    box-sizing: border-box;
+    padding: 0;
+    border: 0;
+    font: inherit;
     outline: none;
     position: absolute;
-    margin: auto;
+    margin: 0;
     top: 0;
     bottom: 0;
+    left: 0;
     background-color: transparent;
     pointer-events: none;
   }
   .slider-track {
-    width: 100%;
-    height: 5px;
+    left: calc(var(--player-thumb-size) / 2);
+    width: calc(100% - var(--player-thumb-size));
+    height: var(--player-track-size);
     position: absolute;
     margin: auto;
     top: 0;
@@ -32,30 +42,34 @@
   }
   input[type="range"]::-webkit-slider-runnable-track {
     -webkit-appearance: none;
-    height: 5px;
+    height: var(--player-track-size);
   }
   input[type="range"]::-moz-range-track {
     -moz-appearance: none;
-    height: 5px;
+    height: var(--player-track-size);
   }
   input[type="range"]::-ms-track {
     appearance: none;
-    height: 5px;
+    height: var(--player-track-size);
   }
   input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
-    height: 1.7em;
-    width: 1.7em;
+    height: var(--player-thumb-size);
+    width: var(--player-thumb-size);
+    box-sizing: border-box;
+    border: none;
     background-color: var(--color-primary);
     cursor: pointer;
-    margin-top: -9px;
+    margin-top: calc((var(--player-track-size) - var(--player-thumb-size)) / 2);
     pointer-events: auto;
     border-radius: 50%;
   }
   input[type="range"]::-moz-range-thumb {
     -webkit-appearance: none;
-    height: 1.7em;
-    width: 1.7em;
+    height: var(--player-thumb-size);
+    width: var(--player-thumb-size);
+    box-sizing: border-box;
+    border: none;
     cursor: pointer;
     border-radius: 50%;
     background-color: var(--color-primary);
@@ -63,8 +77,10 @@
   }
   input[type="range"]::-ms-thumb {
     appearance: none;
-    height: 1.7em;
-    width: 1.7em;
+    height: var(--player-thumb-size);
+    width: var(--player-thumb-size);
+    box-sizing: border-box;
+    border: none;
     cursor: pointer;
     border-radius: 50%;
     background-color: var(--color-primary);
