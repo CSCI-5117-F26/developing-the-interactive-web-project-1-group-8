@@ -254,11 +254,13 @@ def create_event(
 ):
     with pool.connection() as conn:
         with conn.cursor() as cur:
+            categories = bgg.game(game_id=gameID).categories
+            print(categories)
             cur.execute(
                 """
                 INSERT INTO events (name, gameID, hostID, address, time, expected_duration,
-                min_attendees, max_attendees, description, status)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                min_attendees, max_attendees, description, status, game_categories)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING *
                 """,
                 (
@@ -272,6 +274,7 @@ def create_event(
                     max_attendees,
                     description,
                     status,
+                    categories,
                 ),
             )
             return cur.fetchone()
@@ -875,7 +878,7 @@ def is_blocked(blocking_id, blocked_id):
 # ---------- Search ----------
 
 
-def search_events(q, user_id, game, category, min_players, max_players, duration, recency, full, pending, played):
+def search_events(q, user_id, game, category, category_name, min_players, max_players, duration, recency, full, pending, played):
     with pool.connection() as conn:
         with conn.cursor() as cur:
             # cur.execute(
@@ -888,12 +891,14 @@ def search_events(q, user_id, game, category, min_players, max_players, duration
             #     (f"%{name_query}%",),
             # )
             # return cur.fetchall()
-            query, params = build_query(q, user_id, game, category, min_players, max_players, duration, recency, full, pending, played)
+            query, params = build_query(q, user_id, game, category, category_name, min_players, max_players, duration, recency, full, pending, played)
             return cur.execute(query, params).fetchall()
 
-def build_query(q, user_id, game, category, min_players, max_players, duration, recency, full, pending, played):
+def build_query(q, user_id, game, category, category_name, min_players, max_players, duration, recency, full, pending, played):
     conditions = []
     params = []
+    if (game):
+        print(bgg.game(game_id=game).categories)
     conditions.append("LOWER(e.name) LIKE LOWER(%s)")
     params.append(f"%{q}%")
 
@@ -911,7 +916,9 @@ def build_query(q, user_id, game, category, min_players, max_players, duration, 
             )"""
         )
         params.append(user_id)
-
+    if category:
+        conditions.append("%s = ANY(e.game_categories)")
+        params.append(category_name)
     if min_players is not None:
         conditions.append("e.min_attendees >= %s")
         params.append(min_players)
@@ -938,6 +945,7 @@ def build_query(q, user_id, game, category, min_players, max_players, duration, 
     if pending:
         conditions.append("e.status = 'pending'")
 
+    print(params)
     cond_clause ="WHERE " + " AND ".join(conditions) if conditions else ""
     query = f"""SELECT e.*, (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count
         FROM events e LEFT JOIN event_participation ep ON ep.id = e.id

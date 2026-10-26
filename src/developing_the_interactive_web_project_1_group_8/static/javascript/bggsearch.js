@@ -13,6 +13,9 @@ function autocomplete ( str, uri ) {
   the text field element and an array of possible autocompleted values:*/
   var currentFocus;
   var delayTimer;
+  if (!searchElement) {
+    return;
+  }
   /*execute a function when someone writes in the text field:*/
   searchElement.addEventListener( "input", async function ( e ) {
     var a,
@@ -100,6 +103,7 @@ function autocomplete ( str, uri ) {
         /*execute a function when someone clicks on the item value (DIV element):*/
         b.addEventListener( "click", function ( e ) {
           /*insert the value for the autocomplete text field:*/
+          searchElement.setAttribute('value', this.getElementsByTagName( "input" )[ 0 ].value);
           searchElement.value = this.getElementsByTagName( "input" )[ 0 ].value;
 
           /*insert the value for the hidden input field:*/
