@@ -108,7 +108,7 @@
             ></div> -->
                 <div class="pure-control-group">
                     <label for="time">Event Time</label>
-                    <input id="event-time" type="datetime-local" name="time" value="{{ event.time }}">
+                    <input id="event-time" min="{{ now }}" type="datetime-local" name="time" value="{{ event.time }}">
                 </div>
                 <div class="button-container">
                     <button type="submit" class="pure-button pure-button-primary event-button">{% if event %} Update {%

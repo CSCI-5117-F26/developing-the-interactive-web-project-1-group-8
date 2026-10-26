@@ -1060,7 +1060,7 @@ def edit_event(public_id):
     # TODO There should be a check as to whether edited_event.hostid == the
     # userID of the session holder, 403 otherwise
     edited_event["gamename"] = db.bgg.game(game_id=edited_event["gameid"]).name
-    
+    edited_event["time"] = edited_event["time"].strftime("%Y-%m-%dT%H:%M") if edited_event["time"] else None
     print(session["profile"])
     print(edited_event)
     
@@ -1167,6 +1167,12 @@ def restore_event(public_id):
 
     return redirect("/")
 
+
+import datetime
+
+@app.context_processor
+def inject_today_date():
+    return {'now': datetime.datetime.now()}
 
 # ---------- Error Handlers ----------
 @app.errorhandler(404)
