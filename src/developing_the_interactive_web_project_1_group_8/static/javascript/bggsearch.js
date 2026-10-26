@@ -4,6 +4,10 @@ function autocomplete ( str, uri ) {
   }
 
   var searchElement = document.getElementById( "bgg-games-"+str );
+  if ( !searchElement ) {
+    return;
+  }
+
 
   /*the autocomplete function takes two arguments,
   the text field element and an array of possible autocompleted values:*/

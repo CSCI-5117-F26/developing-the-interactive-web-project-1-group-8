@@ -7,10 +7,10 @@
   */
 
   /* Backgrounds & Surfaces */
-  --color-background: hsl(30, 27%, 96%);
-  --color-background-outset: hsl(180, 12%, 91%);
+  --color-background: hsl(30, 57%, 95%);
+  --color-background-outset: hsl(30, 31%, 89%);
   --color-foreground: hsl(0, 0%, 0%);
-  --color-surface: hsl(0, 0%, 100%);
+  --color-surface: hsl(30, 67%, 98%);
   --color-surface-muted: hsl(18, 25%, 92%);
 
   /* Brand Colors */
@@ -20,19 +20,22 @@
   --color-accent-soft: hsl(351, 37%, 89%);
   --color-muted: hsl(0, 0%, 59%);
 
+  /* Drop Shadows */
+  --color-shadow: hsl(32, 7%, 48%);
+
   /* Top Bar */
   --color-topbar-background: var(--color-primary);
-  --color-topbar-background-secondary: hsl(213, 37%, 30%);
+  --color-topbar-background-secondary: hsl(213, 63%, 35%);
   --color-topbar-text: hsl(213, 86%, 84%);
   --color-topbar-hover: hsl(213, 42%, 20%);
 
   /* Typography */
-  --color-text-primary: var(--color-primary);
+  --color-text-primary: hsl(211, 50%, 17%);
   --color-text-secondary: hsl(234, 9%, 45%);
   --color-text-inverse: var(--color-surface);
 
   /* Borders */
-  --color-border: hsl(15, 15%, 89%);
+  --color-border: #dec397;
 
   /* Status: Success / Going */
   --color-success: hsl(160, 39%, 35%);
@@ -52,10 +55,13 @@
   /* Status: Pending / Awaiting Response */
   --color-pending: var(--color-text-secondary);
   --color-pending-soft: var(--color-surface-muted);
+
+  overscroll-behavior: none;
 }
 
 body {
   background-color: var(--color-background);
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -66,20 +72,27 @@ main {
   /* max-width: 1120px; */
   /* margin: 30px auto; */
   padding: 0 40px;
+  margin-bottom: 40px;
+}
+
+section {
+  filter: drop-shadow(2px 2px 1px var(--color-shadow));
 }
 
 /* --- Topbar Styles --- */
 #topbar {
+  z-index: 1000;
   line-height: 1.5;
   position: sticky;
   top: 0;
-  background-color: var(--color-topbar-background);
+  background: linear-gradient(to bottom, var(--color-topbar-background), var(--color-topbar-background-secondary));
+  border-bottom: 2px solid var(--color-border);
   color: var(--color-topbar-text);
   margin-bottom: 1em;
   -webkit-font-smoothing: antialiased;
   /* padding: 12px 24px; */
   min-height: 2.5em;
-  height: auto;
+  height: 40px;
   /* overflow: hidden; */
 
   .pure-menu-link:hover {
@@ -95,10 +108,18 @@ main {
     text-align: right;
   }
 
+  #search-form {
+    display: flex;
+    justify-content: center;
+    max-width: 500px;
+    min-width: 250px;
+    width:100%
+  }
+
   #search-container {
     display: grid;
     position: relative;
-    grid-template-columns: minmax(250px, 7fr) 30px;
+    grid-template-columns: minmax(50px, 5fr) 30px;
     margin: 0.25em;
     /* align-items: center; */
     justify-content: center;
@@ -117,6 +138,7 @@ main {
       font-size: 17px;
       border: none;
       background: none;
+      
     }
 
     button {
@@ -143,7 +165,7 @@ main {
     padding: 0.5em 0;
     right: 0;
     left: auto;
-    background-color: var(--color-topbar-background-secondary);
+    background-color: var(--color-topbar-background);
     text-align: center;
   }
 
@@ -196,7 +218,7 @@ main {
 .row {
   display: flex;
   flex-direction: column;
-  height: 20em;
+  height: 17em;
   padding: 10px 20px;
   border-bottom: 1px solid var(--color-border);
 }
@@ -216,8 +238,9 @@ main {
   height: inherit;
   padding: 10px;
   border-radius: 16px;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
+  overflow-x: scroll;
+  overflow-y: hidden;
+  /* scroll-snap-type: x mandatory; */
   padding-bottom: 10px;
   background-color: var(--color-surface-muted);
 }
@@ -299,6 +322,10 @@ main {
   padding: 1.25em;
   border-radius: 8px;
   background-color: var(--color-background-outset);
+
+  h2 {
+    border-bottom: 2px solid var(--color-border);
+  }
 }
 
 .settings-section fieldset + fieldset {
