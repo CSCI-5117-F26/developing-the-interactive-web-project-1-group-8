@@ -29,7 +29,7 @@
 {% block content %}
 <section class="page-panel">
     {% if event %}
-    <form class="pure-form pure-form-stacked" action="/update-event/{{ event.id }}" method="post">
+    <form class="pure-form pure-form-stacked" action="{{ url_for('update_event', public_id=event.public_id) }}" method="post">
     {% else %}
     <form class="pure-form pure-form-stacked" action="/add-event" method="post">
     {% endif %}

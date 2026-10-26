@@ -175,8 +175,8 @@ def notifications():
         entry["url"] = None
         if entry["kind"] == "friend_request":
             entry["url"] = url_for("friend_requests")
-        elif entry["event_id"] is not None:
-            entry["url"] = url_for("event", event_id=entry["event_id"])
+        elif entry["event_public_id"] is not None:
+            entry["url"] = url_for("event", public_id=entry["event_public_id"])
     return render_template(
         "account/notifications.html",
         notifications=entries,
@@ -968,14 +968,17 @@ def search():
     )
 
 
-@app.route("/event/<int:event_id>")
-def event(event_id):
+@app.route("/event/<string:public_id>")
+def event(public_id):
     """
     Event page, where users can view details about a specific event
 
     """
 
-    event = db.get_event_info(event_id, session.get("profile", {}).get("id"))
+    event = db.get_event_by_public_id(public_id)
+    if event is None:
+        abort(404, "This event does not appear to exist.")
+    event = db.get_event_info(event["id"], session.get("profile", {}).get("id"))
     # print(event)
     if event is None:
         abort(404, "This event does not appear to exist.")
@@ -1014,15 +1017,16 @@ def add_event():
     return redirect("/")
 
 
-@app.post("/rsvp/<int:event_id>")
+@app.post("/rsvp/<string:public_id>")
 @requires_auth
-def rsvp(event_id):
-    event = db.get_event(event_id)
+def rsvp(public_id):
+    event = db.get_event_by_public_id(public_id)
     if event is None:
         abort(404, "This event does not appear to exist.")
+    event_id = event["id"]
     user_id = session["profile"]["id"]
     if event["status"] == "Canceled" or event["hostid"] == user_id:
-        return redirect(url_for("event", event_id=event_id))
+        return redirect(url_for("event", public_id=public_id))
     if db.attend_event(event_id, user_id, False):
         message = (
             f"{session['profile']['username']} has committed to attend your event."
@@ -1031,9 +1035,13 @@ def rsvp(event_id):
     return redirect("/")
 
 
-@app.post("/decommit/<int:event_id>")
+@app.post("/decommit/<string:public_id>")
 @requires_auth
-def decommit(event_id):
+def decommit(public_id):
+    event = db.get_event_by_public_id(public_id)
+    if event is None:
+        abort(404, "This event does not appear to exist.")
+    event_id = event["id"]
     user_id = session["profile"]["id"]
     if db.decommit_event(event_id, user_id):
         message = f"{session['profile']['username']} has decommitted from attending your event."
@@ -1041,13 +1049,14 @@ def decommit(event_id):
     return redirect("/")
 
 
-@app.route("/event/<int:event_id>/edit")
+@app.route("/event/<string:public_id>/edit")
 @requires_auth
-def edit_event(event_id):
+def edit_event(public_id):
     """Event form, where users can edit info about their event"""
-    edited_event = db.get_event(event_id)
+    edited_event = db.get_event_by_public_id(public_id)
     if edited_event is None:
         abort(404, "This event does not appear to exist.")
+    event_id = edited_event["id"]
     # TODO There should be a check as to whether edited_event.hostid == the
     # userID of the session holder, 403 otherwise
     print(session["profile"])
@@ -1056,12 +1065,16 @@ def edit_event(event_id):
         return render_template("events/event_info.html", event=edited_event)
     else:
         # print(session["profile"]["user"])
-        return redirect("/event/" + str(event_id))
+        return redirect(url_for("event", public_id=public_id))
 
 
-@app.post("/update-event/<int:event_id>")
+@app.post("/update-event/<string:public_id>")
 @requires_auth
-def update_event(event_id):
+def update_event(public_id):
+    event = db.get_event_by_public_id(public_id)
+    if event is None:
+        abort(404, "This event does not appear to exist.")
+    event_id = event["id"]
     check_event = db.get_event_info(event_id)
     if check_event is None:
         abort(404, "This event does not appear to exist.")
@@ -1096,17 +1109,18 @@ def update_event(event_id):
     return redirect("/")
 
 
-@app.post("/event/<int:event_id>/cancel")
+@app.post("/event/<string:public_id>/cancel")
 @requires_auth
-def cancel_event(event_id):
+def cancel_event(public_id):
     choice = request.form.get("action")
 
     if choice != "temporary" and choice != "permanent":
         abort(404, "Bad Request.")
 
-    check_event = db.get_event(event_id)
+    check_event = db.get_event_by_public_id(public_id)
     if check_event is None:
         abort(404, "This event does not appear to exist.")
+    event_id = check_event["id"]
 
     if check_event["hostid"] != session["profile"]["id"]:
         abort(404, "This event does not belong to you.")
@@ -1130,12 +1144,13 @@ def cancel_event(event_id):
     return redirect("/")
 
 
-@app.post("/event/<int:event_id>/restore")
+@app.post("/event/<string:public_id>/restore")
 @requires_auth
-def restore_event(event_id):
-    check_event = db.get_event(event_id)
+def restore_event(public_id):
+    check_event = db.get_event_by_public_id(public_id)
     if check_event is None:
         abort(404, "This event does not appear to exist.")
+    event_id = check_event["id"]
 
     if check_event["hostid"] != session["profile"]["id"]:
         abort(404, "This event does not belong to you.")

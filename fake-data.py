@@ -15,8 +15,9 @@ fake = Faker()
 Faker.seed(0)  # Seed for reproducibility
 db.setup()
 
+
 def generate_fake_users(num_users=10):
-    
+
     fake = Faker()
     users = []
     for _ in range(num_users):
@@ -38,11 +39,9 @@ def generate_fake_users(num_users=10):
             profile_pic=user["profile_pic"],
         )
         user["user_id"] = e["id"]
-        
+
         db.update_username(
-            id=e["id"],
-            username=user["username"],
-            display_name=user["name"]
+            id=e["id"], username=user["username"], display_name=user["name"]
         )
         users.append(user)
 
@@ -58,8 +57,7 @@ def generate_fake_users(num_users=10):
                 )
 
         stati = ["cancelled", "scheduled", "pending"]
-        
-        
+
     # make them create events, goddamn it
     events = []
     for user in users:
@@ -67,13 +65,11 @@ def generate_fake_users(num_users=10):
             elements=OrderedDict([(0, 0.4), (1, 0.3), (2, 0.2), (3, 0.1)]), length=1
         )[0]
         for _ in range(i):
-            
             # make sure the game we grab exists
             gameid = fake.random_int(min=1, max=10000)
             while not db.bgg.game(game_id=gameid):
-                gameid=fake.random_int(min=1, max=10000)
+                gameid = fake.random_int(min=1, max=10000)
                 pass
-            
 
             ev = {
                 "name": fake.sentence(nb_words=4),
@@ -89,7 +85,7 @@ def generate_fake_users(num_users=10):
                 "duration": random.randint(1, 5) * 60,  # duration in minutes
             }
             newEv = db.create_event(
-                name= ev["name"],
+                name=ev["name"],
                 gameID=ev["gameID"],
                 hostID=user.get("user_id"),
                 address=ev["location"],
@@ -111,11 +107,9 @@ def generate_fake_users(num_users=10):
         for _ in range(i):
             event = random.choice(events)
             if event:
-                db.attend_event(
-                    event_id = event.get("id"),
-                    user_id = user.get("user_id")
-                )
+                db.attend_event(event_id=event.get("id"), user_id=user.get("user_id"))
 
     return users
+
 
 generate_fake_users(10)

@@ -10,6 +10,7 @@ import atexit
 from dotenv import load_dotenv
 import http.client
 import random
+import secrets
 from datetime import datetime, timedelta
 
 
@@ -314,6 +315,8 @@ def create_event(
     description,
     status,
 ):
+    # https://docs.python.org/3/library/secrets.html#secrets.token_urlsafe
+    public_id = secrets.token_urlsafe(32)
     with pool.connection() as conn:
         with conn.cursor() as cur:
             categories = bgg.game(game_id=gameID).categories
@@ -321,8 +324,8 @@ def create_event(
             cur.execute(
                 """
                 INSERT INTO events (name, gameID, hostID, address, time, expected_duration,
-                min_attendees, max_attendees, description, status, game_categories)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                min_attendees, max_attendees, description, status, game_categories, public_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING *
                 """,
                 (
@@ -337,6 +340,7 @@ def create_event(
                     description,
                     status,
                     categories,
+                    public_id,
                 ),
             )
             return cur.fetchone()
@@ -418,7 +422,7 @@ def delete_event(id):
             return conn.commit()
 
 
-def attend_event(event_id, user_id, is_host = False):
+def attend_event(event_id, user_id, is_host):
     with pool.connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -522,9 +526,10 @@ def get_notifications(recipient_id, limit=21, offset=0):
         return conn.execute(
             """
             SELECT n.id, n.kind, n.message, n.event_id, n.is_read, n.created_at,
-                users.display_name AS user_name
+                users.display_name AS user_name, e.public_id AS event_public_id
             FROM notifications n
             LEFT JOIN users ON users.id = n.user_id
+            LEFT JOIN events e ON e.id = n.event_id
             WHERE n.recipient_id = %s
             ORDER BY n.created_at DESC, n.id DESC
             LIMIT %s OFFSET %s
@@ -1189,3 +1194,10 @@ def add_game_info(events):
         event["game_name"] = game.name if game else None
         event["image_url"] = (game.image or game.thumbnail) if game else None
     return events
+
+
+def get_event_by_public_id(public_id):
+    with pool.connection() as conn:
+        return conn.execute(
+            "SELECT * FROM events WHERE public_id = %s", (public_id,)
+        ).fetchone()
