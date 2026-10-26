@@ -11,7 +11,7 @@ from flask import (
 )
 import os
 import secrets
-from datetime import timezone
+from datetime import timezone, datetime, timedelta
 from urllib.parse import urlencode
 from dotenv import load_dotenv
 from flask_wtf.csrf import CSRFProtect
@@ -217,12 +217,19 @@ def index():
     else:
         events = db.get_all_user_event_info(session["profile"]["id"])
 
-        sections = [
-            ("Events from Popular Games", events),
-            ("Events from Games You've Played", events),
-            ("Events in the Next Week", events),
-            ("Friend Events!", events),
-        ]
+        sections = []
+        sections.append(("Hosted Events", db.get_user_events(session["profile"]["id"])))
+        sections.append(("Events Attending", db.get_user_events_attending(session["profile"]["id"])))
+        now = datetime.now()
+        week = now + timedelta(weeks=1)
+        # print(now)
+        # print(week.timestamp())
+
+        sections.append(("Events in the Next Week", 
+                         db.get_events_in_week(session["profile"]["id"])))
+        sections.append(("Friend Events!", db.get_all_friend_events(session["profile"]["id"])))
+        
+        
     return render_template("index.html", sections=sections)
 
 
@@ -713,7 +720,7 @@ def user(username):
     if can_view_profile_section(
         profile["attending_events_visibility"], is_owner, profile["is_friend"]
     ):
-        sections.append(("Events Going To", db.get_user_events_attending(profile_id)))
+        sections.append(("Events Attending", db.get_user_events_attending(profile_id)))
 
     return render_template(
         "account/user.html",
@@ -989,16 +996,28 @@ def add_event():
 @app.route("/rsvp/<int:event_id>")
 @requires_auth
 def rsvp(event_id):
+    # display_name = db.get_user_from_id(session["profile"]["id"])
+    # event_name = db.get_event(event_id)
 
     db.attend_event(event_id, session["profile"]["id"], False)
+
+    message = f"""{session["profile"]["username"]} has committed to attend
+     your event"""
+    db.notify_event_host(event_id, "host_update", message)
 
     return redirect("/")
 
 @app.route("/decommit/<int:event_id>")
 @requires_auth
 def decommit(event_id):
+    # display_name = db.get_user_from_id(session["profile"]["id"])
+    # event_name = db.get_event(event_id)
 
     db.decommit_event(event_id, session["profile"]["id"])
+
+    message = f"""{session["profile"]["username"]} has decommitted to attending 
+    your event"""
+    db.notify_event_host(event_id, "host_update", message)
 
     return redirect("/")
 
@@ -1049,22 +1068,70 @@ def update_event(event_id):
         "scheduled",
     )
 
+    message = f"""The details of the event '{request.form.get("name")}' has been updated, 
+    you can find more information below."""
+
+    db.notify_event_attendees(event_id, "event_update", message)
+
     return redirect("/")
 
-@app.route("/delete-event/<int:event_id>")
+@app.post("/event/<int:event_id>/cancel")
 @requires_auth
-def delete_event(event_id):
+def cancel_event(event_id):
+    choice = request.form.get("action")
+
+    print(choice)
+
+    if choice != "temporary" and choice != "permanent":
+        abort(404, "Bad Request.")
+
+    check_event = db.get_event_info(event_id)
+    print(event_id)
+    print(check_event)
+    if check_event is None:
+        abort(404, "This event does not appear to exist.")
+    
+    if check_event["hostid"] != session["profile"]["id"]:
+        abort(404, "This event does not belong to you.")
+
+    if choice is "permanent":
+
+        message = f"""The event '{check_event['name']}' has been permanently canceled"""
+            
+        db.notify_event_attendees_of_delete(event_id, "event_cancelation", message)
+
+        db.remove_event_followers(event_id)
+        
+        db.delete_event(event_id)
+
+    else:
+        message = f"""The event '{check_event['name']}' has been canceled"""
+
+        db.notify_event_attendees(event_id, "event_cancelation", message)
+                
+        db.cancel_event(event_id)
+    
+    return redirect("/")
+
+@app.route("/event/<int:event_id>/restore")
+@requires_auth
+def restore_event(event_id):
     check_event = db.get_event_info(event_id)
     if check_event is None:
         abort(404, "This event does not appear to exist.")
     
     if check_event["hostid"] != session["profile"]["id"]:
         abort(404, "This event does not belong to you.")
+
     
-    db.delete_event(event_id)
+    message = f"""The event '{check_event['name']}' has been restored and its info
+    can be viewed below"""
+
+    db.notify_event_attendees(event_id, "event_cancelation", message)
+                
+    db.restore_event(event_id)
     
     return redirect("/")
-
 
 
 # ---------- Error Handlers ----------

@@ -1,0 +1,38 @@
+<div class="event-buttons-container settings-actions">
+    {% if 'profile' in session and 'id' in session['profile'] 
+    and session['profile']['id'] == event.hostid %}
+    {% if event.status == 'Canceled' %}
+    <a href="{{ url_for('restore_event', event_id=event.id) }}" class="event-button pure-button">Restore</a>
+    {% else %}
+    <button type="button" class="event-button pure-button button-cancel"
+    onclick="this.nextElementSibling.showModal()">Cancel</button>
+    <dialog onclick="event.stopPropagation()" class="cancel-popup">
+      <form action="{{ url_for('cancel_event', event_id=event.id)}}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" formmethod="dialog" formnovalidate class="cancel-close"
+        ><i class="fa fa-times"></i> Close</button>
+        <p>Cancel {{ event.name }}? If you press 'Delete permanently', the event along with
+          the list of attendees will be gone forever. Alternatively, if you want the option to
+          restore the event in the future, you can choose 'Cancel for now'
+        </p>
+        <button type="submit" class="event-button pure-button" name="action" value="temporary">
+          Cancel for now
+        </button>
+        <button type="submit" class="event-button pure-button button-cancel"
+         name="action" value="permanent">Delete Permanently
+        </button>
+      </form>
+
+    </dialog>
+    {% endif %}
+    <a href="{{ url_for('event', event_id=event.id) }}" class="event-button pure-button">Details</a>
+    <a href="{{ url_for('edit_event', event_id=event.id)}} " class="event-button pure-button">Edit</a>
+    {% else %}
+    {% if event.is_attending %}
+    <a href="{{ url_for('decommit', event_id=event.id) }}" class="event-button pure-button button-cancel">Decommit</a>
+    {% else %}
+    <a href="{{ url_for('rsvp', event_id=event.id) }}" class="event-button pure-button pure-button-primary">Commit</a>
+    {% endif %}
+    <a href="{{ url_for('event', event_id=event.id) }}" class="event-button pure-button">Details</a>
+    {% endif %}
+  </div>

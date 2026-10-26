@@ -219,18 +219,6 @@ def get_event(id):
 
 
 def get_user_events(user_id):
-    # with pool.connection() as conn:
-    #     with conn.cursor() as cur:
-    #         cur.execute(
-    #             """
-    #             SELECT e.*, g.name AS game_name, g.image_url,
-    #                 (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count
-    #             FROM events e LEFT JOIN games g ON g.id = e.gameid
-    #             WHERE e.hostID = %s
-    #             """,
-    #             (user_id,),
-    #         )
-    #         return cur.fetchall()
     with pool.connection() as conn:
         with conn.cursor() as cur:
             cur.execute("""select e.*, (select count(*) from event_participation p where p.id = e.id),
@@ -242,30 +230,39 @@ def get_user_events(user_id):
 
 
 def get_user_events_attending(user_id):
-    # with pool.connection() as conn:
-    #     with conn.cursor() as cur:
-    #         cur.execute(
-    #             """
-    #             SELECT e.*, g.name AS game_name, g.image_url,
-    #                 (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count
-    #             FROM events e
-    #             LEFT JOIN games g ON g.id = e.gameid
-    #             JOIN event_participation ea ON e.id = ea.id
-    #             WHERE ea.user_interested = %s
-    #             """,
-    #             (user_id,),
-    #         )
-    #         return cur.fetchall()
     with pool.connection() as conn:
         with conn.cursor() as cur:
             cur.execute("""select e.*, (select count(*) from event_participation p where p.id = e.id),
             (select g.name as game_name from games g where g.id = e.gameid),
             (select g.image_url from games g where g.id = e.gameid),
             (select count(*) as is_attending from event_participation p where p.id = e.id and p.user_interested = %s)
-            from events e, event_participation p where p.user_interested = %s and e.id = p.id""", 
+            from events e, event_participation p where p.user_interested = %s and e.id = p.id and p.is_host = false""", 
             (user_id, user_id,),)
             return cur.fetchall()
 
+def get_all_friend_events(id):
+   with pool.connection() as conn:
+       with conn.cursor() as cur:
+           cur.execute("""select e.*, (select count(*) from event_participation p where p.id = e.id),
+           (select g.name as game_name from games g where g.id = e.gameid),
+           (select g.image_url from games g where g.id = e.gameid),
+           (select count(*) as is_attending from event_participation p where p.id = e.id and p.user_interested = %s)
+           from events e, friends f 
+           where f.follower = %s and f.followed = e.hostid order by e.time DESC""",
+             (id, id),)
+           return cur.fetchall()
+
+def get_events_in_week(user_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""select e.*, (select count(*) from event_participation p where p.id = e.id),
+            (select g.name as game_name from games g where g.id = e.gameid),
+            (select g.image_url from games g where g.id = e.gameid),
+            (select count(*) as is_attending from event_participation p where p.id = e.id and p.user_interested = %s)
+            from events e where e.time >= now() and e.time < now() + interval '7 days'
+            order by e.time""", 
+            (user_id,),)
+            return cur.fetchall()
 
 def create_event(
     name,
@@ -340,6 +337,30 @@ def update_event(
             )
         return conn.commit()
 
+def cancel_event(id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE events SET status = 'Canceled'
+                WHERE id = %s
+                """,
+                (id,),
+                )
+            return conn.commit()
+
+def restore_event(id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE events SET status = 'scheduled'
+                WHERE id = %s
+                """,
+                (id,),
+                )
+            return conn.commit()
+
 def delete_event(id):
     with pool.connection() as conn:
         with conn.cursor() as cur:
@@ -351,7 +372,6 @@ def delete_event(id):
                 (id,),
                 )
             return conn.commit()
-
 
 
 def attend_event(event_id, user_id, is_host):
@@ -380,6 +400,20 @@ def decommit_event(event_id, user_id):
             )
         return conn.commit()
 
+def remove_event_followers(event_id,):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                DELETE FROM event_participation 
+                WHERE id = %s
+                """,
+                (event_id,),
+            )
+        return conn.commit()
+
+
+# ---------- Notifications ----------
 
 def create_notification(conn, recipient_id, kind, message, user_id=None, event_id=None):
     return conn.execute(
@@ -391,6 +425,42 @@ def create_notification(conn, recipient_id, kind, message, user_id=None, event_i
         (recipient_id, kind, message, user_id, event_id),
     ).fetchone()
 
+def notify_event_attendees(event_id, kind, message):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+            INSERT INTO notifications (recipient_id, kind, message, user_id, event_id)
+            SELECT user_interested, %s, %s, user_interested,id
+            FROM event_participation
+            WHERE id = %s and is_host = FALSE
+            """,
+            (kind, message, event_id),)
+        return conn.commit()
+
+def notify_event_attendees_of_delete(event_id, kind, message):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+            INSERT INTO notifications (recipient_id, kind, message, user_id)
+            SELECT user_interested, %s, %s, user_interested
+            FROM event_participation
+            WHERE id = %s and is_host = FALSE
+            """,
+            (kind, message, event_id),)
+        return conn.commit()
+
+def notify_event_host(event_id, kind, message):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+            INSERT INTO notifications (recipient_id, kind, message, user_id, event_id)
+            SELECT hostid, %s, %s, hostid, id
+            FROM events
+            WHERE id = %s
+            """,
+            (kind, message, event_id),)
+        return conn.commit()
+            
 
 def get_notifications(recipient_id, limit=21, offset=0):
     with pool.connection() as conn:
