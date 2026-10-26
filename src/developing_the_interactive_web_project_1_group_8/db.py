@@ -418,7 +418,7 @@ def delete_event(id):
             return conn.commit()
 
 
-def attend_event(event_id, user_id, is_host):
+def attend_event(event_id, user_id, is_host = False):
     with pool.connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
