@@ -10,7 +10,13 @@ import atexit
 from dotenv import load_dotenv
 import http.client
 import random
+import secrets
 from datetime import datetime, timedelta
+
+from developing_the_interactive_web_project_1_group_8.event_times import (
+    CENTRAL,
+    is_event_completed,
+)
 
 
 load_dotenv()
@@ -206,7 +212,8 @@ def get_event_info(id, user_id=None):
                     EXISTS (SELECT 1 FROM event_participation p
                         WHERE p.id = e.id AND p.user_interested = %s) AS is_attending,
                     (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count,
-                    (SELECT u.display_name FROM users u WHERE u.id = e.hostid) AS display_name
+                    (SELECT u.display_name FROM users u WHERE u.id = e.hostid) AS display_name,
+                    (SELECT u.username FROM users u WHERE u.id = e.hostid) AS host_username
                 FROM events e
                 WHERE e.id = %s
                 """,
@@ -313,6 +320,8 @@ def create_event(
     description,
     status,
 ):
+    # https://docs.python.org/3/library/secrets.html#secrets.token_urlsafe
+    public_id = secrets.token_urlsafe(32)
     with pool.connection() as conn:
         with conn.cursor() as cur:
             categories = bgg.game(game_id=gameID).categories
@@ -320,8 +329,8 @@ def create_event(
             cur.execute(
                 """
                 INSERT INTO events (name, gameID, hostID, address, time, expected_duration,
-                min_attendees, max_attendees, description, status, game_categories)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                min_attendees, max_attendees, description, status, game_categories, public_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING *
                 """,
                 (
@@ -336,6 +345,7 @@ def create_event(
                     description,
                     status,
                     categories,
+                    public_id,
                 ),
             )
             return cur.fetchone()
@@ -529,9 +539,10 @@ def get_notifications(recipient_id, limit=21, offset=0):
         return conn.execute(
             """
             SELECT n.id, n.kind, n.message, n.event_id, n.is_read, n.created_at,
-                users.display_name AS user_name
+                users.display_name AS user_name, e.public_id AS event_public_id
             FROM notifications n
             LEFT JOIN users ON users.id = n.user_id
+            LEFT JOIN events e ON e.id = n.event_id
             WHERE n.recipient_id = %s
             ORDER BY n.created_at DESC, n.id DESC
             LIMIT %s OFFSET %s
@@ -1154,7 +1165,7 @@ def build_query(
         params.append(max_duration)
     if recency:
         conditions.append("e.time >= %s AND e.time < %s")
-        start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        start = datetime.now(CENTRAL).replace(hour=0, minute=0, second=0, microsecond=0)
         if recency == "today":
             end = start + timedelta(days=1)
         else:
@@ -1182,10 +1193,12 @@ def build_query(
 def add_game_info(events):
     games = {}
     for event in events:
+        event["is_completed"] = is_event_completed(event)
         game_id = event["gameid"]
         if game_id is None or game_id <= 0:
             event["game_name"] = None
             event["image_url"] = None
+            event["game_categories"] = []
             continue
         if game_id not in games:
             try:
@@ -1195,4 +1208,16 @@ def add_game_info(events):
         game = games[game_id]
         event["game_name"] = game.name if game else None
         event["image_url"] = (game.image or game.thumbnail) if game else None
+        if game:
+            event["game_categories"] = game.categories
     return events
+
+
+def get_event_by_public_id(public_id):
+    with pool.connection() as conn:
+        event = conn.execute(
+            "SELECT * FROM events WHERE public_id = %s", (public_id,)
+        ).fetchone()
+    if event is not None:
+        event["is_completed"] = is_event_completed(event)
+    return event

@@ -36,6 +36,11 @@ from developing_the_interactive_web_project_1_group_8.avatars import (
     upload_avatar,
 )
 
+from developing_the_interactive_web_project_1_group_8.event_times import (
+    CENTRAL,
+    parse_utc_time,
+)
+
 db.setup()
 
 load_dotenv()
@@ -175,8 +180,8 @@ def notifications():
         entry["url"] = None
         if entry["kind"] == "friend_request":
             entry["url"] = url_for("friend_requests")
-        elif entry["event_id"] is not None:
-            entry["url"] = url_for("event", event_id=entry["event_id"])
+        elif entry["event_public_id"] is not None:
+            entry["url"] = url_for("event", public_id=entry["event_public_id"])
     return render_template(
         "account/notifications.html",
         notifications=entries,
@@ -190,7 +195,8 @@ def format_time(dt):
     if dt is None:
         return "N/A"
 
-    return f"{dt.hour % 12 or 12}:{dt.strftime('%M %p, %a %b')} {dt.day} {dt.year}"
+    dt = dt.astimezone(CENTRAL)
+    return f"{dt.hour % 12 or 12}:{dt.strftime('%M %p, %a %b')} {dt.day} {dt.year} {dt.tzname()}"
 
 
 @app.template_filter()
@@ -201,6 +207,11 @@ def format_tile_time(dt):
 @app.template_filter()
 def format_page_time(dt):
     return format_time(dt)
+
+
+@app.template_filter()
+def format_event_input(dt):
+    return dt.astimezone(CENTRAL).strftime("%Y-%m-%dT%H:%M") if dt else ""
 
 
 @app.route("/")
@@ -968,15 +979,18 @@ def search():
     )
 
 
-@app.route("/event/<int:event_id>")
-def event(event_id):
+@app.route("/event/<string:public_id>")
+def event(public_id):
     """
     Event page, where users can view details about a specific event
 
     """
 
-    event = db.get_event_info(event_id, session.get("profile", {}).get("id"))
+    event = db.get_event_by_public_id(public_id)
     attendees = None
+    if event is None:
+        abort(404, "This event does not appear to exist.")
+    event = db.get_event_info(event["id"], session.get("profile", {}).get("id"))
     # print(event)
     if event is None:
         abort(404, "This event does not appear to exist.")
@@ -1001,12 +1015,18 @@ def create_event():
 def add_event():
     print(request.form)
     print(session["profile"]["id"])
+    try:
+        event_time = parse_utc_time(request.form.get("time"))
+    except ValueError:
+        return render_template(
+            "error.html", message="Choose a valid event time in Central Time (CT)."
+        ), 400
     result = db.create_event(
         request.form.get("name"),
-        request.form.get("gameid"),
+        request.form.get("search-value") or request.form.get("gameid"),
         session["profile"]["id"],
         request.form.get("address"),
-        request.form.get("time") or None,
+        event_time,
         request.form.get("expected_duration"),
         request.form.get("min_attendees"),
         request.form.get("max_attendees"),
@@ -1019,17 +1039,20 @@ def add_event():
     return redirect("/")
 
 
-@app.post("/rsvp/<int:event_id>")
+@app.post("/rsvp/<string:public_id>")
 @requires_auth
-def rsvp(event_id):
-    event = db.get_event_info(event_id)
+def rsvp(public_id):
+    event = db.get_event_by_public_id(public_id)
     if event is None:
         abort(404, "This event does not appear to exist.")
+    event_id = event["id"]
     user_id = session["profile"]["id"]
-    if event["count"] >= event["max_attendees"]:
-        abort(404, "This event is already at maximum capacity.")
-    if event["status"] == "Canceled" or event["hostid"] == user_id:
-        return redirect(url_for("event", event_id=event_id))
+    if (
+        event["status"] == "Canceled"
+        or event["is_completed"]
+        or event["hostid"] == user_id
+    ):
+        return redirect(url_for("event", public_id=public_id))
     if db.attend_event(event_id, user_id, False):
         message = (
             f"{session['profile']['username']} has committed to attend your event."
@@ -1038,9 +1061,15 @@ def rsvp(event_id):
     return redirect("/")
 
 
-@app.post("/decommit/<int:event_id>")
+@app.post("/decommit/<string:public_id>")
 @requires_auth
-def decommit(event_id):
+def decommit(public_id):
+    event = db.get_event_by_public_id(public_id)
+    if event is None:
+        abort(404, "This event does not appear to exist.")
+    event_id = event["id"]
+    if event["is_completed"]:
+        return redirect(url_for("event", public_id=public_id))
     user_id = session["profile"]["id"]
     if db.decommit_event(event_id, user_id):
         message = f"{session['profile']['username']} has decommitted from attending your event."
@@ -1048,27 +1077,36 @@ def decommit(event_id):
     return redirect("/")
 
 
-@app.route("/event/<int:event_id>/edit")
+@app.route("/event/<string:public_id>/edit")
 @requires_auth
-def edit_event(event_id):
+def edit_event(public_id):
     """Event form, where users can edit info about their event"""
-    edited_event = db.get_event(event_id)
+    edited_event = db.get_event_by_public_id(public_id)
     if edited_event is None:
         abort(404, "This event does not appear to exist.")
+    event_id = edited_event["id"]
     # TODO There should be a check as to whether edited_event.hostid == the
     # userID of the session holder, 403 otherwise
+    edited_event["gamename"] = db.bgg.game(game_id=edited_event["gameid"]).name
+    
     print(session["profile"])
     print(edited_event)
+    
     if session["profile"]["id"] == edited_event["hostid"]:
+        db.add_game_info([edited_event])
         return render_template("events/event_info.html", event=edited_event)
     else:
         # print(session["profile"]["user"])
-        return redirect("/event/" + str(event_id))
+        return redirect(url_for("event", public_id=public_id))
 
 
-@app.post("/update-event/<int:event_id>")
+@app.post("/update-event/<string:public_id>")
 @requires_auth
-def update_event(event_id):
+def update_event(public_id):
+    event = db.get_event_by_public_id(public_id)
+    if event is None:
+        abort(404, "This event does not appear to exist.")
+    event_id = event["id"]
     check_event = db.get_event_info(event_id)
     if check_event is None:
         abort(404, "This event does not appear to exist.")
@@ -1082,12 +1120,19 @@ def update_event(event_id):
             "Cannot adjust an event's max attendees lower than the number of participants.",
         )
 
+    try:
+        event_time = parse_utc_time(request.form.get("time"), check_event["time"])
+    except ValueError:
+        return render_template(
+            "error.html", message="Choose a valid event time in Central Time (CT)."
+        ), 400
+
     db.update_event(
         event_id,
         request.form.get("name"),
-        request.form.get("gameid"),
+        request.form.get("search-value") or request.form.get("gameid"),
         request.form.get("address"),
-        request.form.get("time") or None,
+        event_time,
         request.form.get("expected_duration"),
         request.form.get("min_attendees"),
         request.form.get("max_attendees"),
@@ -1103,17 +1148,18 @@ def update_event(event_id):
     return redirect("/")
 
 
-@app.post("/event/<int:event_id>/cancel")
+@app.post("/event/<string:public_id>/cancel")
 @requires_auth
-def cancel_event(event_id):
+def cancel_event(public_id):
     choice = request.form.get("action")
 
     if choice != "temporary" and choice != "permanent":
         abort(404, "Bad Request.")
 
-    check_event = db.get_event(event_id)
+    check_event = db.get_event_by_public_id(public_id)
     if check_event is None:
         abort(404, "This event does not appear to exist.")
+    event_id = check_event["id"]
 
     if check_event["hostid"] != session["profile"]["id"]:
         abort(404, "This event does not belong to you.")
@@ -1137,12 +1183,13 @@ def cancel_event(event_id):
     return redirect("/")
 
 
-@app.post("/event/<int:event_id>/restore")
+@app.post("/event/<string:public_id>/restore")
 @requires_auth
-def restore_event(event_id):
-    check_event = db.get_event(event_id)
+def restore_event(public_id):
+    check_event = db.get_event_by_public_id(public_id)
     if check_event is None:
         abort(404, "This event does not appear to exist.")
+    event_id = check_event["id"]
 
     if check_event["hostid"] != session["profile"]["id"]:
         abort(404, "This event does not belong to you.")

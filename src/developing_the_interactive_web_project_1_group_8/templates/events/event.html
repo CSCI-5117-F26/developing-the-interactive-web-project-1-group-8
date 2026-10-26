@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %} {{ event.name }} - GameMaster {% endblock %}
+{% block title %} {{ event.name }} - Game Master {% endblock %}
 
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/event.css') }}">
@@ -25,8 +25,13 @@
                     </div>
                     {% include "components/event_status.html" %}
                 </div>
+                {% if event.game_categories %}
+                <div class="event-info">Categories: {{ event.game_categories | join(', ') }}</div>
+                {% endif %}
                 <div class="event-info">
-                    Hosted By: {% if event.display_name %}{{ event.display_name }}
+                    Hosted By: {% if event.host_username %}
+                    <a href="{{ url_for('user', username=event.host_username) }}">{{ event.display_name or event.host_username }}</a>
+                    {% elif event.display_name %}{{ event.display_name }}
                     {% else %}Anonymous{% endif %}
                 </div>
                 <div class="event-info-container">
@@ -34,7 +39,7 @@
                         <div class="event-icon-container">
                             <img class="event-icon" 
                         src="{{ url_for('static', filename='images/calendar.svg') }}">
-                            <div>{{ event.time | format_page_time}}</div>
+                            <div>{% if event.time %}<time datetime="{{ event.time.isoformat() }}">{{ event.time | format_page_time}}</time>{% else %}N/A{% endif %}</div>
                         </div>
                     </div>
                     <div class="event-info-left">

@@ -3,71 +3,93 @@
 {% block title %} {% if event %} {{ event.name }} {% else %} New Event {% endif %} {% endblock %}
 
 {% block head %}
+
 <link rel="stylesheet" href="{{ url_for('static', filename='css/event.css') }}">
 <script>
-    
-    document.addEventListener("DOMContentLoaded", ()=>{
-        const max = document.getElementById("event-max");
-        const min = document.getElementById("event-min");
 
-        if (!max || !min) return;
-        max.addEventListener('change', function() {
-            if (max.value < min.value) {
+    document.addEventListener( "DOMContentLoaded", () => {
+        const max = document.getElementById( "event-max" );
+        const min = document.getElementById( "event-min" );
+
+        if ( !max || !min ) return;
+        max.addEventListener( 'change', function () {
+            if ( max.value < min.value ) {
                 max.value = min.value;
             }
-        });
+        } );
 
-        min.addEventListener('change', function() {
-            if (max.value < min.value) {
+        min.addEventListener( 'change', function () {
+            if ( max.value < min.value ) {
                 max.value = min.value;
             }
-        });
-    });
+        } );
+    } );
 </script>
 {% endblock %}
 
 {% block content %}
-<section class="page-panel">
+<section class="page-panel profile-section" style="width:100%">
     {% if event %}
-    <form class="pure-form pure-form-stacked" action="/update-event/{{ event.id }}" method="post">
-    {% else %}
-    <form class="pure-form pure-form-stacked" action="/add-event" method="post">
-    {% endif %}
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <fieldset>
-            <label for="name">Event Name</label>
-            <input id="event-name" type="text" value="{{ event.name }}" required 
-             pattern="^[a-zA-Z 0-9,.!'/]+$" name="name" class="pure-u-2-3"/>
+    <form class="pure-form pure-form-aligned" action="{{ url_for('update_event', public_id=event.public_id) }}" method="post">
+        {% else %}
+        <form class="pure-form pure-form-aligned" action="/add-event" method="post">
+            {% endif %}
 
-            <label for="gameid">GameID (This will change)</label>
-            <input id="event-gameid" type="text" value="{{ event.gameid }}" required 
-             pattern="^[0-9]+$" name="gameid" class="pure-u-2-3"/>
-
-            <label for="address">Location</label>
-            <input id="event-address" type="text" value="{{ event.address }}" required 
-             pattern="^[a-zA-Z 0-9,.!']+$" name="address" class="pure-u-2-3"/>
-
-            <label for="expected-duration">Expected event duration (minutes)</label>
-            <input id="event-expected" type="number" value="{{ event.expected_duration }}" required 
-              name="expected_duration" class="pure-u-1-5" min="0"/>
-
-            <label for="min_attendees">Minimum number of players</label>
-            <input id="event-min" type="number" 
-            value="{% if event %}{{ event.min_attendees }}{% else %}1{% endif %}" required 
-              name="min_attendees" class="pure-u-1-5" min="1"/>
-            
-            <label for="max_attendees">Maximum number of players</label>
-            <input id="event-max" type="number" value="{{ event.max_attendees }}" required 
-            name="max_attendees" class="pure-u-1-5" min="1"/>
-
-            <label for="description">Description</label>
-            <textarea id="event-description" name="description"
-            class="pure-input-2-3" placeholder="Add description">{{ event.description }}</textarea>
-
-            <!-- ONLY RELEVANT IF WE USE PENDING STATUS IN ANY CAPACITY -->
+            {% from 'components/bgg-search.html' import autocomplete %}
 
 
-            <!-- <label for="status" >What is your events scheduling status?</label>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <fieldset>
+                <div class="pure-control-group">
+
+                <label for="name">Event Name</label>
+                <input id="event-name" type="text" value="{{ event.name }}" required pattern="^[a-zA-Z 0-9,.!'/]+$"
+                    name="name" class="pure-u-2-3" placeholder="Event Name..." />
+                </div>
+                <div class="pure-control-group">
+
+                <label for="bgg-games-search">Game</label>
+                {{ autocomplete('search', 'Games...', event.gamename, event.gamename, event.gameid) }}
+                </div>
+
+                {# <input id="event-gameid" type="text" value="{{ event.gameid }}" required pattern="^[0-9]+$"
+                    name="gameid" class="pure-u-2-3" /> #}
+
+                <div class="pure-control-group">
+
+                    <label for="address">Location</label>
+                    <input id="event-address" type="text" value="{{ event.address }}" required
+                        pattern="^[a-zA-Z 0-9,.!']+$" name="address" class="pure-u-2-3" placeholder="Location..." />
+                </div>
+                <div class="pure-control-group">
+
+                    <label for="expected-duration">Expected event duration (minutes)</label>
+                    <input id="event-expected" type="number" value="{{ event.expected_duration }}" required
+                        name="expected_duration" class="pure-u-1-5" min="0" placeholder="Duration..." />
+                </div>
+
+                <div class="pure-control-group">
+                    <label for="min_attendees">Minimum number of players</label>
+                    <input id="event-min" type="number"
+                        value="{% if event %}{{ event.min_attendees }}{% else %}1{% endif %}" required
+                        name="min_attendees" class="pure-u-1-5" min="1" placeholder="Min Players..." />
+                </div>
+
+                <div class="pure-control-group">
+                    <label for="max_attendees">Maximum number of players</label>
+                    <input id="event-max" type="number" value="{{ event.max_attendees }}" required name="max_attendees"
+                        class="pure-u-1-5" min="1" placeholder="Maximum Players..." />
+                </div>
+
+                <div class="pure-control-group">
+                    <label for="description">Description</label>
+                    <textarea name="description" id="event-description" class="pure-input-2-3"
+                        placeholder="Add description">{{ event.description }}</textarea>
+                </div>
+                <!-- ONLY RELEVANT IF WE USE PENDING STATUS IN ANY CAPACITY -->
+
+
+                <!-- <label for="status" >What is your events scheduling status?</label>
             
             <select id="event-status" name="status" required>
             <option value="scheduled" selected>scheduled</option>
@@ -77,22 +99,24 @@
             {% endif %}
             >pending</option> -->
 
-            <!-- <div id="time-section"
+                <!-- <div id="time-section"
             {% if event.time %} 
             style="display: block;"
             {% else %}
             style="display: hidden;"
             {% endif %}
             ></div> -->
-            <label for="time">Event Time</label>
-            <input id="event-time" type="datetime-local" name="time" value="{{ event.time }}">
-            
-         
-        <div class="button-container">
-            <button type="submit" class="pure-button pure-button-primary event-button">{% if event %} Update {% else %} Create {% endif %}</button>
-        </div>
-    </fieldset>
-</form>
+                <div class="pure-control-group">
+                    <label for="time">Event Time (CT)</label>
+                    <input id="event-time" type="datetime-local" name="time" value="{{ event.time | format_event_input if event else '' }}">
+                    <p class="pure-form-message">Enter the event time in Central Time (CT).</p>
+                </div>
+                <div class="button-container">
+                    <button type="submit" class="pure-button pure-button-primary event-button">{% if event %} Update {%
+                        else %} Create {% endif %}</button>
+                </div>
+            </fieldset>
+        </form>
 
 </section>
 

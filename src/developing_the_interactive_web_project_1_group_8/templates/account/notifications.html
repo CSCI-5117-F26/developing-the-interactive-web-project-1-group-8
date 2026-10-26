@@ -1,5 +1,5 @@
 {% extends "account_base.html" %}
-{% block title %}Notifications - GameMaster{% endblock %}
+{% block title %}Notifications - Game Master{% endblock %}
 {% block content %}
 <section class="settings-page page-panel">
   <header>
@@ -25,7 +25,7 @@
     {% if notification.user_name %}<p>From {{ notification.user_name }}</p>{% endif %}
     <p>
       <strong>{{ 'Read' if notification.is_read else 'Unread' }}</strong>
-      - <time datetime="{{ notification.created_at.isoformat() }}">{{ notification.created_at.strftime('%b %d, %Y at %H:%M UTC') }}</time>
+      - <time datetime="{{ notification.created_at.isoformat() }}">{{ notification.created_at | format_page_time }}</time>
     </p>
     <div class="settings-actions">
       {% if notification.url %}

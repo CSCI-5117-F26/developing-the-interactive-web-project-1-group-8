@@ -96,4 +96,9 @@
 .event-user-carousel {
   background-color: transparent;
   padding: 2px;
+
+.button-container{
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
 }

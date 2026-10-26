@@ -63,12 +63,14 @@ CREATE TABLE event_calendars (
 
 CREATE TABLE events (
     id SERIAL PRIMARY KEY,
+    public_id TEXT NOT NULL UNIQUE,
     name VARCHAR(255) NOT NULL,
     gameid INT NOT NULL,
+    game_categories TEXT[],
     hostid INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     calendarid INT,
     address VARCHAR(255) NOT NULL,
-    time TIMESTAMP,
+    time TIMESTAMPTZ,
     expected_duration DOUBLE PRECISION NOT NULL,
     max_attendees INT NOT NULL,
     description VARCHAR(4095) NOT NULL,

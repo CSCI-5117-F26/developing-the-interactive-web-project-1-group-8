@@ -2,6 +2,9 @@
   {% if event.status == "Canceled" %}
   <div class="event-status-circle" style="background-color: var(--color-muted);"></div>
   <div>Canceled</div>
+  {% elif event.is_completed %}
+  <div class="event-status-circle" style="background-color: var(--color-muted);"></div>
+  <div>Completed</div>
   {% elif event.min_attendees > event.count %}
   <div class="event-status-circle" style="background-color: var(--color-warning);"></div>
   <div>Pending</div>
