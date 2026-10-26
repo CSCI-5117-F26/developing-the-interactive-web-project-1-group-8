@@ -9,11 +9,9 @@
     <h1>Connections</h1>
     <p>Your friends, follows, and blocked accounts. This page is private to your account.</p>
     <nav class="settings-links">
-      <a class="pure-button" href="{{ url_for('user', username=current_user.username) }}">
-        <i class="fa fa-arrow-left"></i> Back to my profile
+      <a class="pure-button" data-back-link href="{{ url_for('user', username=current_user.username) }}">
+        <i class="fa fa-arrow-left"></i> <span data-back-label>Back to Profile</span>
       </a>
-      <a class="pure-button" href="{{ url_for('settings') }}">Settings</a>
-      <a class="pure-button" href="{{ url_for('friend_requests') }}">Friend requests</a>
     </nav>
   </header>
 
@@ -36,14 +34,18 @@
           <span>{{ person.display_name }}</span>
           <span class="profile-username">@{{ person.username }}</span>
         </a>
-        {% if section_id in ['following', 'blocked'] %}
+        {% set action, label = {
+          'friends': ('unfriend', 'Unfriend'),
+          'following': ('unfollow', 'Unfollow'),
+          'followers': ('remove_follower', 'Remove Follower'),
+          'blocked': ('unblock', 'Unblock')
+        }[section_id] %}
         <form class="pure-form" method="post" action="{{ url_for('connections') }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="user_id" value="{{ person.id }}">
-          <input type="hidden" name="action" value="{{ 'unfollow' if section_id == 'following' else 'unblock' }}">
-          <button class="pure-button" type="submit">{{ 'Unfollow' if section_id == 'following' else 'Unblock' }}</button>
+          <input type="hidden" name="action" value="{{ action }}">
+          <button class="pure-button" type="submit">{{ label }}</button>
         </form>
-        {% endif %}
       </li>
       {% endfor %}
     </ul>

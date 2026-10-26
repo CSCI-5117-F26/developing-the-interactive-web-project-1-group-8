@@ -155,7 +155,7 @@
   border: 1px solid var(--color-primary);
 }
 
-.profile-page #follow-button[data-action="follow"],
+.profile-page .profile-actions .pure-button-primary,
 .compact-card .pure-button-primary {
   color: var(--color-text-inverse);
   background-color: var(--color-primary);

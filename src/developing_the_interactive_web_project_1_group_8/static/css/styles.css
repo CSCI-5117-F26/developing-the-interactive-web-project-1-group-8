@@ -75,8 +75,11 @@ main {
   margin-bottom: 40px;
 }
 
-section {
-  filter: drop-shadow(2px 2px 1px var(--color-shadow));
+.settings-section,
+.settings-notice,
+section.profile-section,
+article.profile-section {
+  box-shadow: 0.125rem 0.125rem 0.0625rem var(--color-shadow);
 }
 
 /* --- Topbar Styles --- */
@@ -85,7 +88,11 @@ section {
   line-height: 1.5;
   position: sticky;
   top: 0;
-  background: linear-gradient(to bottom, var(--color-topbar-background), var(--color-topbar-background-secondary));
+  background: linear-gradient(
+    to bottom,
+    var(--color-topbar-background),
+    var(--color-topbar-background-secondary)
+  );
   border-bottom: 2px solid var(--color-border);
   color: var(--color-topbar-text);
   margin-bottom: 1em;
@@ -113,7 +120,7 @@ section {
     justify-content: center;
     max-width: 500px;
     min-width: 250px;
-    width:100%
+    width: 100%;
   }
 
   #search-container {
@@ -138,7 +145,6 @@ section {
       font-size: 17px;
       border: none;
       background: none;
-      
     }
 
     button {
@@ -169,6 +175,33 @@ section {
     text-align: center;
   }
 
+  #notifications-link {
+    display: flex;
+    align-items: center;
+    gap: 0.35em;
+  }
+
+  .notification-count {
+    padding: 0.1em 0.45em;
+    border-radius: 1em;
+    background-color: var(--color-surface);
+    color: var(--color-primary);
+    font-size: 0.8em;
+  }
+
+  .account-logout-form {
+    margin: 0.25em 0.5em 0;
+  }
+
+  .account-logout {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 0.5em 1em;
+    border-radius: 0.25rem;
+    background-color: var(--color-surface);
+    color: var(--color-primary);
+  }
+
   /* .pure-menu-active>.pure-menu-children,
   .pure-menu-allow-hover:hover>.pure-menu-children {
     left: -2em
@@ -197,7 +230,7 @@ section {
     background: white;
     max-height: 300px;
     overflow-y: auto;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   }
 
   .autocomplete-items div {

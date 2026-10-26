@@ -51,9 +51,9 @@
                 </div>
             </div>
             <div class="event-back-button-container">
-                <button class="pure-button" type="button" onclick="history.back()">
-                    <i class="fa fa-arrow-left"></i> Back
-                </button>
+                <a class="pure-button" data-back-link href="{{ url_for('index') }}">
+                    <i class="fa fa-arrow-left"></i> <span data-back-label>Back to Dashboard</span>
+                </a>
             </div>
         </div>
     <section class="profile-section">

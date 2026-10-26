@@ -185,6 +185,7 @@ def notifications():
         current_user=current_user,
     )
 
+
 def format_time(dt):
     if dt is None:
         return "N/A"
@@ -210,7 +211,8 @@ def index():
         ("Events from Popular Games", events),
         ("Events from Games You've Played", events),
         ("Events in the Next Week", events),
-        ("Friend Events!", events),
+        ("Events from Friends", events),
+        ("Events from Users You Follow", events),
     ]
     return render_template("index.html", sections=sections)
 
@@ -295,7 +297,7 @@ def connections():
     user_id = current_user["id"]
     if request.method == "POST":
         action = request.form.get("action")
-        if action not in {"unfollow", "unblock"}:
+        if action not in {"unfriend", "unfollow", "remove_follower", "unblock"}:
             flash("Choose a connection action.")
             return redirect(url_for("connections"))
 
@@ -305,6 +307,20 @@ def connections():
             flash("This account is no longer available.")
         elif other_user_id == user_id:
             flash("Choose another account.")
+        elif action == "unfriend":
+            if db.remove_friend(user_id, other_user_id):
+                flash(
+                    f"You unfriended @{other_user['username']}. Your follow settings are unchanged."
+                )
+            else:
+                flash(f"You are not friends with @{other_user['username']}.")
+        elif action == "remove_follower":
+            if db.unfollow_user(other_user_id, user_id):
+                flash(
+                    f"You removed @{other_user['username']} as a follower. They can follow you again."
+                )
+            else:
+                flash(f"@{other_user['username']} is not following you.")
         elif action == "unfollow":
             if db.unfollow_user(user_id, other_user_id):
                 flash(
@@ -893,12 +909,11 @@ def search():
     min_players = request.args.get("min", None, type=int)
     max_players = request.args.get("max", None, type=int)
     duration = request.args.get("duration", None, type=int)
-    recency = request.args.get('recency', "", type=str)
+    recency = request.args.get("recency", "", type=str)
     full = request.args.get("full", False, type=bool)
     pending = request.args.get("pending", False, type=bool)
     played = request.args.get("played", False, type=bool)
-    user_id = session['profile']['id'] if session.get("profile") else None;
-
+    user_id = session["profile"]["id"] if session.get("profile") else None
     results = db.search_events(
         q,
         user_id,
@@ -911,14 +926,14 @@ def search():
         recency,
         full,
         pending,
-        played
+        played,
     )
 
     return render_template(
-        "search.html", 
+        "search.html",
         query=q,
         game=game if game_name else "",
-        game_name = game_name,
+        game_name=game_name,
         category=category,
         category_name=category_name,
         min_players=min_players,
@@ -928,7 +943,7 @@ def search():
         full=full,
         pending=pending,
         played=played,
-        results=results
+        results=results,
     )
 
 

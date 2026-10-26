@@ -307,12 +307,11 @@ def search():
     min_players = request.args.get("min", None, type=int)
     max_players = request.args.get("max", None, type=int)
     duration = request.args.get("duration", None, type=int)
-    recency = request.args.get('recency', "", type=str)
+    recency = request.args.get("recency", "", type=str)
     full = request.args.get("full", False, type=bool)
     pending = request.args.get("pending", False, type=bool)
     played = request.args.get("played", False, type=bool)
-    user_id = session['profile']['id'] if session.get("profile") else None;
-
+    user_id = session["profile"]["id"] if session.get("profile") else None
     results = db.search_events(
         q,
         user_id,
@@ -325,7 +324,7 @@ def search():
         recency,
         full,
         pending,
-        played
+        played,
     )
 
     if not q:
@@ -333,7 +332,7 @@ def search():
 
     # search users, events, games ( ? )
     r = results
-    #print(r)
+    # print(r)
 
     return jsonify(r), 200
 

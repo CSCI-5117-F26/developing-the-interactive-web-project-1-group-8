@@ -29,7 +29,16 @@
 
         {% if not setup_required %}
         <li class="pure-menu-item">
-          <a id="notifications-link" class="pure-menu-link fa fa-bell" href="{{ url_for('notifications') }}">{% if unread_notification_count %} ({{ unread_notification_count }}){% endif %}</a>
+          <a id="notifications-link" class="pure-menu-link" href="{{ url_for('notifications') }}" title="Notifications">
+            <i class="fa fa-bell"></i>
+            {% if unread_notification_count %}<span class="notification-count">{{ unread_notification_count }} unread</span>{% endif %}
+          </a>
+        </li>
+        <li class="pure-menu-item">
+          <a class="pure-menu-link" href="{{ url_for('connections') }}" title="Connections"><i class="fa fa-users"></i></a>
+        </li>
+        <li class="pure-menu-item">
+          <a class="pure-menu-link" href="{{ url_for('friend_requests') }}" title="Add Friend"><i class="fa fa-user-plus"></i></a>
         </li>
         {% endif %}
         <li class="pure-menu-item pure-menu-has-children">
@@ -50,14 +59,11 @@
             <li class="pure-menu-item">
               <a class="pure-menu-link" href="{{ url_for('settings') }}">Settings</a>
             </li>
-            <li class="pure-menu-item">
-              <a class="pure-menu-link" href="{{ url_for('connections') }}">Connections</a>
-            </li>
             {% endif %}
             <li class="pure-menu-item">
-              <form method="post" action="{{ url_for('logout') }}">
+              <form class="account-logout-form" method="post" action="{{ url_for('logout') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="pure-button" type="submit">Log Out</button>
+                <button class="pure-button account-logout" type="submit">Log Out</button>
               </form>
             </li>
           </ul>

@@ -13,7 +13,6 @@ import random
 from datetime import datetime, timedelta
 
 
-
 load_dotenv()
 
 pool: ConnectionPool
@@ -35,7 +34,8 @@ def setup():
     # I'm not _actually_ convinced this is required, but the docs said to do it!
     atexit.register(pool.close)
 
- # warm up the cache so that the first request doesn't take forever
+
+# warm up the cache so that the first request doesn't take forever
 # User DB Functions
 
 
@@ -878,7 +878,20 @@ def is_blocked(blocking_id, blocked_id):
 # ---------- Search ----------
 
 
-def search_events(q, user_id, game, category, category_name, min_players, max_players, duration, recency, full, pending, played):
+def search_events(
+    q,
+    user_id,
+    game,
+    category,
+    category_name,
+    min_players,
+    max_players,
+    duration,
+    recency,
+    full,
+    pending,
+    played,
+):
     with pool.connection() as conn:
         with conn.cursor() as cur:
             # cur.execute(
@@ -891,13 +904,40 @@ def search_events(q, user_id, game, category, category_name, min_players, max_pl
             #     (f"%{name_query}%",),
             # )
             # return cur.fetchall()
-            query, params = build_query(q, user_id, game, category, category_name, min_players, max_players, duration, recency, full, pending, played)
+            query, params = build_query(
+                q,
+                user_id,
+                game,
+                category,
+                category_name,
+                min_players,
+                max_players,
+                duration,
+                recency,
+                full,
+                pending,
+                played,
+            )
             return cur.execute(query, params).fetchall()
 
-def build_query(q, user_id, game, category, category_name, min_players, max_players, duration, recency, full, pending, played):
+
+def build_query(
+    q,
+    user_id,
+    game,
+    category,
+    category_name,
+    min_players,
+    max_players,
+    duration,
+    recency,
+    full,
+    pending,
+    played,
+):
     conditions = []
     params = []
-    if (game):
+    if game:
         print(bgg.game(game_id=game).categories)
     conditions.append("LOWER(e.name) LIKE LOWER(%s)")
     params.append(f"%{q}%")
@@ -934,19 +974,21 @@ def build_query(q, user_id, game, category, category_name, min_players, max_play
         params.append(max_duration)
     if recency:
         conditions.append("e.time >= %s AND e.time < %s")
-        start = datetime.now().replace(hour=0,minute=0,second=0, microsecond=0)
-        if recency == 'today':
+        start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        if recency == "today":
             end = start + timedelta(days=1)
         else:
             end = start + timedelta(weeks=1)
         params.extend([start, end])
     if full:
-        conditions.append("(SELECT COUNT(*) FROM event_participation ep2 WHERE ep2.id = e.id) < e.max_attendees")
+        conditions.append(
+            "(SELECT COUNT(*) FROM event_participation ep2 WHERE ep2.id = e.id) < e.max_attendees"
+        )
     if pending:
         conditions.append("e.status = 'pending'")
 
     print(params)
-    cond_clause ="WHERE " + " AND ".join(conditions) if conditions else ""
+    cond_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
     query = f"""SELECT e.*, (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count
         FROM events e LEFT JOIN event_participation ep ON ep.id = e.id
         {cond_clause}

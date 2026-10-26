@@ -43,16 +43,18 @@
       <a class="profile-edit pure-button" href="{{ url_for('settings') }}" title="Profile settings">
         <i class="fa fa-cog fa-fw"></i>
       </a>
-      <a class="profile-edit pure-button" href="{{ url_for('friend_requests') }}" title="Friend requests">
-        <i class="fa fa-user-plus fa-fw"></i>
-      </a>
-      <a class="profile-edit pure-button" href="{{ url_for('connections') }}" title="Connections">
-        <i class="fa fa-users fa-fw"></i>
-      </a>
     </div>
     {% endif %}
 
     {% if session.get('profile') and session['profile']['id'] != user.id and not user.is_blocked %}
+    {% if not user.is_friend %}
+    <form class="pure-form" method="post" action="{{ url_for('friend_requests') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="send">
+      <input type="hidden" name="username" value="{{ user.username }}">
+      <button class="profile-button pure-button pure-button-primary" type="submit">Add Friend <i class="fa fa-user-plus"></i></button>
+    </form>
+    {% endif %}
     <button class="profile-button pure-button" id="follow-button" data-csrf-token="{{ csrf_token() }}"
       data-action="{% if user.is_following %}unfollow{% else %}follow{% endif %}" data-username="{{ user.username }}">
       {% if user.is_following %}Unfollow <i class="fa fa-user-times" aria-hidden="true"></i>{% else %}Follow <i
