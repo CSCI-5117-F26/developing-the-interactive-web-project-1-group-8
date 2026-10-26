@@ -20,11 +20,7 @@
                 <h1 class="event-title">{{ event.name }}</h1>
                 <div class="event-info-container">
                     <div class="event-info">
-                        {% if event.game_name %}
-                        {{ event.game_name }}
-                        {% else %}
-                        Unknown Game
-                        {% endif %}
+                        {% include "components/bgg_game_link.html" %}
                     </div>
                     {% include "components/event_status.html" %}
                 </div>

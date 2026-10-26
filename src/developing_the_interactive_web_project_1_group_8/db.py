@@ -2,7 +2,7 @@ from datetime import timedelta, datetime
 from developing_the_interactive_web_project_1_group_8.CacheBackendPostgres import (
     CacheBackendPostgres,
 )
-from boardgamegeek import BGGClient
+from boardgamegeek import BGGClient, BGGError
 from psycopg_pool import ConnectionPool
 from psycopg.rows import dict_row
 import os
@@ -179,26 +179,35 @@ def get_all_events():
 def get_all_event_info():
     with pool.connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("""select e.*, (select count(*) from event_participation p where p.id = e.id), 
-            (select g.name as game_name from games g where g.id = e.gameid), 
-            (select g.image_url from games g where g.id = e.gameid)
-            from events e""")
-            return cur.fetchall()
+            cur.execute(
+                """
+                SELECT e.*,
+                    (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count
+                FROM events e
+                """
+            )
+            events = cur.fetchall()
+    return add_game_info(events)
 
 
 def get_event_info(id):
     with pool.connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                """select e.*, (select count(*) from event_participation p where p.id = e.id), 
-                (select g.name as game_name from games g where g.id = e.gameid), 
-                (select g.image_url from games g where g.id = e.gameid),
-                (select u.display_name from users u where u.id = e.hostid)
-                from events e 
-                where e.id = %s""",
+                """
+                SELECT e.*,
+                    (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count,
+                    (SELECT u.display_name FROM users u WHERE u.id = e.hostid) AS display_name
+                FROM events e
+                WHERE e.id = %s
+                """,
                 (id,),
             )
-            return cur.fetchone()
+            event = cur.fetchone()
+    if event is None:
+        return None
+    add_game_info([event])
+    return event
 
 
 def get_event(id):
@@ -213,14 +222,15 @@ def get_user_events(user_id):
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT e.*, g.name AS game_name, g.image_url,
+                SELECT e.*,
                     (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count
-                FROM events e LEFT JOIN games g ON g.id = e.gameid
+                FROM events e
                 WHERE e.hostID = %s
                 """,
                 (user_id,),
             )
-            return cur.fetchall()
+            events = cur.fetchall()
+    return add_game_info(events)
 
 
 def get_user_events_attending(user_id):
@@ -228,16 +238,16 @@ def get_user_events_attending(user_id):
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT e.*, g.name AS game_name, g.image_url,
+                SELECT e.*,
                     (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count
                 FROM events e
-                LEFT JOIN games g ON g.id = e.gameid
                 JOIN event_participation ea ON e.id = ea.id
                 WHERE ea.user_interested = %s
                 """,
                 (user_id,),
             )
-            return cur.fetchall()
+            events = cur.fetchall()
+    return add_game_info(events)
 
 
 def create_event(
@@ -918,7 +928,8 @@ def search_events(
                 pending,
                 played,
             )
-            return cur.execute(query, params).fetchall()
+            events = cur.execute(query, params).fetchall()
+    return add_game_info(events)
 
 
 def build_query(
@@ -937,8 +948,6 @@ def build_query(
 ):
     conditions = []
     params = []
-    if game:
-        print(bgg.game(game_id=game).categories)
     conditions.append("LOWER(e.name) LIKE LOWER(%s)")
     params.append(f"%{q}%")
 
@@ -994,3 +1003,23 @@ def build_query(
         {cond_clause}
         GROUP BY e.id"""
     return query, params
+
+
+# https://bgg-api.readthedocs.io/en/stable/modules.html#boardgamegeek.api.BGGClient.game
+def add_game_info(events):
+    games = {}
+    for event in events:
+        game_id = event["gameid"]
+        if game_id is None or game_id <= 0:
+            event["game_name"] = None
+            event["image_url"] = None
+            continue
+        if game_id not in games:
+            try:
+                games[game_id] = bgg.game(game_id=game_id)
+            except BGGError:
+                games[game_id] = None
+        game = games[game_id]
+        event["game_name"] = game.name if game else None
+        event["image_url"] = (game.image or game.thumbnail) if game else None
+    return events

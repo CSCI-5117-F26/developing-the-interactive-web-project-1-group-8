@@ -12,9 +12,7 @@
     <div class="event-info-header">
       <h3 class="event-name" title="{{ event.name }}">{{event.name}}</h3>
       <div class="event-game-name">
-        {% if event.game_name %}
-        {{ event.game_name }}
-        {% else %}Unknown Game{% endif %}
+        {% include "components/bgg_game_link.html" %}
       </div>
       <div class="event-date-time">{{event.time | format_tile_time}}</div>
       <div class="event-location" title="{{ event.address }}">{{event.address}}</div>
