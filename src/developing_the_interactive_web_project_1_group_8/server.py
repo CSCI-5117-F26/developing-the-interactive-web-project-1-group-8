@@ -43,6 +43,10 @@ from developing_the_interactive_web_project_1_group_8.event_times import (
     is_event_time_completed,
 )
 
+from developing_the_interactive_web_project_1_group_8.validate import (
+    validate_form,
+)
+
 db.setup()
 
 load_dotenv()
@@ -1020,7 +1024,7 @@ def event(public_id):
 def create_event():
     """Event form, where users can insert info about their event"""
     # print(database.get_event(event_id))
-    return render_template("events/event_info.html", event=None)
+    return render_template("events/event_info.html", event=None, mode="create")
 
 
 @app.post("/add-event")
@@ -1029,18 +1033,19 @@ def add_event():
     print(request.form)
     # print(db.game_exists(request.form.get("search-value") or request.form.get("gameid")))
     # print(session["profile"]["id"])
-    visibility = request.form.get("visibility")
-    if visibility not in ("public", "friends", "private"):
-        return render_template(
-            "error.html",
-            message="Choose Public, Friends only, or Private for event visibility.",
+    errors, error_event = validate_form(request.form)
+    
+    if errors:
+        for msg in errors.values():
+            flash(msg, "error")
+        return render_template("events/event_info.html",
+            event=error_event, mode="create"
         ), 400
-    try:
-        event_time = parse_utc_time(request.form.get("time"))
-    except ValueError:
-        return render_template(
-            "error.html", message="Choose a valid event time in Central Time (CT)."
-        ), 400
+    
+    # This is checked in validate form
+    event_time = parse_utc_time(request.form.get("time"))
+
+    
     result = db.create_event(
         request.form.get("name"),
         request.form.get("search-value") or request.form.get("gameid"),
@@ -1052,7 +1057,7 @@ def add_event():
         request.form.get("max_attendees"),
         request.form.get("description"),
         "scheduled",
-        visibility,
+        request.form.get("visibility"),
     )
 
     db.attend_event(result["id"], session["profile"]["id"], True)
@@ -1101,15 +1106,12 @@ def edit_event(public_id):
     if edited_event is None:
         abort(404, "This event does not appear to exist.")
     event_id = edited_event["id"]
-    # TODO There should be a check as to whether edited_event.hostid == the
-    # userID of the session holder, 403 otherwise
-    edited_event["gamename"] = db.bgg.game(game_id=edited_event["gameid"]).name
     
     print(session["profile"])
     print(edited_event)
     if session["profile"]["id"] == edited_event["hostid"]:
         db.add_game_info([edited_event])
-        return render_template("events/event_info.html", event=edited_event)
+        return render_template("events/event_info.html", event=edited_event, mode="edit")
     else:
         # print(session["profile"]["user"])
         return redirect(url_for("event", public_id=public_id))
@@ -1135,18 +1137,18 @@ def update_event(public_id):
             "Cannot adjust an event's max attendees lower than the number of participants.",
         )
 
-    visibility = request.form.get("visibility")
-    if visibility not in ("public", "friends", "private"):
-        return render_template(
-            "error.html",
-            message="Choose Public, Friends only, or Private for event visibility.",
+    errors, error_event = validate_form(request.form)
+        
+    if errors:
+        for msg in errors.values():
+            flash(msg, "error")
+        error_event["public_id"] = public_id
+        return render_template("events/event_info.html",
+            event=error_event, mode="edit"
         ), 400
-    try:
-        event_time = parse_utc_time(request.form.get("time"), check_event["time"])
-    except ValueError:
-        return render_template(
-            "error.html", message="Choose a valid event time in Central Time (CT)."
-        ), 400
+
+    # This is checked in validate form
+    event_time = parse_utc_time(request.form.get("time"), check_event["time"])
 
     db.update_event(
         event_id,
@@ -1159,7 +1161,7 @@ def update_event(public_id):
         request.form.get("max_attendees"),
         request.form.get("description"),
         "scheduled",
-        visibility,
+        request.form.get("visibility"),
     )
 
     return redirect("/")
