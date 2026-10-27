@@ -8,7 +8,7 @@
 
 {% block content %}
 
-{% for title, events in sections %}
+{% for title, events in sections if events %}
 <section class="profile-section row event-row">
   <h2>{{ title }}</h2>
   <div class="event-carousel">
