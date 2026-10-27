@@ -401,14 +401,19 @@ def update_event(
                 notify_event_attendees(conn, id, "event_update", message)
             return event is not None
 
+
 def get_all_event_attendees(event_id):
     with pool.connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("""
-            SELECT * FROM users u, event_participation p
+            cur.execute(
+                """
+            SELECT u.id, u.username, u.display_name, u.profile_pic FROM users u, event_participation p
             WHERE u.id = p.user_interested AND p.id = %s AND NOT p.is_host
-            """, (event_id,))
+            """,
+                (event_id,),
+            )
             return cur.fetchall()
+
 
 def cancel_event(id):
     with pool.connection() as conn:
@@ -469,6 +474,14 @@ def attend_event(event_id, user_id, is_host):
                 or event["hostid"] == user_id
             ):
                 return None
+            if not is_host:
+                cur.execute(
+                    "SELECT COUNT(*) AS count FROM event_participation WHERE id = %s",
+                    (event_id,),
+                )
+                attendee_count = cur.fetchone()["count"]
+                if attendee_count >= event["max_attendees"]:
+                    return None
             cur.execute(
                 """
                 INSERT INTO event_participation (id, user_interested, is_host)
@@ -1261,7 +1274,8 @@ def get_event_by_public_id(public_id):
         event = conn.execute(
             """SELECT e.*,
             (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count
-            FROM events e WHERE public_id = %s""", (public_id,)
+            FROM events e WHERE public_id = %s""",
+            (public_id,),
         ).fetchone()
     if event is not None:
         event["is_completed"] = is_event_completed(event)
