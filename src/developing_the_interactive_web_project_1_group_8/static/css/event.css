@@ -93,9 +93,16 @@
   white-space: pre-wrap;
 }
 
+.event-form .bgg-searchbar {
+  min-width: 0;
+}
 
-.button-container{
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 1rem;
+.event-form .bgg-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+
+.event-form textarea {
+  resize: vertical;
 }

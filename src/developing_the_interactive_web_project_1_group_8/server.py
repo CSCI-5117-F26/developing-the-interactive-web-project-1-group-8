@@ -180,6 +180,9 @@ def notifications():
         entry["url"] = None
         if entry["kind"] == "friend_request":
             entry["url"] = url_for("friend_requests")
+        elif entry["kind"] == "friend_accepted":
+            if entry["user_username"] is not None:
+                entry["url"] = url_for("user", username=entry["user_username"])
         elif entry["event_public_id"] is not None:
             entry["url"] = url_for("event", public_id=entry["event_public_id"])
     return render_template(

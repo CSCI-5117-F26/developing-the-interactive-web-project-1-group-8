@@ -562,7 +562,8 @@ def get_notifications(recipient_id, limit=21, offset=0):
         return conn.execute(
             """
             SELECT n.id, n.kind, n.message, n.event_id, n.is_read, n.created_at,
-                users.display_name AS user_name, e.public_id AS event_public_id
+                users.display_name AS user_name, users.username AS user_username,
+                e.public_id AS event_public_id
             FROM notifications n
             LEFT JOIN users ON users.id = n.user_id
             LEFT JOIN events e ON e.id = n.event_id
@@ -831,6 +832,13 @@ def accept_friend_request(requester_id, recipient_id):
                 (requester_id, recipient_id, recipient_id, requester_id),
             )
             clear_friend_request_notifications(conn, requester_id, recipient_id)
+            create_notification(
+                conn,
+                requester_id,
+                "friend_accepted",
+                "Your friend request was accepted.",
+                user_id=recipient_id,
+            )
         return accepted
 
 
