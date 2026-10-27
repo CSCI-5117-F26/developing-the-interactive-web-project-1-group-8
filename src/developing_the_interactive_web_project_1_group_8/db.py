@@ -1223,3 +1223,10 @@ def get_event_by_public_id(public_id):
     if event is not None:
         event["is_completed"] = is_event_completed(event)
     return event
+
+def game_exists(game_id):
+    try:
+        bgg.game(game_id=game_id)
+        return True
+    except BGGError:
+        return False

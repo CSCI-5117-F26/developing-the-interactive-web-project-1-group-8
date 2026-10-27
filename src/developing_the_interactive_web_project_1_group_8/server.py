@@ -1013,7 +1013,8 @@ def create_event():
 @requires_auth
 def add_event():
     print(request.form)
-    print(session["profile"]["id"])
+    # print(db.game_exists(request.form.get("search-value") or request.form.get("gameid")))
+    # print(session["profile"]["id"])
     try:
         event_time = parse_utc_time(request.form.get("time"))
     except ValueError:
@@ -1085,8 +1086,6 @@ def edit_event(public_id):
     if edited_event is None:
         abort(404, "This event does not appear to exist.")
     event_id = edited_event["id"]
-    # TODO There should be a check as to whether edited_event.hostid == the
-    # userID of the session holder, 403 otherwise
     edited_event["gamename"] = db.bgg.game(game_id=edited_event["gameid"]).name
     
     print(session["profile"])
