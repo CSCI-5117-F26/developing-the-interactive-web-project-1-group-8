@@ -262,7 +262,7 @@ def get_user_events_attending(user_id, viewer_id=None):
                     (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count
                 FROM events e
                 JOIN event_participation ea ON e.id = ea.id
-                WHERE ea.user_interested = %s AND NOT ea.is_host
+                WHERE ea.user_interested = %s AND NOT ea.is_host AND e.time > now()
                 """,
                 (viewer_id, user_id),
             )
@@ -299,7 +299,7 @@ def get_events_in_week(user_id):
                     EXISTS (SELECT 1 FROM event_participation p
                         WHERE p.id = e.id AND p.user_interested = %s) AS is_attending
                 FROM events e
-                WHERE e.time >= NOW() AND e.time < NOW() + INTERVAL '7 days'
+                WHERE e.time >= NOW() AND e.time < NOW() + INTERVAL '7 days' AND e.status <> 'Canceled'
                 ORDER BY e.time
                 """,
                 (user_id,),
@@ -403,6 +403,19 @@ def update_event(
             return event is not None
 
 
+def get_all_event_attendees(event_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+            SELECT u.id, u.username, u.display_name, u.profile_pic FROM users u, event_participation p
+            WHERE u.id = p.user_interested AND p.id = %s AND NOT p.is_host
+            """,
+                (event_id,),
+            )
+            return cur.fetchall()
+
+
 def cancel_event(id):
     with pool.connection() as conn:
         event = conn.execute(
@@ -462,6 +475,14 @@ def attend_event(event_id, user_id, is_host=False):
                 or event["hostid"] == user_id
             ):
                 return None
+            if not is_host:
+                cur.execute(
+                    "SELECT COUNT(*) AS count FROM event_participation WHERE id = %s",
+                    (event_id,),
+                )
+                attendee_count = cur.fetchone()["count"]
+                if attendee_count >= event["max_attendees"]:
+                    return None
             cur.execute(
                 """
                 INSERT INTO event_participation (id, user_interested, is_host)
@@ -1252,7 +1273,10 @@ def add_game_info(events):
 def get_event_by_public_id(public_id):
     with pool.connection() as conn:
         event = conn.execute(
-            "SELECT * FROM events WHERE public_id = %s", (public_id,)
+            """SELECT e.*,
+            (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count
+            FROM events e WHERE public_id = %s""",
+            (public_id,),
         ).fetchone()
     if event is not None:
         event["is_completed"] = is_event_completed(event)

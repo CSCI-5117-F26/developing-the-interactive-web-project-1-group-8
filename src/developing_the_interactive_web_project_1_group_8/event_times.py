@@ -28,3 +28,9 @@ def is_event_completed(event):
     if event["status"] == "Canceled" or event["time"] is None:
         return False
     return event["time"] <= datetime.now(timezone.utc)
+
+
+def is_event_time_completed(time):
+    if time is None:
+        return False
+    return time <= datetime.now(timezone.utc)
