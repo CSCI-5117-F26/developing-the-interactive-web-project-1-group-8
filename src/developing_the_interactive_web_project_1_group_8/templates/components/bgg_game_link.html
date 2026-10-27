@@ -1,5 +1,5 @@
-{% if event.gameid and event.gameid > 0 %}
+{% if event.gameid and event.gameid > 0 and event.game_name %}
 <a class="event-game-link" href="https://boardgamegeek.com/boardgame/{{ event.gameid }}" title="View game on BoardGameGeek">{{ event.game_name or 'View game on BGG' }}</a>
 {% else %}
-No game listed
+{{ event.game_name or 'No game listed' }}
 {% endif %}

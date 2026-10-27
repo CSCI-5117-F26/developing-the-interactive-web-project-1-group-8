@@ -252,14 +252,23 @@ def get_new_events(user_id):
                         WHERE p.id = e.id AND p.user_interested = %s) AS is_attending,
                     (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count
                 FROM events e
-                WHERE e.time >= NOW() AND e.time < NOW() + INTERVAL '7 days'
-                ORDER BY e.time
+                WHERE e.time >= %s AND e.status <> 'Canceled'
+                    AND (e.visibility = 'public' OR (e.visibility = 'friends' AND (
+                        e.hostid = %s OR EXISTS (
+                            SELECT 1 FROM friend_requests r WHERE r.accepted AND (
+                                (r.requester_id = %s AND r.recipient_id = e.hostid)
+                                OR (r.recipient_id = %s AND r.requester_id = e.hostid)
+                            )
+                        )
+                    )))
+                ORDER BY e.created_at DESC, e.id DESC
                 LIMIT 20
                 """,
-                (user_id,),
+                (user_id, datetime.now(CENTRAL), user_id, user_id, user_id),
             )
             events = cur.fetchall()
     return add_game_info(events)
+
 
 def get_random_events(user_id, limit=20):
     with pool.connection() as conn:
@@ -271,13 +280,23 @@ def get_random_events(user_id, limit=20):
                         WHERE p.id = e.id AND p.user_interested = %s) AS is_attending,
                     (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count
                 FROM events e
+                WHERE e.time >= %s AND e.status <> 'Canceled'
+                    AND (e.visibility = 'public' OR (e.visibility = 'friends' AND (
+                        e.hostid = %s OR EXISTS (
+                            SELECT 1 FROM friend_requests r WHERE r.accepted AND (
+                                (r.requester_id = %s AND r.recipient_id = e.hostid)
+                                OR (r.recipient_id = %s AND r.requester_id = e.hostid)
+                            )
+                        )
+                    )))
                 ORDER BY RANDOM()
                 LIMIT %s
                 """,
-                (user_id, limit),
+                (user_id, datetime.now(CENTRAL), user_id, user_id, user_id, limit),
             )
             events = cur.fetchall()
     return add_game_info(events)
+
 
 def get_user_events(user_id, viewer_id=None):
     with pool.connection() as conn:
@@ -353,27 +372,10 @@ def get_events_in_week(user_id):
             events = cur.fetchall()
     return add_game_info(get_visible_events(events, user_id))
 
-def get_empty_events(user_id):
-    with pool.connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT e.*,
-                    (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count,
-                    EXISTS (SELECT 1 FROM event_participation p
-                        WHERE p.id = e.id AND p.user_interested = %s) AS is_attending
-                FROM events e
-                WHERE e.time >= NOW() AND e.time < NOW() + INTERVAL '7 days'
-                    AND NOT EXISTS (SELECT 1 FROM event_participation p
-                        WHERE p.id = e.id)
-                ORDER BY e.time
-                """,
-                (user_id,),
-            )
-            events = cur.fetchall()
-    return add_game_info(events)
 
 def get_events_today(user_id):
+    start = datetime.now(CENTRAL)
+    end = start.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
     with pool.connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -383,13 +385,28 @@ def get_events_today(user_id):
                     EXISTS (SELECT 1 FROM event_participation p
                         WHERE p.id = e.id AND p.user_interested = %s) AS is_attending
                 FROM events e
-                WHERE e.time >= NOW() AND e.time < NOW() + INTERVAL '1 day'
+                WHERE e.time >= %s AND e.time < %s AND e.status <> 'Canceled'
                 ORDER BY e.time
                 """,
-                (user_id,),
+                (user_id, start, end),
             )
             events = cur.fetchall()
-    return add_game_info(events)
+    return add_game_info(get_visible_events(events, user_id))
+
+
+def resolve_event_game(game_id, game_name):
+    game = None
+    try:
+        if game_id and game_id > 0:
+            game = bgg.game(game_id=game_id)
+        elif game_name:
+            game = bgg.game(name=game_name, exact=True)
+    except BGGError:
+        pass
+    if game:
+        return game.id, game.name, game.categories
+    return 0, game_name or None, []
+
 
 def create_event(
     name,
@@ -404,18 +421,18 @@ def create_event(
     status,
     visibility="public",
     public_id=None,
+    game_name=None,
 ):
     # https://docs.python.org/3/library/secrets.html#secrets.token_urlsafe
     public_id = secrets.token_urlsafe(32) if public_id is None else public_id
+    gameID, game_name, categories = resolve_event_game(gameID, game_name)
     with pool.connection() as conn:
         with conn.cursor() as cur:
-            categories = bgg.game(game_id=gameID).categories
-            print(categories)
             cur.execute(
                 """
                 INSERT INTO events (name, gameID, hostID, address, time, expected_duration,
-                min_attendees, max_attendees, description, status, game_categories, public_id, visibility)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                min_attendees, max_attendees, description, status, game_categories, public_id, visibility, game_name)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING *
                 """,
                 (
@@ -432,6 +449,7 @@ def create_event(
                     categories,
                     public_id,
                     visibility,
+                    game_name,
                 ),
             )
             event = cur.fetchone()
@@ -456,7 +474,9 @@ def update_event(
     max_attendees,
     description,
     visibility,
+    game_name=None,
 ):
+    gameID, game_name, categories = resolve_event_game(gameID, game_name)
     values = (
         name,
         gameID,
@@ -467,18 +487,30 @@ def update_event(
         max_attendees,
         description,
         visibility,
+        game_name,
+        categories,
     )
     with pool.connection() as conn:
         with conn.cursor() as cur:
+            cur.execute("SELECT id FROM events WHERE id = %s FOR UPDATE", (id,))
+            if cur.fetchone() is None:
+                return None
+            cur.execute(
+                "SELECT COUNT(*) AS count FROM event_participation WHERE id = %s", (id,)
+            )
+            if max_attendees < cur.fetchone()["count"]:
+                raise ValueError(
+                    "Maximum players cannot be lower than the current attendee count."
+                )
             cur.execute(
                 """
                 UPDATE events SET name = %s, gameID = %s, address = %s, time = %s,
                 expected_duration = %s, min_attendees = %s, max_attendees = %s, description = %s,
-                visibility = %s
+                visibility = %s, game_name = %s, game_categories = %s
                 WHERE id = %s AND
                     (name, gameID, address, time, expected_duration,
-                     min_attendees, max_attendees, description, visibility)
-                    IS DISTINCT FROM (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                     min_attendees, max_attendees, description, visibility, game_name, game_categories)
+                    IS DISTINCT FROM (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING name
                 """,
                 values + (id,) + values,
@@ -1379,7 +1411,6 @@ def add_game_info(events):
         event["is_completed"] = is_event_completed(event)
         game_id = event["gameid"]
         if game_id is None or game_id <= 0:
-            event["game_name"] = None
             event["image_url"] = None
             event["game_categories"] = []
             continue
@@ -1389,7 +1420,7 @@ def add_game_info(events):
             except BGGError:
                 games[game_id] = None
         game = games[game_id]
-        event["game_name"] = game.name if game else None
+        event["game_name"] = game.name if game else event.get("game_name")
         event["image_url"] = (game.image or game.thumbnail) if game else None
         if game:
             event["game_categories"] = game.categories
@@ -1425,9 +1456,9 @@ def get_visible_events(events, viewer_id, profile_owner_id=None):
             visible.append(event)
     return visible
 
+
 def game_exists(game_id):
     try:
-        bgg.game(game_id=game_id)
-        return True
+        return bgg.game(game_id=game_id) is not None
     except BGGError:
         return False

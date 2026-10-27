@@ -12,8 +12,7 @@ from flask import (
 )
 import os
 import secrets
-from datetime import timezone
-from math import isfinite
+from datetime import datetime, timezone
 from urllib.parse import urlencode
 from dotenv import load_dotenv
 from flask_wtf.csrf import CSRFProtect
@@ -239,30 +238,23 @@ def index():
     # print(events[0])
     # new_events = events.sort(key=lambda e: e["date"]).reverse()[:20]
     """Dashboard page, where users can explore for new events"""
-    if "profile" not in session:
-        
-        
-        
-        sections = [
-            # ("Events from Popular Games", events),
-            # ("Events in the Next Week", events),
-        ]
-    else:
-        user_id = session["profile"]["id"]
-        sections = [
-            ("New Events", db.get_new_events(user_id)),
-            ("Some Random Events", db.get_random_events(user_id, limit=20)),
-            
-            # ("Hosted Events", db.get_user_events(user_id, user_id)),
-            ("Events Attending", db.get_user_events_attending(user_id, user_id)),
+    user_id = session.get("profile", {}).get("id")
+    sections = [("New Events", db.get_new_events(user_id))]
+    if user_id is not None:
+        sections.extend(
+            [
+                ("Events from Users You Follow", db.get_all_friend_events(user_id)),
+                ("Events Attending", db.get_user_events_attending(user_id, user_id)),
+            ]
+        )
+    sections.extend(
+        [
+            ("Random Events", db.get_random_events(user_id, limit=20)),
             ("Events Today", db.get_events_today(user_id)),
-            ("Empty Events", db.get_empty_events(user_id)),
             ("Events in the Next Week", db.get_events_in_week(user_id)),
-            ("Events from Users You Follow", db.get_all_friend_events(user_id)),
             ("All Events", db.get_all_event_info(user_id)),
         ]
-        
-        
+    )
     return render_template("index.html", sections=sections)
 
 
@@ -1007,7 +999,7 @@ def my_events():
 def search():
     """Search page, where users can search for events"""
     q = request.args.get("q", "", type=str)
-    game = request.args.get("game", "", type=str)
+    game = request.args.get("game", "", type=int)
     game_name = request.args.get("game-name", "", type=str)
     category = request.args.get("category", "", type=str)
     category_name = request.args.get("category-name", "", type=str)
@@ -1021,6 +1013,8 @@ def search():
     friends = request.args.get("friends", "").lower() in {"true", "1", "on"}
     page = request.args.get("page", 1, type=int)
     user_id = session["profile"]["id"] if session.get("profile") else None
+    if game and not 1 <= game <= 2147483647:
+        game = ""
     if min_players is not None and not 1 <= min_players <= 15:
         min_players = None
     if max_players is not None and not 1 <= max_players <= 15:
@@ -1092,42 +1086,45 @@ def event(public_id):
 def create_event():
     """Event form, where users can insert info about their event"""
     # print(database.get_event(event_id))
-    return render_template("events/event_info.html", event=None, mode="create")
+    values = {"min_attendees": 2, "visibility": "public", "time": ""}
+    return render_template(
+        "events/event_info.html",
+        event=None,
+        values=values,
+        mode="create",
+        now=datetime.now(CENTRAL),
+    )
 
 
 @app.post("/add-event")
 @requires_auth
 def add_event():
-    # print(request.form)
-    # print(db.game_exists(request.form.get("search-value") or request.form.get("gameid")))
-    # print(session["profile"]["id"])
-    errors, error_event = validate_form(request.form)
-    
+    errors, data = validate_form(request.form)
     if errors:
         for msg in errors.values():
             flash(msg, "error")
-        return render_template("events/event_info.html",
-            event=error_event, mode="create"
+        return render_template(
+            "events/event_info.html",
+            event=None,
+            values=data,
+            mode="create",
+            now=datetime.now(CENTRAL),
         ), 400
-    
-    # This is checked in validate form
-    event_time = parse_utc_time(request.form.get("time"))
 
-    
-    result = db.create_event(
-        request.form.get("name"),
-        request.form.get("search-value") or request.form.get("gameid"),
+    db.create_event(
+        data["name"],
+        data.get("gameid", 0, type=int),
         session["profile"]["id"],
-        request.form.get("address"),
-        event_time,
-        expected_duration,
-        request.form.get("min_attendees"),
-        request.form.get("max_attendees"),
-        request.form.get("description"),
+        data["address"],
+        data["time"],
+        float(data["expected_duration"]),
+        int(data["min_attendees"]),
+        int(data["max_attendees"]),
+        data.get("description", ""),
         "scheduled",
-        request.form.get("visibility"),
+        data["visibility"],
+        game_name=data["game_name"],
     )
-
     return redirect("/")
 
 
@@ -1172,12 +1169,13 @@ def edit_event(public_id):
     if edited_event is None:
         abort(404, "This event does not appear to exist.")
     event_id = edited_event["id"]
-    
-    # print(session["profile"])
-    # print(edited_event)
     if session["profile"]["id"] == edited_event["hostid"]:
         db.add_game_info([edited_event])
-        return render_template("events/event_info.html", event=edited_event, mode="edit")
+        values = edited_event.copy()
+        values["time"] = format_event_input(edited_event["time"])
+        return render_template(
+            "events/event_info.html", event=edited_event, values=values, mode="edit"
+        )
     else:
         # print(session["profile"]["user"])
         return redirect(url_for("event", public_id=public_id))
@@ -1189,48 +1187,39 @@ def update_event(public_id):
     event = db.get_event_by_public_id(public_id)
     if event is None:
         abort(404, "This event does not appear to exist.")
-    event_id = event["id"]
-    check_event = db.get_event_info(event_id, session["profile"]["id"])
-    if check_event is None:
-        abort(404, "This event does not appear to exist.")
-
-    if check_event["hostid"] != session["profile"]["id"]:
+    if event["hostid"] != session["profile"]["id"]:
         abort(404, "This event does not belong to you.")
 
-    if check_event["count"] > int(request.form.get("max_attendees")):
-        abort(
-            404,
-            "Cannot adjust an event's max attendees lower than the number of participants.",
-        )
+    errors, data = validate_form(request.form, event)
+    if not errors:
+        try:
+            updated = db.update_event(
+                event["id"],
+                data["name"],
+                data.get("gameid", 0, type=int),
+                data["address"],
+                data["time"],
+                float(data["expected_duration"]),
+                int(data["min_attendees"]),
+                int(data["max_attendees"]),
+                data.get("description", ""),
+                data["visibility"],
+                game_name=data["game_name"],
+            )
+        except ValueError:
+            errors["max_attendees"] = (
+                "The attendee count changed. Increase the maximum players and try again."
+            )
+        else:
+            if updated is None:
+                abort(404, "This event no longer exists.")
+            return redirect("/")
 
-    errors, error_event = validate_form(request.form)
-        
-    if errors:
-        for msg in errors.values():
-            flash(msg, "error")
-        error_event["public_id"] = public_id
-        return render_template("events/event_info.html",
-            event=error_event, mode="edit"
-        ), 400
-
-    # This is checked in validate form
-    event_time = parse_utc_time(request.form.get("time"), check_event["time"])
-
-    db.update_event(
-        event_id,
-        request.form.get("name"),
-        request.form.get("search-value") or request.form.get("gameid"),
-        request.form.get("address"),
-        event_time,
-        expected_duration,
-        request.form.get("min_attendees"),
-        request.form.get("max_attendees"),
-        request.form.get("description"),
-        "scheduled",
-        request.form.get("visibility"),
-    )
-
-    return redirect("/")
+    for msg in errors.values():
+        flash(msg, "error")
+    return render_template(
+        "events/event_info.html", event=event, values=data, mode="edit"
+    ), 400
 
 
 @app.post("/event/<string:public_id>/cancel")

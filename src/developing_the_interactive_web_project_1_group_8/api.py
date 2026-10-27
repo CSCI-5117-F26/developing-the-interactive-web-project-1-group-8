@@ -199,8 +199,10 @@ def follow_user(username):
         return jsonify({"message": "User followed successfully"}), 200
     except psycopg.errors.UniqueViolation:
         return jsonify({"error": "You are already following this user"}), 400
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        return jsonify(
+            {"error": "This action could not be saved. Please try again."}
+        ), 500
 
 
 @api.route("/api/user/<string:username>/unfollow", methods=["POST"])
@@ -230,8 +232,10 @@ def unfollow_user(username):
     try:
         db.unfollow_user(current_user_id, user_id)
         return jsonify({"message": "User unfollowed successfully"}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        return jsonify(
+            {"error": "This action could not be saved. Please try again."}
+        ), 500
 
 
 # ---------- Block ----------
@@ -264,8 +268,10 @@ def block_user(username):
     try:
         db.block_user(current_user_id, user_id)
         return jsonify({"message": "User blocked successfully"}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        return jsonify(
+            {"error": "This action could not be saved. Please try again."}
+        ), 500
 
 
 @api.route("/api/user/<string:username>/unblock", methods=["POST"])
@@ -295,8 +301,10 @@ def unblock_user(username):
     try:
         db.unblock_user(current_user_id, user_id)
         return jsonify({"message": "User unblocked successfully"}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        return jsonify(
+            {"error": "This action could not be saved. Please try again."}
+        ), 500
 
 
 # ---------- Search ----------
@@ -311,7 +319,7 @@ def search():
       query (str): The search query.
     """
     q = request.args.get("q", "", type=str)
-    game = request.args.get("game", "", type=str)
+    game = request.args.get("game", "", type=int)
     category = request.args.get("category", "", type=str)
     category_name = request.args.get("category-name", "", type=str)
     min_players = request.args.get("min", None, type=int)
@@ -324,6 +332,8 @@ def search():
     friends = request.args.get("friends", "").lower() in {"true", "1", "on"}
     page = request.args.get("page", 1, type=int)
     user_id = session["profile"]["id"] if session.get("profile") else None
+    if game and not 1 <= game <= 2147483647:
+        game = ""
     if min_players is not None and not 1 <= min_players <= 15:
         min_players = None
     if max_players is not None and not 1 <= max_players <= 15:

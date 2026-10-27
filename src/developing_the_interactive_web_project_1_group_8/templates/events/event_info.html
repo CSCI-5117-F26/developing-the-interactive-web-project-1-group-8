@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 
-{% block title %} {% if mode == "edit" %} {{ event.name }} {% else %} New Event {% endif %} {% endblock %}
+{% block title %} {% if mode == "edit" %} {{ values.name }} {% else %} New Event {% endif %} {% endblock %}
+
+{% block notifications %}{% endblock %}
 
 {% block head %}
 
@@ -33,7 +35,7 @@
         <h1>{% if mode == "edit" %}Edit Event{% else %}Create Event{% endif %}</h1>
         <p>Choose the game, location and time for your event.</p>
         <nav class="settings-links">
-            <a class="pure-button" data-back-link href="{{ url_for('event', public_id=event.public_id) if event else url_for('my_events') }}">
+            <a class="pure-button" data-back-link href="{{ url_for('event', public_id=event.public_id) if mode == 'edit' else url_for('my_events') }}">
                 <i class="fa fa-arrow-left"></i> <span data-back-label>{% if mode == "edit" %}Back to Event{% else %}Back to My Events{% endif %}</span>
             </a>
         </nav>
@@ -49,13 +51,14 @@
                 <div class="pure-control-group">
 
                 <label for="event-name">Event Name</label>
-                <input id="event-name" type="text" value="{{ event.name }}" required pattern="^[a-zA-Z 0-9,.!']+$"
-                    name="name" class="pure-input-1" placeholder="Event Name..." />
+                <input id="event-name" type="text" value="{{ values.name }}" required pattern="^[a-zA-Z 0-9,.!']+$"
+                    name="name" maxlength="255" class="pure-input-1" placeholder="Event Name..." />
                 </div>
                 <div class="pure-control-group">
 
                 <label for="bgg-games-search">Game</label>
-                {{ autocomplete('search', 'Games...', event.game_name or '', event.game_name or '', event.gameid) }}
+                {{ autocomplete('search', 'Games...', values.game_name or '', values.game_name or '', values.gameid) }}
+                <p class="pure-form-message">Exact matches link to BoardGameGeek. Choose a suggestion to select a specific game.</p>
                 </div>
 
                 {# <input id="event-gameid" type="text" value="{{ event.gameid }}" required pattern="^[0-9]+$"
@@ -64,38 +67,38 @@
                 <div class="pure-control-group">
 
                     <label for="event-address">Location</label>
-                    <input id="event-address" type="text" value="{{ event.address }}" required
-                        pattern="^[a-zA-Z 0-9,.!']+$" name="address" class="pure-input-1" placeholder="Location..." />
+                    <input id="event-address" type="text" value="{{ values.address }}" required
+                        pattern="^[a-zA-Z 0-9,.!']+$" name="address" maxlength="255" class="pure-input-1" placeholder="Location..." />
                 </div>
                 <div class="pure-control-group">
 
                     <label for="event-expected">Expected event duration (hours)</label>
-                    <input id="event-expected" type="number" value="{{ event.expected_duration }}" required
-                        name="expected_duration" class="pure-input-1-5" min="1" placeholder="Duration..." />
+                    <input id="event-expected" type="number" value="{{ values.expected_duration }}" required
+                        name="expected_duration" class="pure-input-1" min="0" max="24" step="any" placeholder="Duration..." />
                 </div>
 
                 <div class="pure-control-group">
                     <label for="event-min">Minimum number of players</label>
                     <input id="event-min" type="number"
-                        value="{% if event %}{{ event.min_attendees }}{% else %}2{% endif %}" required
-                        name="min_attendees" class="pure-input-1-5" min="2" placeholder="Min Players..." />
+                        value="{{ values.min_attendees }}" required
+                        name="min_attendees" class="pure-u-1-5" min="2" max="10000" step="1" placeholder="Min Players..." />
                 </div>
 
                 <div class="pure-control-group">
                     <label for="event-max">Maximum number of players</label>
-                    <input id="event-max" type="number" value="{{ event.max_attendees }}" required name="max_attendees"
-                        class="pure-input-1-5" min="2" placeholder="Maximum Players..." />
+                    <input id="event-max" type="number" value="{{ values.max_attendees }}" required name="max_attendees"
+                        class="pure-u-1-5" min="2" max="10000" step="1" placeholder="Maximum Players..." />
                 </div>
 
                 <div class="pure-control-group">
                     <label for="event-description">Description</label>
-                    <textarea name="description" id="event-description" class="pure-input-1" rows="5"
-                        placeholder="Add description">{{ event.description }}</textarea>
+                    <textarea name="description" id="event-description" class="pure-input-1" rows="5" maxlength="4095"
+                        placeholder="Add description">{{ values.description }}</textarea>
                 </div>
                 <div class="pure-control-group">
                     <label for="event-visibility">Visibility</label>
                     <select class="pure-input-1" id="event-visibility" name="visibility" required>
-                        {% set visibility = event.visibility if event else 'public' %}
+                        {% set visibility = values.visibility %}
                         <option value="public"{% if visibility == 'public' %} selected{% endif %}>Public</option>
                         <option value="friends"{% if visibility == 'friends' %} selected{% endif %}>Friends only</option>
                         <option value="private"{% if visibility == 'private' %} selected{% endif %}>Private</option>
@@ -104,7 +107,7 @@
                 </div>
                 <div class="pure-control-group">
                     <label for="event-time">Event Time (CT)</label>
-                    <input class="pure-input-1" id="event-time" type="datetime-local" name="time"{% if not event %} min="{{ now | format_event_input }}"{% endif %} value="{{ event.time | format_event_input if event else '' }}">
+                    <input class="pure-input-1" id="event-time" type="datetime-local" name="time" required{% if mode == 'create' %} min="{{ now | format_event_input }}"{% endif %} value="{{ values.time if values.time is string else values.time | format_event_input }}">
                     <p class="pure-form-message">Enter the event time in Central Time (CT).</p>
                 </div>
                 <div class="settings-actions">
@@ -115,4 +118,7 @@
 
 </section>
 
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='javascript/account-notices.js') }}"></script>
 {% endblock %}
