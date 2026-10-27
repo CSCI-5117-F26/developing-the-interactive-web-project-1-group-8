@@ -29,10 +29,13 @@
 
         {% if not setup_required %}
         <li class="pure-menu-item hide-if-mobile">
-          <a class="pure-menu-link" href="{{ url_for('create_event') }}" title="Create Event"><i class="fa fa-plus"></i> Create Event</a>
+          <a id="create-event-link" class="pure-menu-link" href="{{ url_for('create_event') }}"><i class="fa fa-plus"></i> Create Event</a>
         </li>
         <li class="pure-menu-item hide-if-mobile">
-          <a class="pure-menu-link" href="{{ url_for('notifications') }}" title="Notifications"><i class="fa fa-bell"></i>{% if unread_notification_count %}<span class="notification-count">{{ unread_notification_count }} unread</span>{% endif %}</a>
+          <a id="notifications-link" class="pure-menu-link" href="{{ url_for('notifications') }}" title="Notifications">
+            <i class="fa fa-bell"></i>
+            {% if unread_notification_count %}<span class="notification-count">{{ unread_notification_count }} unread</span>{% endif %}
+          </a>
         </li>
         <li class="pure-menu-item hide-if-mobile">
           <a class="pure-menu-link" href="{{ url_for('connections') }}" title="Connections"><i class="fa fa-users"></i></a>
@@ -59,31 +62,31 @@
             <li class="pure-menu-item">
               <a class="pure-menu-link" href="{{ url_for('settings') }}">Settings</a>
             </li>
+            <li class="pure-menu-item show-if-mobile">
+              <a class="pure-menu-link" href="{{ url_for('create_event') }}"><i class="fa fa-plus"></i> Create Event</a>
+            </li>
+            <li class="pure-menu-item show-if-mobile">
+              <a class="pure-menu-link" href="{{ url_for('notifications') }}"><i class="fa fa-bell"></i> Notifications{% if unread_notification_count %} <span class="notification-count">{{ unread_notification_count }} unread</span>{% endif %}</a>
+            </li>
+            <li class="pure-menu-item show-if-mobile">
+              <a class="pure-menu-link" href="{{ url_for('connections') }}"><i class="fa fa-users"></i> Connections</a>
+            </li>
+            <li class="pure-menu-item show-if-mobile">
+              <a class="pure-menu-link" href="{{ url_for('friend_requests') }}"><i class="fa fa-user-plus"></i> Add Friend</a>
+            </li>
             {% endif %}
-            <li class="pure-menu-item show-if-mobile">
-              <a class="pure-menu-link" href="{{ url_for('create_event') }}" title="Create Event"><i class="fa fa-plus"></i> Create Event</a>
-            </li>
-            <li class="pure-menu-item show-if-mobile">
-              <a class="pure-menu-link" href="{{ url_for('notifications') }}" title="Notifications"><i class="fa fa-bell"> Notifications</i>{% if unread_notification_count %}<span class="notification-count">{{ unread_notification_count }} unread</span>{% endif %}</a>
-            </li>
-            <li class="pure-menu-item show-if-mobile">
-              <a class="pure-menu-link" href="{{ url_for('connections') }}" title="Connections"><i class="fa fa-users"></i> Connections</a>
-            </li>
-            <li class="pure-menu-item show-if-mobile">
-              <a class="pure-menu-link" href="{{ url_for('friend_requests') }}" title="Add Friend"><i class="fa fa-user-plus"></i> Add Friend</a>
-            </li>
             <li class="pure-menu-item">
               <form class="account-logout-form" method="post" action="{{ url_for('logout') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button class="pure-button account-logout" type="submit">Log Out</button>
               </form>
             </li>
-            <li class="pure-menu-item">
-              
           </ul>
         </li>
         {% else %}
-
+        <li class="pure-menu-item">
+          <a class="pure-menu-link" href="{{ url_for('login') }}">Login</a>
+        </li>
         {% endif %}
       </ul>
     </div>

@@ -582,17 +582,16 @@ dialog.profile-section {
   overflow-wrap: anywhere;
 }
 
-.show-if-mobile {
+#topbar .show-if-mobile {
   display: none !important;
 }
 
-@media only screen and (max-width: 1000px) {
-  .hide-if-mobile {
+@media (max-width: 62.5em) {
+  #topbar .hide-if-mobile {
     display: none !important;
   }
 
-  .show-if-mobile {
+  #topbar .show-if-mobile {
     display: block !important;
   }
-    /* Styles applied to screens with a width of 400px or less */
 }

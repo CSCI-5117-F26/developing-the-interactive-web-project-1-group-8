@@ -247,6 +247,7 @@ def index():
 @app.route("/login")
 async def login():
     """Login page, where users can log in to their account"""
+    session["login_event"] = request.args.get("event")
     return auth0.authorize_redirect(os.environ["AUTH0_REDIRECT_URI"])
 
 
@@ -258,9 +259,12 @@ async def callback():
     user = db.get_or_create_user(user_info)
 
     friend_invite = session.get("friend_invite")
+    login_event = session.get("login_event")
     session.clear()
     if friend_invite:
         session["friend_invite"] = friend_invite
+    if login_event:
+        session["login_event"] = login_event
     session["profile"] = {
         "id": user["id"],
         "sub": user["auth0_sub"],
@@ -269,6 +273,9 @@ async def callback():
         "profile_pic": user["profile_pic"] or None,
     }
     if user_exists and user["setup_complete"] and user["username"]:
+        if login_event:
+            session.pop("login_event")
+            return redirect(url_for("event", public_id=login_event))
         if friend_invite:
             return redirect(url_for("friend_invite", token=friend_invite))
         return redirect(url_for("user", username=user["username"]))
@@ -576,6 +583,9 @@ def set_username():
             flash("Username updated.")
             return redirect(url_for("settings"))
         flash("Your account is ready.")
+        login_event = session.pop("login_event", None)
+        if login_event:
+            return redirect(url_for("event", public_id=login_event))
         friend_invite = session.get("friend_invite")
         if friend_invite:
             return redirect(url_for("friend_invite", token=friend_invite))
@@ -1190,14 +1200,6 @@ def restore_event(public_id):
     db.restore_event(event_id)
 
     return redirect("/")
-
-
-import datetime
-
-
-@app.context_processor
-def inject_today_date():
-    return {"now": datetime.datetime.now(CENTRAL)}
 
 
 # ---------- Error Handlers ----------
