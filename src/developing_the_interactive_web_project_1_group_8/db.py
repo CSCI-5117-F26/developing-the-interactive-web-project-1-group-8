@@ -1390,7 +1390,7 @@ def build_query(
         )
         params.extend([user_id, user_id])
 
-    print(params)
+    # print(params)
     cond_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
     query = f"""SELECT e.*, (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count,
         EXISTS (SELECT 1 FROM event_participation p

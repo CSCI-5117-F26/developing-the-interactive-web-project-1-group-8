@@ -1,3 +1,4 @@
+//  Code from tutorial at https://codingartistweb.com/2021/06/double-range-slider-html-css-javascript/ and customized.
 window.onload = function () {
   slideOne();
   slideTwo();

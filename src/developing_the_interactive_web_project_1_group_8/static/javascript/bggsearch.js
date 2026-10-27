@@ -67,7 +67,7 @@ function autocomplete(str, uri) {
       }
 
       if (!a.isConnected || searchElement.value !== val) return;
-      console.log("Search results:", data);
+      // console.log("Search results:", data);
 
       /*for each item in the array...*/
       for (i = 0; i < data.length; i++) {

@@ -59,8 +59,7 @@ searchInput.addEventListener("input", async function (event) {
     fetch(`/api/search?q=${encodeURIComponent(query)}&${params.toString()}`)
       .then((response) => response.json())
       .then((data) => {
-        console.log("fire");
-        console.log(data);
+        //console.log(data);
         if (!a.isConnected || searchInput.value !== query || !data.length)
           return;
 
