@@ -28,23 +28,28 @@
 {% endblock %}
 
 {% block content %}
-<section class="page-panel profile-section" style="width:100%">
-    {% if event %}
-    <form class="pure-form pure-form-aligned" action="{{ url_for('update_event', public_id=event.public_id) }}" method="post">
-        {% else %}
-        <form class="pure-form pure-form-aligned" action="/add-event" method="post">
-            {% endif %}
-
+<section class="settings-page event-page page-panel">
+    <header>
+        <h1>{% if event %}Edit Event{% else %}Create Event{% endif %}</h1>
+        <p>Choose the game, location and time for your event.</p>
+        <nav class="settings-links">
+            <a class="pure-button" data-back-link href="{{ url_for('event', public_id=event.public_id) if event else url_for('my_events') }}">
+                <i class="fa fa-arrow-left"></i> <span data-back-label>{% if event %}Back to Event{% else %}Back to My Events{% endif %}</span>
+            </a>
+        </nav>
+    </header>
+    <form class="settings-section event-form pure-form pure-form-stacked" action="{{ url_for('update_event', public_id=event.public_id) if event else url_for('add_event') }}" method="post">
             {% from 'components/bgg-search.html' import autocomplete %}
 
 
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <fieldset>
+                <legend>Event Details</legend>
                 <div class="pure-control-group">
 
-                <label for="name">Event Name</label>
+                <label for="event-name">Event Name</label>
                 <input id="event-name" type="text" value="{{ event.name }}" required pattern="^[a-zA-Z 0-9,.!'/]+$"
-                    name="name" class="pure-u-2-3" placeholder="Event Name..." />
+                    name="name" class="pure-input-1" placeholder="Event Name..." />
                 </div>
                 <div class="pure-control-group">
 
@@ -57,43 +62,52 @@
 
                 <div class="pure-control-group">
 
-                    <label for="address">Location</label>
+                    <label for="event-address">Location</label>
                     <input id="event-address" type="text" value="{{ event.address }}" required
-                        pattern="^[a-zA-Z 0-9,.!']+$" name="address" class="pure-u-2-3" placeholder="Location..." />
+                        pattern="^[a-zA-Z 0-9,.!']+$" name="address" class="pure-input-1" placeholder="Location..." />
                 </div>
                 <div class="pure-control-group">
 
-                    <label for="expected-duration">Expected event duration (minutes)</label>
+                    <label for="event-expected">Expected event duration (minutes)</label>
                     <input id="event-expected" type="number" value="{{ event.expected_duration }}" required
-                        name="expected_duration" class="pure-u-1-5" min="0" placeholder="Duration..." />
+                        name="expected_duration" class="pure-input-1" min="0" placeholder="Duration..." />
                 </div>
 
                 <div class="pure-control-group">
-                    <label for="min_attendees">Minimum number of players</label>
+                    <label for="event-min">Minimum number of players</label>
                     <input id="event-min" type="number"
                         value="{% if event %}{{ event.min_attendees }}{% else %}2{% endif %}" required
                         name="min_attendees" class="pure-u-1-5" min="2" placeholder="Min Players..." />
                 </div>
 
                 <div class="pure-control-group">
-                    <label for="max_attendees">Maximum number of players</label>
+                    <label for="event-max">Maximum number of players</label>
                     <input id="event-max" type="number" value="{{ event.max_attendees }}" required name="max_attendees"
-                        class="pure-u-1-5" min="2" placeholder="Maximum Players..." />
+                        class="pure-input-1" min="2" placeholder="Maximum Players..." />
                 </div>
 
                 <div class="pure-control-group">
-                    <label for="description">Description</label>
-                    <textarea name="description" id="event-description" class="pure-input-2-3"
+                    <label for="event-description">Description</label>
+                    <textarea name="description" id="event-description" class="pure-input-1" rows="5"
                         placeholder="Add description">{{ event.description }}</textarea>
                 </div>
                 <div class="pure-control-group">
-                    <label for="time">Event Time (CT)</label>
-                    <input id="event-time" type="datetime-local" required name="time" value="{{ event.time | format_event_input if event else '' }}">
+                    <label for="event-visibility">Visibility</label>
+                    <select class="pure-input-1" id="event-visibility" name="visibility" required>
+                        {% set visibility = event.visibility if event else 'public' %}
+                        <option value="public"{% if visibility == 'public' %} selected{% endif %}>Public</option>
+                        <option value="friends"{% if visibility == 'friends' %} selected{% endif %}>Friends only</option>
+                        <option value="private"{% if visibility == 'private' %} selected{% endif %}>Private</option>
+                    </select>
+                    <p class="pure-form-message">Public events can appear in search, feeds and profiles. Friends-only events are shown to the host's friends. Private events appear only in your own hosted or attending lists. Anyone with the event link can view an event and sign in to join.</p>
+                </div>
+                <div class="pure-control-group">
+                    <label for="event-time">Event Time (CT)</label>
+                    <input class="pure-input-1" id="event-time" type="datetime-local" name="time"{% if not event %} min="{{ now | format_event_input }}"{% endif %} value="{{ event.time | format_event_input if event else '' }}">
                     <p class="pure-form-message">Enter the event time in Central Time (CT).</p>
                 </div>
-                <div class="button-container">
-                    <button type="submit" class="pure-button pure-button-primary event-button">{% if event %} Update {%
-                        else %} Create {% endif %}</button>
+                <div class="settings-actions">
+                    <button type="submit" class="pure-button pure-button-primary event-button">{% if event %}Save Event{% else %}Create Event{% endif %}</button>
                 </div>
             </fieldset>
         </form>

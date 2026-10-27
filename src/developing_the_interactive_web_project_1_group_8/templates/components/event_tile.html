@@ -10,7 +10,10 @@
 
     </div>
     <div class="event-info-header">
-      <h3 class="event-name" title="{{ event.name }}">{{event.name}}</h3>
+      <div class="event-title-row">
+        <h3 class="event-name" title="{{ event.name }}">{{event.name}}</h3>
+        <span class="event-visibility">{{ 'Public' if event.visibility == 'public' else 'Friends only' if event.visibility == 'friends' else 'Private' }}</span>
+      </div>
       <div class="event-game-name">
         {% include "components/bgg_game_link.html" %}
       </div>

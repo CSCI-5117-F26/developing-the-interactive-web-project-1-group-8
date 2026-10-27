@@ -29,6 +29,7 @@ def is_event_completed(event):
         return False
     return event["time"] <= datetime.now(timezone.utc)
 
+
 def is_event_time_completed(time):
     if time is None:
         return False

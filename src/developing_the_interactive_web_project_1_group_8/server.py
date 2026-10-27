@@ -182,6 +182,9 @@ def notifications():
         entry["url"] = None
         if entry["kind"] == "friend_request":
             entry["url"] = url_for("friend_requests")
+        elif entry["kind"] == "friend_accepted":
+            if entry["user_username"] is not None:
+                entry["url"] = url_for("user", username=entry["user_username"])
         elif entry["event_public_id"] is not None:
             entry["url"] = url_for("event", public_id=entry["event_public_id"])
     return render_template(
@@ -215,9 +218,11 @@ def format_page_time(dt):
 def format_event_input(dt):
     return dt.astimezone(CENTRAL).strftime("%Y-%m-%dT%H:%M") if dt else ""
 
+
 @app.template_test("past")
 def is_past(time):
     return is_event_time_completed(time)
+
 
 @app.route("/")
 def index():
@@ -234,7 +239,7 @@ def index():
             ("Events Attending", db.get_user_events_attending(user_id, user_id)),
             ("Events in the Next Week", db.get_events_in_week(user_id)),
             ("Events from Users You Follow", db.get_all_friend_events(user_id)),
-            ("All Events", db.get_all_event_info(user_id))
+            ("All Events", db.get_all_event_info(user_id)),
         ]
     return render_template("index.html", sections=sections)
 
@@ -242,6 +247,7 @@ def index():
 @app.route("/login")
 async def login():
     """Login page, where users can log in to their account"""
+    session["login_event"] = request.args.get("event")
     return auth0.authorize_redirect(os.environ["AUTH0_REDIRECT_URI"])
 
 
@@ -253,9 +259,12 @@ async def callback():
     user = db.get_or_create_user(user_info)
 
     friend_invite = session.get("friend_invite")
+    login_event = session.get("login_event")
     session.clear()
     if friend_invite:
         session["friend_invite"] = friend_invite
+    if login_event:
+        session["login_event"] = login_event
     session["profile"] = {
         "id": user["id"],
         "sub": user["auth0_sub"],
@@ -264,6 +273,9 @@ async def callback():
         "profile_pic": user["profile_pic"] or None,
     }
     if user_exists and user["setup_complete"] and user["username"]:
+        if login_event:
+            session.pop("login_event")
+            return redirect(url_for("event", public_id=login_event))
         if friend_invite:
             return redirect(url_for("friend_invite", token=friend_invite))
         return redirect(url_for("user", username=user["username"]))
@@ -571,6 +583,9 @@ def set_username():
             flash("Username updated.")
             return redirect(url_for("settings"))
         flash("Your account is ready.")
+        login_event = session.pop("login_event", None)
+        if login_event:
+            return redirect(url_for("event", public_id=login_event))
         friend_invite = session.get("friend_invite")
         if friend_invite:
             return redirect(url_for("friend_invite", token=friend_invite))
@@ -994,9 +1009,8 @@ def event(public_id):
         abort(404, "This event does not appear to exist.")
     event = db.get_event_info(event["id"], session.get("profile", {}).get("id"))
 
-    if event['hostid'] == session.get("profile", {}).get("id"):
+    if event["hostid"] == session.get("profile", {}).get("id"):
         attendees = db.get_all_event_attendees(event["id"])
-
 
     return render_template("events/event.html", event=event, attendees=attendees)
 
@@ -1015,6 +1029,12 @@ def add_event():
     print(request.form)
     # print(db.game_exists(request.form.get("search-value") or request.form.get("gameid")))
     # print(session["profile"]["id"])
+    visibility = request.form.get("visibility")
+    if visibility not in ("public", "friends", "private"):
+        return render_template(
+            "error.html",
+            message="Choose Public, Friends only, or Private for event visibility.",
+        ), 400
     try:
         event_time = parse_utc_time(request.form.get("time"))
     except ValueError:
@@ -1032,6 +1052,7 @@ def add_event():
         request.form.get("max_attendees"),
         request.form.get("description"),
         "scheduled",
+        visibility,
     )
 
     db.attend_event(result["id"], session["profile"]["id"], True)
@@ -1051,14 +1072,10 @@ def rsvp(public_id):
         event["status"] == "Canceled"
         or is_event_completed(event)
         or event["hostid"] == user_id
-        or event["count"] > event["max_attendees"]
+        or event["count"] >= event["max_attendees"]
     ):
         return redirect(url_for("event", public_id=public_id))
-    if db.attend_event(event_id, user_id, False):
-        message = (
-            f"{session['profile']['username']} has committed to attend your event."
-        )
-        db.notify_event_host(event_id, "host_update", message, user_id)
+    db.attend_event(event_id, user_id, False)
     return redirect("/")
 
 
@@ -1072,9 +1089,7 @@ def decommit(public_id):
     if is_event_completed(event):
         return redirect(url_for("event", public_id=public_id))
     user_id = session["profile"]["id"]
-    if db.decommit_event(event_id, user_id):
-        message = f"{session['profile']['username']} has decommitted from attending your event."
-        db.notify_event_host(event_id, "host_update", message, user_id)
+    db.decommit_event(event_id, user_id)
     return redirect("/")
 
 
@@ -1086,11 +1101,12 @@ def edit_event(public_id):
     if edited_event is None:
         abort(404, "This event does not appear to exist.")
     event_id = edited_event["id"]
+    # TODO There should be a check as to whether edited_event.hostid == the
+    # userID of the session holder, 403 otherwise
     edited_event["gamename"] = db.bgg.game(game_id=edited_event["gameid"]).name
     
     print(session["profile"])
     print(edited_event)
-    
     if session["profile"]["id"] == edited_event["hostid"]:
         db.add_game_info([edited_event])
         return render_template("events/event_info.html", event=edited_event)
@@ -1106,7 +1122,7 @@ def update_event(public_id):
     if event is None:
         abort(404, "This event does not appear to exist.")
     event_id = event["id"]
-    check_event = db.get_event_info(event_id)
+    check_event = db.get_event_info(event_id, session["profile"]["id"])
     if check_event is None:
         abort(404, "This event does not appear to exist.")
 
@@ -1119,6 +1135,12 @@ def update_event(public_id):
             "Cannot adjust an event's max attendees lower than the number of participants.",
         )
 
+    visibility = request.form.get("visibility")
+    if visibility not in ("public", "friends", "private"):
+        return render_template(
+            "error.html",
+            message="Choose Public, Friends only, or Private for event visibility.",
+        ), 400
     try:
         event_time = parse_utc_time(request.form.get("time"), check_event["time"])
     except ValueError:
@@ -1137,12 +1159,8 @@ def update_event(public_id):
         request.form.get("max_attendees"),
         request.form.get("description"),
         "scheduled",
+        visibility,
     )
-
-    message = (
-        f"The details of the event '{request.form.get('name')}' have been updated."
-    )
-    db.notify_event_attendees(event_id, "event_update", message)
 
     return redirect("/")
 
@@ -1164,19 +1182,8 @@ def cancel_event(public_id):
         abort(404, "This event does not belong to you.")
 
     if choice == "permanent":
-        message = f"""The event '{check_event["name"]}' has been permanently canceled"""
-
-        db.notify_event_attendees_of_delete(event_id, "event_cancelation", message)
-
-        db.remove_event_followers(event_id)
-
         db.delete_event(event_id)
-
     else:
-        message = f"""The event '{check_event["name"]}' has been canceled"""
-
-        db.notify_event_attendees(event_id, "event_cancelation", message)
-
         db.cancel_event(event_id)
 
     return redirect("/")
@@ -1192,11 +1199,6 @@ def restore_event(public_id):
 
     if check_event["hostid"] != session["profile"]["id"]:
         abort(404, "This event does not belong to you.")
-
-    message = f"""The event '{check_event["name"]}' has been restored and its info
-    can be viewed below"""
-
-    db.notify_event_attendees(event_id, "event_cancelation", message)
 
     db.restore_event(event_id)
 

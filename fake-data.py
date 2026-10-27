@@ -47,14 +47,24 @@ def generate_fake_users(num_users=10):
 
     # have the shitgoblins follow eachother
     for user in users:
-        i = fake.random_int(min=0, max=3)
+        i = fake.random_int(min=0, max=10)
         for _ in range(i):
             other_user = random.choice(users)
             if other_user != user:
-                db.follow_user(
-                    user.get("user_id"),
-                    other_user.get("user_id"),
-                )
+                if fake.boolean(chance_of_getting_true=50):
+                    db.follow_user(
+                        user.get("user_id"),
+                        other_user.get("user_id"),
+                    )
+                else:
+                    db.send_friend_request(
+                        user.get("user_id"),
+                        other_user.get("user_id"),
+                    )
+                    db.accept_friend_request(
+                        user.get("user_id"),
+                        other_user.get("user_id"),
+                    )
 
         stati = ["cancelled", "scheduled", "pending"]
 
@@ -66,24 +76,64 @@ def generate_fake_users(num_users=10):
         )[0]
         for _ in range(i):
             # make sure the game we grab exists
-            gameid = fake.random_int(min=1, max=10000)
-            while not db.bgg.game(game_id=gameid):
+            while True:
                 gameid = fake.random_int(min=1, max=10000)
-                pass
+                try:
+                    game = db.bgg.game(game_id=gameid)
+                    break
+                except:
+                    pass
+
+            game_words = game.name.split()
+
+            # I ASKED AI TO GENERATE A BUNCH OF STUFF
+            game_words.extend(
+                [
+                    "Game",
+                    "Stuff",
+                    "Event",
+                    "Fun",
+                    "Party",
+                    "Activity",
+                    "Night",
+                    "Day",
+                    "Play",
+                    "Enjoy",
+                    "Friend",
+                    "Social",
+                    "Gaming",
+                    "Board",
+                    "Tabletop",
+                    "Hangout",
+                    "UMN",
+                    "Time",
+                    "Yippee",
+                    "Exciting",
+                    "Thrilling",
+                    "Enthusiastic",
+                    "Boring",
+                ]
+            )
+            game_words.extend(game.categories)
+            game_words.extend(game.mechanics)
 
             ev = {
-                "name": fake.sentence(nb_words=4),
+                "name": fake.sentence(nb_words=3, ext_word_list=game_words),
                 "gameID": gameid,
                 "description": fake.text(max_nb_chars=200),
                 "date": fake.date_this_year(),
-                # time should be formatted 2026-10-14 10:31:00
-                "time": fake.date_time().strftime("%Y-%m-%d %H:%M:%S"),
+                # time should be formatted 2026-10-14 10:31:00, from now
+                "time": fake.date_time_between_dates(
+                    datetime.datetime.now(),
+                    datetime.datetime.now() + datetime.timedelta(days=30),
+                ).strftime("%Y-%m-%dT%H:%M"),
                 "location": fake.address(),
                 "duration": fake.time_delta().days,
-                "max_attendees": fake.random_int(min=1, max=100),
+                "max_attendees": fake.random_int(min=1, max=15),
                 "status": random.choice(stati),
                 "duration": random.randint(1, 5) * 60,  # duration in minutes
             }
+
             newEv = db.create_event(
                 name=ev["name"],
                 gameID=ev["gameID"],
@@ -103,13 +153,13 @@ def generate_fake_users(num_users=10):
 
     # make them go to events, goddamn it
     for user in users:
-        i = fake.random_int(min=0, max=5)
+        i = fake.random_int(min=0, max=10)
         for _ in range(i):
             event = random.choice(events)
-            if event:
+            if event and event:
                 db.attend_event(event_id=event.get("id"), user_id=user.get("user_id"))
 
     return users
 
 
-generate_fake_users(10)
+generate_fake_users(100)

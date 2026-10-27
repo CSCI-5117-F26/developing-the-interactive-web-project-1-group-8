@@ -47,7 +47,7 @@
     <form method="post" action="{{ url_for('rsvp', public_id=event.public_id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       {% if event.count < event.max_attendees %}
-      <button class="event-button pure-button pure-button-primary" type="submit">Commit</button>
+      <button class="event-button pure-button pure-button-primary" type="submit">{{ 'Commit' if session.get('profile') else 'Sign in to Commit' }}</button>
       {% endif %}
     </form>
     {% endif %}

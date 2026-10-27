@@ -581,3 +581,17 @@ dialog.profile-section {
   font-size: 1.2em;
   overflow-wrap: anywhere;
 }
+
+#topbar .show-if-mobile {
+  display: none !important;
+}
+
+@media (max-width: 62.5em) {
+  #topbar .hide-if-mobile {
+    display: none !important;
+  }
+
+  #topbar .show-if-mobile {
+    display: block !important;
+  }
+}
