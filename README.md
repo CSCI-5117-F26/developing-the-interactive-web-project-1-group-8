@@ -20,10 +20,10 @@ CSCI 5117, Fall 2026, [assignment description](https://canvas.umn.edu/courses/57
 **Describe the most challenging features you implemented
 (one sentence per bullet, maximum 4 bullets):**
 
-- BoardGameGeek Caching and API: We used the BGG API through a pre-existing python package to query for game details and information on the go, searching for games and augmenting events with custom game info.
+- BoardGameGeek Caching and API: We used the BGG API through a pre-existing Python package with a custom PostgreSQL cache backend built on requests-cache to search for games and augment events with game information.
 - Searching: Search is built upon a versatile query builder that creates a custom query based on filters and parameters in order to return paginated results with high user customizability in terms of search options.
 - Friends: The friends system is very fleshed out, tracking friend requests/their responses, blocking users, creating custom links for friends requests, and displaying events for friends just so users can socialize.
-- Notifications: Whenever major actions are taken (committing to an event, changing an event, deleting an event, friend changes), all relevant users are notified on the fixed Topbar and are linked to the relevant pages.
+- Notifications: When users commit/decommit, hosts change/cancel/restore/delete events, or friend requests are sent/accepted, the affected users receive notifications saved in the same transaction as the action, with an unread count on the fixed Topbar and links to relevant pages when available.
 
 ## Testing Notes
 
@@ -44,20 +44,20 @@ along with a very brief caption:**
 ![](screenshots/landing_page.jpg)
 ![](screenshots/topbar.jpg)
 
-The Landing Page lists newly created events, random ones for discovery, events today and in the next week, and all events. Clicking an "Event Details" card opens that event's detailed view. The top bar contains the app name linking to the landing page, a search bar that opens Event Search when a query is submitted, and a login button. Logging in changes the topbar to instead of showing login, offering event creation, notifications, connections, adding friends, and a profile dropdown taking you to your profile or editing profile.
+The Landing Page lists newly created events, random ones for discovery, events today and in the next week, and all events. Logged-in users also see events from users they follow and events they are attending. Clicking an "Event Details" card opens that event's detailed view. The top bar contains the app name linking to the landing page, a search bar that opens Event Search when a query is submitted, and a login button. Logging in changes the topbar to instead of showing login, offering event creation, notifications, connections, adding friends, and a profile dropdown taking you to your profile or editing profile.
 
 ![](screenshots/profile.jpg)
 
-The Profile Page shows user information like username, display name, bio, friend counts, and follower counts. This page also has three carousels showing a list of all your friends, the events you are hosting, and any events you are currently attending.
+The Profile Page shows user information like username, display name, bio, friend counts, and follower counts. This page also has carousels showing friends, hosted events, and upcoming events the user is attending, subject to profile privacy settings and event visibility.
 
 ![](screenshots/event_details.jpg)
 ![](screenshots/event_edit.jpg)
 
-The Event Details page lists various important event details. It contains an image of the game being played along with the name of the game and link to the BGG page for the game. The details page also shows pertinent info, such as event name and description, status (whether it has passed or is still looking for members), game categories, host, duration of the event, player count restrictions, and time/location info. Additionally, it shows a carousel with all attending members. If you are the host you have the option of editing the event, creating a share link, or canceling/deleting the event.
+The Event Details page lists various important event details. For BGG-linked games, it contains an image of the game being played along with the name of the game and a link to its BGG page. Events can also use a custom game name without a BGG link. The details page also shows pertinent info, such as event name and description, status (Completed, Needs more players, Full, On Track, or Canceled), game categories, host, duration of the event, player count restrictions, and time/location info. Additionally, it shows a carousel with all attending members. Anyone viewing the event can copy its share link. If you are the host you have the option of editing, canceling, restoring, or deleting the event.
 
 ![](screenshots/search.jpg)
 
-The Search Page offers search capabilities in the form of various filters and queries. Users can select from several filters that augment the search arguments. Typing in the top bar and searching or hitting apply filters are compatible and will pull filters for the search. Hitting the page buttons on the bottom will return a new set of paginated results. The Game and Category filters provide dropdowns supported by BGG!
+The Search Page offers search capabilities in the form of various filters and queries. Users can select from several filters that augment the search arguments. Typing in the top bar and searching or hitting apply filters are compatible and will pull filters for the search. Hitting the page buttons on the bottom will return a new set of paginated results. The Game filter provides suggestions from BGG searches, while the Category filter uses a predefined list of BGG categories.
 
 ![](screenshots/notifications.jpg)
 ![](screenshots/add_friends.jpg)
@@ -134,11 +134,11 @@ Please do not document required libraries. or libraries that are mentioned in th
 
 - BGG API: The BoardGameGeek API linked us with game information that was pertinent to inform users of in events. We pulled information like the game descriptions, categories, mechanics, and more from this API.
 - boardgamegeek Python Package: This intermediate package offered specific functions that structured queries to the BGG API. We provided our token from the API to the package and used this as middleware to connect to the API for ease of querying.
-- Cloudfare R2, boto3, S3 AWS Storage: We used Cloudfare's R2 to store user avatar images so that we could allow custom avatars without limiting stoarge space in our database.
+- Cloudflare R2 and boto3: We used Cloudflare's private R2 storage through boto3's S3-compatible API to store user avatar images, keeping object keys rather than image data in our database.
 - Fontawesome: Provided a library of icons to use for some buttons or links, such as search or settings.
 - Faker: Used to create fake development data for our database schema so that we can populate the database to test UI and backend functionalities.
-- Pillow library: Image processing library to ensure safe image uploads to storage to avoid malicious actors.
-- Requests and Threading libraries: Used to handle caching the results fetched from the BGG API.
+- Pillow library: Image processing library used to decode supported avatar uploads, correct orientation, resize images, and convert them to JPEG before storage.
+- requests-cache: Used with our custom PostgreSQL backend to cache HTTP responses fetched from the BGG API.
 - Validators library: Validation of safe URLs, such as for image uploads.
 - Flask-WTF: Offers CSRF protection for the app entirely.
 
