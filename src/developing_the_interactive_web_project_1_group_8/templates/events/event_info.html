@@ -71,14 +71,14 @@
                 <div class="pure-control-group">
                     <label for="min_attendees">Minimum number of players</label>
                     <input id="event-min" type="number"
-                        value="{% if event %}{{ event.min_attendees }}{% else %}1{% endif %}" required
-                        name="min_attendees" class="pure-u-1-5" min="1" placeholder="Min Players..." />
+                        value="{% if event %}{{ event.min_attendees }}{% else %}2{% endif %}" required
+                        name="min_attendees" class="pure-u-1-5" min="2" placeholder="Min Players..." />
                 </div>
 
                 <div class="pure-control-group">
                     <label for="max_attendees">Maximum number of players</label>
                     <input id="event-max" type="number" value="{{ event.max_attendees }}" required name="max_attendees"
-                        class="pure-u-1-5" min="1" placeholder="Maximum Players..." />
+                        class="pure-u-1-5" min="2" placeholder="Maximum Players..." />
                 </div>
 
                 <div class="pure-control-group">
@@ -86,29 +86,9 @@
                     <textarea name="description" id="event-description" class="pure-input-2-3"
                         placeholder="Add description">{{ event.description }}</textarea>
                 </div>
-                <!-- ONLY RELEVANT IF WE USE PENDING STATUS IN ANY CAPACITY -->
-
-
-                <!-- <label for="status" >What is your events scheduling status?</label>
-            
-            <select id="event-status" name="status" required>
-            <option value="scheduled" selected>scheduled</option>
-            <option value="pending" 
-            {% if event.status == pending %} 
-            selected
-            {% endif %}
-            >pending</option> -->
-
-                <!-- <div id="time-section"
-            {% if event.time %} 
-            style="display: block;"
-            {% else %}
-            style="display: hidden;"
-            {% endif %}
-            ></div> -->
                 <div class="pure-control-group">
                     <label for="time">Event Time (CT)</label>
-                    <input id="event-time" type="datetime-local" name="time" value="{{ event.time | format_event_input if event else '' }}">
+                    <input id="event-time" type="datetime-local" required name="time" value="{{ event.time | format_event_input if event else '' }}">
                     <p class="pure-form-message">Enter the event time in Central Time (CT).</p>
                 </div>
                 <div class="button-container">

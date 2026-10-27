@@ -262,7 +262,7 @@ def get_user_events_attending(user_id, viewer_id=None):
                     (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count
                 FROM events e
                 JOIN event_participation ea ON e.id = ea.id
-                WHERE ea.user_interested = %s AND NOT ea.is_host
+                WHERE ea.user_interested = %s AND NOT ea.is_host AND e.time > now()
                 """,
                 (viewer_id, user_id),
             )
@@ -1216,7 +1216,9 @@ def add_game_info(events):
 def get_event_by_public_id(public_id):
     with pool.connection() as conn:
         event = conn.execute(
-            "SELECT * FROM events WHERE public_id = %s", (public_id,)
+            """SELECT e.*,
+            (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count
+            FROM events e WHERE public_id = %s""", (public_id,)
         ).fetchone()
     if event is not None:
         event["is_completed"] = is_event_completed(event)

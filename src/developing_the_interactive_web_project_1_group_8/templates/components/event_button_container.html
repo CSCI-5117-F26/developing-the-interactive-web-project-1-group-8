@@ -37,7 +37,7 @@
     {% if show_event_details is not defined or show_event_details %}<a href="{{ url_for('event', public_id=event.public_id) }}" class="event-button pure-button">Details</a>{% endif %}
     <a href="{{ url_for('edit_event', public_id=event.public_id)}} " class="event-button pure-button">Edit</a>
     {% else %}
-    {% if not event.is_completed %}
+    {% if not event.is_completed or event.time is not past %}
     {% if event.is_attending %}
     <form method="post" action="{{ url_for('decommit', public_id=event.public_id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

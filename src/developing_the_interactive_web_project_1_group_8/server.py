@@ -39,6 +39,8 @@ from developing_the_interactive_web_project_1_group_8.avatars import (
 from developing_the_interactive_web_project_1_group_8.event_times import (
     CENTRAL,
     parse_utc_time,
+    is_event_completed,
+    is_event_time_completed,
 )
 
 db.setup()
@@ -213,6 +215,9 @@ def format_page_time(dt):
 def format_event_input(dt):
     return dt.astimezone(CENTRAL).strftime("%Y-%m-%dT%H:%M") if dt else ""
 
+@app.template_test("past")
+def is_past(time):
+    return is_event_time_completed(time)
 
 @app.route("/")
 def index():
@@ -220,11 +225,7 @@ def index():
     if "profile" not in session:
         events = db.get_all_event_info()
         sections = [
-            ("Events from Popular Games", events),
-            ("Events from Games You've Played", events),
-            ("Events in the Next Week", events),
-            ("Events from Friends", events),
-            ("Events from Users You Follow", events),
+            ("Events in the Next Week", db.get_events_in_week(None)),
         ]
     else:
         user_id = session["profile"]["id"]
@@ -233,6 +234,7 @@ def index():
             ("Events Attending", db.get_user_events_attending(user_id, user_id)),
             ("Events in the Next Week", db.get_events_in_week(user_id)),
             ("Events from Users You Follow", db.get_all_friend_events(user_id)),
+            ("All Events", db.get_all_event_info(user_id))
         ]
     return render_template("index.html", sections=sections)
 
@@ -991,14 +993,11 @@ def event(public_id):
     if event is None:
         abort(404, "This event does not appear to exist.")
     event = db.get_event_info(event["id"], session.get("profile", {}).get("id"))
-    # print(event)
-    if event is None:
-        abort(404, "This event does not appear to exist.")
 
     if event['hostid'] == session.get("profile", {}).get("id"):
-        attendees = db.get_all_event_attendees(event_id)
-        print(attendees)
-    # print(db.get_event(event_id))
+        attendees = db.get_all_event_attendees(event["id"])
+
+
     return render_template("events/event.html", event=event, attendees=attendees)
 
 
@@ -1049,8 +1048,9 @@ def rsvp(public_id):
     user_id = session["profile"]["id"]
     if (
         event["status"] == "Canceled"
-        or event["is_completed"]
+        or is_event_completed(event)
         or event["hostid"] == user_id
+        or event["count"] > event["max_attendees"]
     ):
         return redirect(url_for("event", public_id=public_id))
     if db.attend_event(event_id, user_id, False):
@@ -1068,7 +1068,7 @@ def decommit(public_id):
     if event is None:
         abort(404, "This event does not appear to exist.")
     event_id = event["id"]
-    if event["is_completed"]:
+    if is_event_completed(event):
         return redirect(url_for("event", public_id=public_id))
     user_id = session["profile"]["id"]
     if db.decommit_event(event_id, user_id):
