@@ -415,7 +415,7 @@ def keep_invitation_pages_private(response):
         "notifications",
     }:
         response.headers["Cache-Control"] = "no-store"
-        response.headers["Referrer-Policy"] = "no-referrer"
+        response.headers["Referrer-Policy"] = "same-origin"
     return response
 
 
