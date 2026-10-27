@@ -319,9 +319,21 @@ def search():
     duration = request.args.get("duration", None, type=int)
     recency = request.args.get("recency", "", type=str)
     full = request.args.get("full", False, type=bool)
-    pending = request.args.get("pending", False, type=bool)
+    past = request.args.get("past", False, type=bool)
     played = request.args.get("played", False, type=bool)
+    friends = request.args.get("friends", False, type=bool)
+    page = request.args.get("page", 1, type=int)
     user_id = session["profile"]["id"] if session.get("profile") else None
+    if min_players and (min_players < 1 or min_players > 15):
+        min_players = None
+    if max_players and (max_players < 1 or max_players > 15):
+        max_players = None
+    if duration and (duration < 0 or duration > 15):
+        duration = None
+    if recency not in ["", "today", "week"]:
+        recency = ""
+    if page < 0:
+        page = 1
     results = db.search_events(
         q,
         user_id,
@@ -333,8 +345,10 @@ def search():
         duration,
         recency,
         full,
-        pending,
+        past,
         played,
+        friends,
+        page=page,
     )
 
     if not q:
