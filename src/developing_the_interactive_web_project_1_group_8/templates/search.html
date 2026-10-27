@@ -130,8 +130,6 @@
 <script src="{{ url_for('static', filename='javascript/slider.js')}}"></script>
 <script>
   function redirectSearch(page_click) {
-    console.log("fire")
-    console.log(page_click)
     var q = searchInput.value.trim();
     var game = document.getElementsByName("search-value")[0]?.value ?? "";
     var gameName = document.getElementsByName("search-key")[0]?.value ?? "";
