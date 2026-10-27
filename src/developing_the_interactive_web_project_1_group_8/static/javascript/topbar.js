@@ -35,8 +35,9 @@ searchInput.addEventListener("input", async function (event) {
     var duration = document.getElementById("duration")?.value ?? "";
     var recency = document.getElementById("recency")?.value ?? "";
     var full = document.getElementById("hide-full")?.checked ?? "";
-    var pending = document.getElementById("pending")?.checked ?? "";
+    var past = document.getElementById("past")?.checked ?? "";
     var played = document.getElementById("played-before")?.checked ?? "";
+    var friends = document.getElementById("friend-events")?.checked ?? "";
 
     const params = new URLSearchParams();
     if (gameName && game) params.set("game", game);
@@ -48,8 +49,9 @@ searchInput.addEventListener("input", async function (event) {
     if (duration) params.set("duration", duration);
     if (recency) params.set("recency", recency);
     if (full) params.set("full", full);
-    if (pending) params.set("pending", pending);
+    if (past) params.set("past", past);
     if (played) params.set("played", played);
+    if (friends) params.set("friends", friends);
 
     // Make an API call to the search endpoint with the query
     fetch(`/api/search?q=${encodeURIComponent(query)}&${params.toString()}`)
@@ -193,8 +195,9 @@ function handleSearch() {
   var duration = document.getElementById("duration")?.value ?? "";
   var recency = document.getElementById("recency")?.value ?? "";
   var full = document.getElementById("hide-full")?.checked ?? "";
-  var pending = document.getElementById("pending")?.checked ?? "";
+  var past = document.getElementById("past")?.checked ?? "";
   var played = document.getElementById("played-before")?.checked ?? "";
+  var friends = document.getElementById("friend-events")?.checked ?? "";
 
   const params = new URLSearchParams({ q });
   if (gameName && game) params.set("game", game);
@@ -206,7 +209,8 @@ function handleSearch() {
   if (duration) params.set("duration", duration);
   if (recency) params.set("recency", recency);
   if (full) params.set("full", full);
-  if (pending) params.set("pending", pending);
+  if (past) params.set("past", past);
   if (played) params.set("played", played);
+  if (friends) params.set("friends", friends);
   window.location.href = "/search?" + params.toString();
 }

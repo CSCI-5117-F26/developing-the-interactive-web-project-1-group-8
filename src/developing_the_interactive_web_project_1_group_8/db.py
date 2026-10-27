@@ -1104,8 +1104,10 @@ def search_events(
     duration,
     recency,
     full,
-    pending,
+    past,
     played,
+    friends,
+    page,
 ):
     with pool.connection() as conn:
         with conn.cursor() as cur:
@@ -1130,8 +1132,10 @@ def search_events(
                 duration,
                 recency,
                 full,
-                pending,
+                past,
                 played,
+                friends,
+                page
             )
             events = cur.execute(query, params).fetchall()
     return add_game_info(events)
@@ -1148,13 +1152,35 @@ def build_query(
     duration,
     recency,
     full,
-    pending,
+    past,
     played,
+    friends,
+    page,
 ):
     conditions = []
     params = []
     conditions.append("LOWER(e.name) LIKE LOWER(%s)")
     params.append(f"%{q}%")
+
+    # Add conditions for visibility
+    visibility_conditions = []
+
+    # Show events that are from users with public hosted
+    visibility_conditions.append("e.visibility = 'public'")
+
+    if user_id:
+        # Show friends-visibility events where the host is a friend
+        visibility_conditions.append("e.visibility = 'friends' AND e.hostid IN (SELECT followed FROM friends WHERE follower = %s)")
+        params.append(user_id)
+
+        # Always show events the user is hosting or attending regardless of visibility
+        visibility_conditions.append("e.hostid = %s")
+        params.append(user_id)
+
+        visibility_conditions.append("EXISTS (SELECT 1 FROM event_participation ep2 WHERE ep2.id = e.id AND ep2.user_interested = %s)")
+        params.append(user_id)
+
+    conditions.append("(" + " OR ".join(visibility_conditions) + ")")
 
     # Filter for game id
     if game:
@@ -1180,8 +1206,8 @@ def build_query(
         conditions.append("e.max_attendees <= %s")
         params.append(max_players)
     if duration is not None:
-        min_duration = duration - 1
-        max_duration = duration + 1
+        min_duration = duration - 60 if duration - 60 > 0 else 0
+        max_duration = duration + 60
         conditions.append("e.expected_duration >= %s")
         conditions.append("e.expected_duration <= %s")
         params.append(min_duration)
@@ -1198,17 +1224,23 @@ def build_query(
         conditions.append(
             "(SELECT COUNT(*) FROM event_participation ep2 WHERE ep2.id = e.id) < e.max_attendees"
         )
-    if pending:
-        conditions.append("e.status = 'pending'")
+    if not past:
+        conditions.append("e.time >= %s")
+        params.append(datetime.now())
+    if user_id and friends:
+        conditions.append("e.hostid IN (SELECT followed FROM friends WHERE follower = %s)")
+        params.append(user_id)
 
     print(params)
     cond_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
     query = f"""SELECT e.*, (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count,
         EXISTS (SELECT 1 FROM event_participation p
-            WHERE p.id = e.id AND p.user_interested = %s) AS is_attending
+            WHERE p.id = e.id AND p.user_interested = %s) AS is_attending,
+        COUNT(*) OVER() as total_count
         FROM events e LEFT JOIN event_participation ep ON ep.id = e.id
         {cond_clause}
-        GROUP BY e.id"""
+        GROUP BY e.id
+        LIMIT 15 OFFSET {15 * (page - 1)}"""
     return query, [user_id] + params
 
 
