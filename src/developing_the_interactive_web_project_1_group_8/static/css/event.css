@@ -1,0 +1,122 @@
+.event-container {
+  padding: 2rem;
+  border-radius: 2rem;
+  width: 80vw;
+  height: 80vh;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+  font-size: 1.2rem;
+}
+
+.event-page {
+  max-width: calc(40vw + 12rem);
+}
+
+.event-details-page {
+  max-width: min(100%, 76rem);
+}
+
+.event-heading-container {
+  margin-top: 0;
+}
+
+.event-heading-container > div {
+  box-sizing: border-box;
+  padding: 0.625em;
+}
+
+.event-heading-info-conatiner {
+  flex: 1 1 18rem;
+  min-width: 0;
+}
+
+.event-title {
+  margin: 0;
+  font-size: 2em;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.event-info,
+.event-info-left {
+  min-width: 0;
+  font-size: 1em;
+  line-height: 1.5;
+}
+
+.event-info-container {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75em;
+  margin-top: 0.75em;
+}
+
+.event-info-container > .event-info,
+.event-info-container > .event-info-left {
+  flex: 0 1 auto;
+}
+
+.event-image {
+  width: 10rem;
+  height: 10rem;
+  max-width: 100%;
+  flex-shrink: 0;
+}
+
+.event-back-button-container {
+  margin-left: auto;
+  text-align: right;
+}
+
+.event-back-button-container .pure-button {
+  white-space: normal;
+}
+
+.event-icon-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+}
+
+.event-icon {
+  width: 1em;
+  height: 1em;
+  margin-top: 0.25em;
+  flex-shrink: 0;
+}
+
+.description-label {
+  margin: 1em 0 0.5em;
+  font-size: 1.2rem;
+  line-height: 1.3;
+}
+
+.description,
+.event-icon-container > div {
+  overflow-wrap: anywhere;
+}
+
+.description {
+  font-size: 1em;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.event-user-carousel {
+  background-color: transparent;
+  padding: 2px;
+}
+
+.event-form .bgg-searchbar {
+  min-width: 0;
+}
+
+.event-form .bgg-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+
+.event-form textarea {
+  resize: vertical;
+}

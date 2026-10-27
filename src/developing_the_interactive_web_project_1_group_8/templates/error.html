@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}Oops! - Game Master {% endblock %}
+
+{% block content %}
+<section class="page-panel">
+  <h1>Oops!</h1>
+  <p>{{ message }}</p>
+  <p><a href="{{ url_for('index') }}">Go Back to the Dashboard</a></p>
+</section>
+{% endblock %}

@@ -1,0 +1,99 @@
+{% block topbar %}
+{% set setup_required = session.get('profile') and (not session['profile'].get('setup_complete') or not session['profile'].get('username')) %}
+<div id="topbar" class="pure-g">
+  <div class="topbar-brand">
+    <div class="pure-menu" style="width: fit-content;">
+      <a href="{{ url_for('username' if setup_required else 'index') }}" class="pure-menu-link">Game Master</a>
+    </div>
+  </div>
+  <div class="topbar-search">
+    <div class="pure-menu pure-menu-horizontal" style="justify-content: center;display: flex;">
+      <form id="search-form" role="search" method="GET" aria-label="Site search"
+        class="pure-form pure-g">
+        <div id="search-container" class="pure-g">
+          <input {% if setup_required %}disabled{% endif %} type="search" id="search" name="q" value="{{request.args.get('q','')}}" autocomplete="off"
+              placeholder="Search..." aria-label="Search" />
+          <button {% if setup_required %}disabled{% endif %} type="button" class="fa fa-search" aria-label="Submit search" onclick="handleSearch()"></button>
+        </div>
+        <!-- <div id="search-results-container">
+          <ul id="search-results"></ul>
+        </div> -->
+      </form>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <div class="pure-menu pure-menu-horizontal menu-3">
+      <ul class="pure-menu-list">
+        {% if session.get('profile') %}
+
+
+        {% if not setup_required %}
+        <li class="pure-menu-item hide-if-mobile">
+          <a id="create-event-link" class="pure-menu-link" href="{{ url_for('create_event') }}"><i class="fa fa-plus"></i> Create Event</a>
+        </li>
+        <li class="pure-menu-item hide-if-mobile">
+          <a id="notifications-link" class="pure-menu-link" href="{{ url_for('notifications') }}" title="Notifications">
+            <i class="fa fa-bell"></i>
+            {% if unread_notification_count %}<span class="notification-count">{{ unread_notification_count }} unread</span>{% endif %}
+          </a>
+        </li>
+        <li class="pure-menu-item hide-if-mobile">
+          <a class="pure-menu-link" href="{{ url_for('connections') }}" title="Connections"><i class="fa fa-users"></i></a>
+        </li>
+        <li class="pure-menu-item hide-if-mobile">
+          <a class="pure-menu-link" href="{{ url_for('friend_requests') }}" title="Add Friend"><i class="fa fa-user-plus"></i></a>
+        </li>
+        {% endif %}
+        <li class="pure-menu-item pure-menu-has-children">
+
+          <a id="menuLink1" class="pure-menu-link">
+            <img class="user-ico pure-img" src="{{ avatar_url(session['profile']) }}" width="32" height="32">
+          </a>
+          <ul class="accountDetails pure-menu-children">
+            <li class="pure-menu-item">
+              {% if not setup_required %}
+              <a class="pure-menu-link" href="{{ url_for('user', username=session['profile']['username']) }}">My
+                Profile</a>
+              {% else %}
+              <a class="pure-menu-link" href="{{ url_for('username') }}">Set Username</a>
+              {% endif %}
+            </li>
+            {% if not setup_required %}
+            <li class="pure-menu-item">
+              <a class="pure-menu-link" href="{{ url_for('settings') }}">Settings</a>
+            </li>
+            <li class="pure-menu-item show-if-mobile">
+              <a class="pure-menu-link" href="{{ url_for('create_event') }}"><i class="fa fa-plus"></i> Create Event</a>
+            </li>
+            <li class="pure-menu-item show-if-mobile">
+              <a class="pure-menu-link" href="{{ url_for('notifications') }}"><i class="fa fa-bell"></i> Notifications{% if unread_notification_count %} <span class="notification-count">{{ unread_notification_count }} unread</span>{% endif %}</a>
+            </li>
+            <li class="pure-menu-item show-if-mobile">
+              <a class="pure-menu-link" href="{{ url_for('connections') }}"><i class="fa fa-users"></i> Connections</a>
+            </li>
+            <li class="pure-menu-item show-if-mobile">
+              <a class="pure-menu-link" href="{{ url_for('friend_requests') }}"><i class="fa fa-user-plus"></i> Add Friend</a>
+            </li>
+            {% endif %}
+            <li class="pure-menu-item">
+              <form class="account-logout-form" method="post" action="{{ url_for('logout') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="pure-button account-logout" type="submit">Log Out</button>
+              </form>
+            </li>
+          </ul>
+        </li>
+        {% else %}
+        <li class="pure-menu-item">
+          <a class="pure-menu-link" href="{{ url_for('login') }}">Login</a>
+        </li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='javascript/topbar.js') }}"></script>
+<script src="{{ url_for('static', filename='javascript/menu.js') }}"></script>
+{% endblock %}

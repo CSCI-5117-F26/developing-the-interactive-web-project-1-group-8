@@ -1,0 +1,160 @@
+.tile {
+  display: flex;
+  text-wrap: nowrap;
+  flex-direction: column;
+  background-color: var(--color-surface);
+  box-sizing: content-box;
+  width: 14em;
+  height: 14rem;
+  border-radius: 1rem;
+
+  padding: 1rem;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+  font-size: 0.9rem;
+
+  h3 {
+    font-size: 1.2rem;
+    margin: 0;
+    padding: 0.5em 0;
+    max-width: 12em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tile-row {
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
+    width: 22em;
+    text-overflow: ellipsis;
+    max-height: 11rem;
+  }
+
+  .footer {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    margin-top: auto;
+  }
+}
+
+.user-tile {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.event-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+  box-sizing: border-box;
+  width: 22rem;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 14rem;
+  margin: 0;
+  border: 0.0625rem solid var(--color-border);
+  background-color: var(--color-surface);
+}
+
+.event-tile .event-header-container {
+  display: grid;
+  grid-template-columns: 5rem minmax(0, 1fr);
+  align-items: start;
+  gap: 0.75em;
+}
+
+.event-tile .event-header-game-info,
+.event-tile .event-info-header {
+  min-width: 0;
+}
+
+.event-tile .event-game-image {
+  width: 5rem;
+  height: 5rem;
+}
+
+.event-tile .event-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-bottom: 0.35em;
+}
+
+.event-tile .event-name {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.event-tile .event-name,
+.event-tile .event-game-name,
+.event-tile .event-location {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.event-tile .event-game-name,
+.event-tile .event-date-time,
+.event-tile .event-location,
+.event-tile .event-duration,
+.event-tile .event-players {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.event-tile .event-game-name {
+  margin-bottom: 0.4em;
+}
+
+.event-tile .event-attendance {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5em;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.event-tile .event-buttons-container {
+  margin-top: auto;
+}
+
+.event-row {
+  height: auto;
+  border-bottom: 0;
+}
+
+.event-carousel {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.profile-page .row > .carousel,
+.event-row .event-carousel > .carousel {
+  border-radius: 0;
+  height: auto;
+  align-items: stretch;
+  padding: 0 0 0.75rem;
+  background-color: transparent;
+}
+
+.event-tile .event-visibility {
+  flex-shrink: 0;
+  padding: 0.15em 0.5em;
+  border: 0.0625rem solid var(--color-border);
+  border-radius: 0.35em;
+  background-color: var(--color-background-outset);
+  color: var(--color-text-primary);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  white-space: nowrap;
+}

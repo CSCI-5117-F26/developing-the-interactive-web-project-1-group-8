@@ -1,0 +1,10 @@
+<div class="tile user-tile">
+  <h3>{{ user.display_name }}</h3>
+  <img class="user-ico" src="{{ avatar_url(user) }}" width="128" height="128">
+
+  <div class="footer">
+    <form action="{{ url_for('user', username=user.username) }}">
+      <button class="pure-button" type="submit">View Profile</button>
+    </form>
+  </div>
+</div>

@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% block title %} {{request.args.get('q','')}} - Game Master Search {% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/event_grid.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tile.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sliders.css') }}">
+{% endblock %}
+
+{% from 'components/bgg-search.html' import autocomplete %}
+
+{% set page_size = 15 %}
+{% set pages = (total / page_size) | round(0, 'ceil') | int %}
+
+
+
+{% block content %}
+<div class="pure-g">
+  <div class="pure-u-1-4">
+    <div class="search-filter">
+      <h3>Filters:</h3>
+      {#
+        BGG Game Search
+      #}
+      <div class="label-pad">
+        <label for="bgg-games-search">Event Game:</label>
+        {{ autocomplete('search', 'Games...', game_name, game_name, game) }}
+        <button class="pure-button pure-button-primary" id="clear-bgg" onclick="clearBGG()">Clear</button>
+      </div>
+      {#
+        BGG Category Search
+      #}
+      <div class="label-pad">
+        <label for="bgg-games-categories">Game Category:</label>
+        {{ autocomplete('categories', 'Categories...', category_name, category_name, category) }}
+        <button class="pure-button pure-button-primary" id="clear-bgg" onclick="clearCategories()">Clear</button>
+      </div>
+      {#
+        This element was pulled from a tutorial by https://codingartistweb.com/2021/06/double-range-slider-html-css-javascript/
+        Number of players
+      #}
+      <div class="label-pad num-players-wrapper">
+        <label for="num-players">Number of players:</label>
+        <div class="values">
+          <label for="use-num-players">
+            <input class="pure-checkbox" id="use-num-players" type="checkbox"{% if min_players %}checked{% endif %}/> Use Player Counts:
+          </label>
+          <span id="range1">3</span>
+          <span> &dash; </span>
+          <span id="range2">4</span>
+        </div>
+        <div class="container">
+          <div class="slider-track"></div>
+          <input type="range" min="1" max="15" value="{{ min_players or 3 }}" id="players-1" oninput="slideOne()">
+          <input type="range" min="1" max="15" value="{{ max_players or 4 }}" id="players-2" oninput="slideTwo()">
+        </div>
+      </div>
+      {#
+        Expected Duration in Hours
+      #}
+      <div class="label-pad">
+        <label class="label-pad" for="duration">Expected Duration (Hours):</label>
+        <input id="duration" type="number" min="0" max="12" step="any" value="{{ duration if duration is not none else '' }}"/>
+        <p class="pure-form-message">Matches events within 0.5 hours of this duration.</p>
+      </div>
+      {#
+        Events within a Certain time
+      #}
+      <div class="label-pad">
+        <label class="label-pad" for="recency">Time Restrictions:</label>
+        <select id="recency">
+            <option value="" {% if recency is eq "" %}selected{% endif %}>All Time</option>
+            <option value="today" {% if recency is eq "today" %}selected{% endif %}>Today</option>
+            <option value="week" {% if recency is eq "week" %}selected{% endif %}>Within a Week</option>
+        </select>
+      </div>
+      {#
+        Other Options
+      #}
+      <div class="label-pad">
+        <form class="pure-form pure-form-stacked">
+          <span>Other Options:</span>
+          <label for="hide-full">
+            <input class="pure-checkbox" id="hide-full" type="checkbox" {% if full %}checked{% endif %}/> Hide Full Games
+          </label>
+          <label for="past">
+            <input class="pure-checkbox" id="past" type="checkbox" {% if past %}checked{% endif %}/> Show Past Events
+          </label>
+          {% if session.get('profile') and session.get('profile')['id'] %}
+            <label for="played-before">
+              <input class="pure-checkbox" id="played-before" type="checkbox" {% if played %}checked{% endif %}/> Games You Played
+            </label>
+            <label for="friend-events">
+              <input class="pure-checkbox" id="friend-events" type="checkbox" {% if friends %}checked{% endif %}/> Show Only Friend-Hosted Events
+            </label>
+          {% endif %}
+        </form>
+      </div>
+      {#
+        Submit search query
+      #}
+      <div class="label-pad">
+        <a class="pure-button pure-button-primary" id="apply-filters" onclick="redirectSearch()">Apply Filters</a>
+      </div>
+    </div>
+  </div>
+  <div class="pure-u-3-4 search-results">
+    <h3>Search Results for "{{request.args.get('q','')}}"</h3>
+    {% if results %}
+    <div class="event-grid">
+      {% for event in results %}
+      {% include "components/event_tile.html"%}
+      {% endfor %}
+    </div>
+    {% else %}
+    <p>No results found :(</p>
+    <p>Try searching for something else, or <a href="{{ url_for('index') }}">go back to the dashboard</a>.</p>
+    {% endif %}
+    {# Show navigation #}
+    <div class="pagination">
+    {% for p in range(1, pages + 1) %}
+      <button class="pure-button {{ 'pure-button-primary' if p == page}}" onclick="redirectSearch({{ p }})">{{ p }}</button>
+    {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='javascript/slider.js')}}"></script>
+<script>
+  function redirectSearch(page_click) {
+    var q = searchInput.value.trim();
+    var game = document.getElementsByName("search-value")[0]?.value ?? "";
+    var gameName = document.getElementsByName("search-key")[0]?.value ?? "";
+    var category = document.getElementsByName("categories-value")[0]?.value ?? "";
+    var categoryName = document.getElementsByName("categories-key")[0]?.value ?? "";
+    var usePlayerCounts = document.getElementById("use-num-players")?.checked ?? false;
+    var minPlayer = document.getElementById("players-1")?.value ?? "";
+    var maxPlayer = document.getElementById("players-2")?.value ?? "";
+    var duration = document.getElementById("duration")?.value ?? "";
+    var recency = document.getElementById("recency")?.value ?? "";
+    var full = document.getElementById("hide-full")?.checked ?? "";
+    var past = document.getElementById("past")?.checked ?? "";
+    var played = document.getElementById("played-before")?.checked ?? "";
+    var friends = document.getElementById("friend-events")?.checked ?? "";
+
+    const params = new URLSearchParams({ q });
+    if (gameName && game) params.set("game", game);
+    if (gameName) params.set("game-name", gameName)
+    if (categoryName && category) params.set("category", category);
+    if (categoryName) params.set("category-name", categoryName)
+    if (usePlayerCounts && minPlayer) params.set("min", minPlayer);
+    if (usePlayerCounts && maxPlayer) params.set("max", maxPlayer);
+    if (duration) params.set("duration", duration);
+    if (recency) params.set("recency", recency);
+    if (full) params.set("full", full);
+    if (past) params.set("past", past);
+    if (played) params.set("played", played);
+    if (friends) params.set("friends", friends);
+    if (page_click) params.set("page", page_click);
+    const apply = document.getElementById("apply-filters");
+    
+    const searchQuery = document.getElementById("search").value.trim();
+    const baseUrl = `{{ url_for('search') }}`;
+    window.location.href=`${baseUrl}?${params.toString()}`
+  }
+
+  function clearBGG() {
+    document.getElementsByName("search-value")[0]?.setAttribute('value', "");
+    document.getElementsByName("search-key")[0]?.setAttribute('value', "");
+    document.getElementById("bgg-games-search")?.setAttribute('value', "");
+    obj = document.getElementById("bgg-games-search");
+    if (obj) {
+      obj.value = "";
+      obj.setAttribute('value', "");
+    }
+  }
+  function clearCategories() {
+    document.getElementsByName("categories-value")[0]?.setAttribute('value', "");
+    document.getElementsByName("categories-key")[0]?.setAttribute('value', "");
+    obj = document.getElementById("bgg-games-categories");
+    if (obj) {
+      obj.value = "";
+      obj.setAttribute('value', "");
+    }
+  }
+</script>
+{% endblock %}

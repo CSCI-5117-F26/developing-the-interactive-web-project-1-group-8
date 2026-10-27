@@ -1,0 +1,21 @@
+{% macro autocomplete(searchid,placeholder,public_value="",hidden_key="",hidden_value="") %}
+<div class="pure-form">
+  <div class='bgg-search'>
+    <div class='bgg-searchbar'>
+      <input id='bgg-games-{{ searchid }}' role="search" class='bgg-input' type='text' name='bgg_game' placeholder='{{ placeholder }}' value="{{ public_value }}" autocomplete="off"/>
+      <input type="hidden" name="{{ searchid }}-key" value="{{ hidden_key }}">
+      <input type="hidden" name="{{ searchid }}-value" value="{{ hidden_value }}">
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+{# How to use
+
+{% from 'components/bgg-search.html' import autocomplete %}
+<p>{{ autocomplete('search', 'Games...') }}</p>
+<p>{{ autocomplete('categories', 'Categories...') }}</p>
+<p>{{ autocomplete('mechanics', 'Mechanics...') }}</p>
+<p>{{ autocomplete('subdomains', 'Subdomains...') }}</p>
+
+{% endblock %}#}

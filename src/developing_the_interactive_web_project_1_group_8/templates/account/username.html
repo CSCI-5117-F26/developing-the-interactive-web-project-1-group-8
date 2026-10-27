@@ -1,0 +1,37 @@
+{% extends "account_base.html" %}
+{% block title %}Account setup - Game Master{% endblock %}
+
+{% block content %}
+<section class="settings-page page-panel">
+  <header>
+    <h1>Welcome to Game Master</h1>
+    <p>Choose a username to finish setting up your account.</p>
+  </header>
+
+  {% include "components/notices.html" %}
+
+  {% if errors %}
+  <div class="settings-notice">
+    <h2>Account setup could not be completed</h2>
+    <ul>
+      {% for error in errors %}
+      <li>{{ error }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <form class="settings-section pure-form pure-form-stacked" method="post" action="{{ url_for('set_username') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <fieldset>
+      <legend>Username</legend>
+      <label for="username">Username</label>
+      <input class="pure-input-1" id="username" name="username" type="text" minlength="3" maxlength="20"
+        value="{{ username }}" pattern="[A-Za-z0-9]+" title="Use 3-20 alphanumeric characters without spaces." required>
+      <p class="pure-form-message">Use 3-20 alphanumeric characters without spaces. Other players can find your profile using this username.</p>
+      <p class="pure-form-message">This will also be your display name to start. You can change your display name, add a picture, and write a biography in settings later.</p>
+      <button class="pure-button pure-button-primary" type="submit">Continue</button>
+    </fieldset>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,122 @@
+/* Code from tutorial at https://codingartistweb.com/2021/06/double-range-slider-html-css-javascript/ and customized. */
+.num-players-wrapper {
+  --player-thumb-size: 1.7em;
+  --player-track-size: 0.3125rem;
+  position: relative;
+  border-radius: 10px;
+  margin-bottom: 60px;
+
+  .container {
+    position: relative;
+    width: 100%;
+    height: var(--player-thumb-size);
+    margin-top: 30px;
+  }
+  input[type="range"] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: var(--player-thumb-size);
+    box-sizing: border-box;
+    padding: 0;
+    border: 0;
+    font: inherit;
+    outline: none;
+    position: absolute;
+    margin: 0;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    background-color: transparent;
+    pointer-events: none;
+  }
+  .slider-track {
+    left: calc(var(--player-thumb-size) / 2);
+    width: calc(100% - var(--player-thumb-size));
+    height: var(--player-track-size);
+    position: absolute;
+    margin: auto;
+    top: 0;
+    bottom: 0;
+    border-radius: 5px;
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    -webkit-appearance: none;
+    height: var(--player-track-size);
+  }
+  input[type="range"]::-moz-range-track {
+    -moz-appearance: none;
+    height: var(--player-track-size);
+  }
+  input[type="range"]::-ms-track {
+    appearance: none;
+    height: var(--player-track-size);
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: var(--player-thumb-size);
+    width: var(--player-thumb-size);
+    box-sizing: border-box;
+    border: none;
+    background-color: var(--color-primary);
+    cursor: pointer;
+    margin-top: calc((var(--player-track-size) - var(--player-thumb-size)) / 2);
+    pointer-events: auto;
+    border-radius: 50%;
+  }
+  input[type="range"]::-moz-range-thumb {
+    -webkit-appearance: none;
+    height: var(--player-thumb-size);
+    width: var(--player-thumb-size);
+    box-sizing: border-box;
+    border: none;
+    cursor: pointer;
+    border-radius: 50%;
+    background-color: var(--color-primary);
+    pointer-events: auto;
+  }
+  input[type="range"]::-ms-thumb {
+    appearance: none;
+    height: var(--player-thumb-size);
+    width: var(--player-thumb-size);
+    box-sizing: border-box;
+    border: none;
+    cursor: pointer;
+    border-radius: 50%;
+    background-color: var(--color-primary);
+    pointer-events: auto;
+  }
+  input[type="range"]:active::-webkit-slider-thumb {
+    background-color: #ffffff;
+    border: 3px solid var(--color-primary);
+  }
+  .values {
+    background-color: var(--color-primary);
+    width: fit-content;
+    position: relative;
+    margin: auto;
+    padding: 10px 10px;
+    border-radius: 5px;
+    text-align: center;
+    font-weight: 500;
+    color: #ffffff;
+  }
+  .values:before {
+    content: "";
+    position: absolute;
+    height: 0;
+    width: 0;
+    border-top: 15px solid var(--color-primary);
+    border-left: 15px solid transparent;
+    border-right: 15px solid transparent;
+    margin: auto;
+    bottom: -14px;
+    left: 0;
+    right: 0;
+  }
+}
+
+.pure-checkbox {
+  display: inline !important;
+}

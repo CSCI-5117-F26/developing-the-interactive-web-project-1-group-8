@@ -1,0 +1,45 @@
+.bgg-search {
+  display: inline-flex;
+  flex-direction: column;
+
+  background-color: var(--color-surface);
+  /* border: 1px solid var(--color-border); */
+  border-radius: 8px;
+
+  .autocomplete-items {
+    .active {
+      background-color: var(--color-primary);
+      color: var(--color-on-primary);
+    }
+  }
+}
+
+.bgg-input {
+  flex-grow: 1;
+  margin:0 !important;
+  border: none;
+  width: auto;
+}
+
+.autocomplete-items div {
+  border: 1px solid #d4d4d4;
+  padding: 3px;
+}
+
+.bgg-searchbar {
+  display: inline-flex;
+  /* margin: 0.25em; */
+
+  input {
+    border: none;
+    background: none;
+    outline: none;
+  }
+
+  button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px 10px;
+  }
+}
