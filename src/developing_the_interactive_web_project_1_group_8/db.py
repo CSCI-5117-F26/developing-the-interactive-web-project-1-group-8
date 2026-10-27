@@ -1424,3 +1424,10 @@ def get_visible_events(events, viewer_id, profile_owner_id=None):
         ):
             visible.append(event)
     return visible
+
+def game_exists(game_id):
+    try:
+        bgg.game(game_id=game_id)
+        return True
+    except BGGError:
+        return False
