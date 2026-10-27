@@ -120,9 +120,16 @@ def update_auth0_img(img_url, auth0_id):
     data = res.read()
 
 
-def update_profile(id, display_name, bio, profile_pic):
+def update_profile(id, display_name, bio, profile_pic, avatar_changed=False):
     with pool.connection() as conn:
-        return conn.execute(
+        current_user = conn.execute(
+            "SELECT profile_pic FROM users WHERE id = %s FOR UPDATE", (id,)
+        ).fetchone()
+        if current_user is None:
+            return None
+        if not avatar_changed:
+            profile_pic = current_user["profile_pic"]
+        updated_user = conn.execute(
             """
             UPDATE users
             SET display_name = %s, bio = %s, profile_pic = %s,
@@ -132,6 +139,8 @@ def update_profile(id, display_name, bio, profile_pic):
             """,
             (display_name, bio, profile_pic, id),
         ).fetchone()
+        updated_user["previous_avatar"] = current_user["profile_pic"]
+        return updated_user
 
 
 def update_profile_privacy(

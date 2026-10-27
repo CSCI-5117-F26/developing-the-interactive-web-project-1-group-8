@@ -97,7 +97,9 @@ def is_safe_avatar_url(url):
 def avatar_url(profile):
     picture = profile["profile_pic"]
     if picture and picture.startswith("avatars/"):
-        return url_for("api.avatar_image", user_id=profile["id"])
+        if profile["username"]:
+            return url_for("api.avatar_image", username=profile["username"])
+        return url_for("static", filename="images/avatar-default.svg")
 
     if is_safe_avatar_url(picture):
         return picture
@@ -105,9 +107,17 @@ def avatar_url(profile):
     return url_for("static", filename="images/avatar-default.svg")
 
 
-@api.get("/api/user/<int:user_id>/avatar")
-def avatar_image(user_id):
-    profile = db.get_user_from_id(user_id)
+@api.after_request
+def keep_avatar_responses_private(response):
+    if request.endpoint in {"api.avatar_image", "api.get_user_photo"}:
+        response.headers["Cache-Control"] = "private, no-store"
+        response.vary.add("Cookie")
+    return response
+
+
+@api.get("/api/user/<string:username>/avatar")
+def avatar_image(username):
+    profile = db.get_public_user(username)
     if profile is None:
         abort(404)
     if "profile" in session and session["profile"]["id"] != profile["id"]:
@@ -127,7 +137,7 @@ def avatar_image(user_id):
         return redirect(url_for("static", filename="images/avatar-default.svg"))
 
     # https://tedboy.github.io/flask/generated/flask.send_file.html
-    return send_file(BytesIO(image_data), mimetype="image/jpeg", etag=avatar_key)
+    return send_file(BytesIO(image_data), mimetype="image/jpeg", etag=False)
 
 
 # get user account photo

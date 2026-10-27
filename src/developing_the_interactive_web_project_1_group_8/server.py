@@ -21,6 +21,7 @@ import warnings
 from botocore.exceptions import BotoCoreError, ClientError
 from PIL import Image, UnidentifiedImageError
 from psycopg.errors import UniqueViolation
+from psycopg import Error as DatabaseError
 
 from developing_the_interactive_web_project_1_group_8 import db
 from developing_the_interactive_web_project_1_group_8.api import (
@@ -34,6 +35,7 @@ from developing_the_interactive_web_project_1_group_8.avatars import (
     MAX_AVATAR_BYTES,
     prepare_avatar,
     upload_avatar,
+    delete_avatar,
 )
 
 from developing_the_interactive_web_project_1_group_8.event_times import (
@@ -103,7 +105,8 @@ def require_account_setup():
         return
     if (
         request.endpoint == "api.avatar_image"
-        and request.view_args["user_id"] == profile["id"]
+        and profile.get("username")
+        and request.view_args["username"] == profile["username"]
     ):
         return
 
@@ -777,6 +780,20 @@ def user(username):
     )
 
 
+def delete_unused_avatar(user_id, object_key):
+    if not object_key or not object_key.startswith("avatars/"):
+        return
+    try:
+        current_user = db.get_user_from_id(user_id)
+        if current_user and current_user["profile_pic"] == object_key:
+            return
+        delete_avatar(object_key)
+    except KeyError, BotoCoreError, ClientError, DatabaseError:
+        flash(
+            "An unused avatar file could not be deleted from storage. Please contact the site administrator."
+        )
+
+
 # https://flask.palletsprojects.com/en/stable/patterns/fileuploads/
 @app.route("/account/settings", methods=["GET", "POST"])
 @requires_auth
@@ -796,6 +813,8 @@ def settings():
             "delete_avatar": False,
         }
     errors = []
+    avatar_changed = False
+    uploaded_avatar = None
 
     if request.method == "POST":
         values["delete_avatar"] = request.form.get("delete_avatar") == "1"
@@ -807,6 +826,7 @@ def settings():
             errors.append("Biography must be 200 characters or fewer.")
         if values["delete_avatar"]:
             values["profile_pic"] = ""
+            avatar_changed = True
         elif not errors:
             avatar_file = request.files.get("avatar")
             if avatar_file is not None and avatar_file.filename:
@@ -840,8 +860,11 @@ def settings():
 
                 if not errors:
                     try:
-                        avatar_key = upload_avatar(prepared_image, current_user["id"])
-                        values["profile_pic"] = avatar_key
+                        uploaded_avatar = upload_avatar(
+                            prepared_image, current_user["id"]
+                        )
+                        values["profile_pic"] = uploaded_avatar
+                        avatar_changed = True
                     except KeyError:
                         errors.append(
                             "Avatar storage is not configured yet. Your current avatar is unchanged."
@@ -852,13 +875,23 @@ def settings():
                         )
 
         if not errors:
-            updated_user = db.update_profile(
-                current_user["id"],
-                values["display_name"],
-                values["bio"],
-                values["profile_pic"] or None,
-            )
+            try:
+                updated_user = db.update_profile(
+                    current_user["id"],
+                    values["display_name"],
+                    values["bio"],
+                    values["profile_pic"] or None,
+                    avatar_changed,
+                )
+            except DatabaseError:
+                delete_unused_avatar(current_user["id"], uploaded_avatar)
+                errors.append(
+                    "Your profile could not be saved. Refresh the page and try again."
+                )
+
+        if not errors:
             if updated_user is None:
+                delete_unused_avatar(current_user["id"], uploaded_avatar)
                 session.clear()
                 return redirect(url_for("index"))
 
@@ -870,6 +903,10 @@ def settings():
                 "profile_pic": updated_user["profile_pic"],
                 "setup_complete": updated_user["setup_complete"],
             }
+            if avatar_changed:
+                delete_unused_avatar(
+                    current_user["id"], updated_user["previous_avatar"]
+                )
             flash("Profile saved.")
             return redirect(url_for("settings"))
 
