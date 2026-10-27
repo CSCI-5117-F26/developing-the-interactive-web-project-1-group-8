@@ -56,11 +56,12 @@
         </div>
       </div>
       {#
-        Min and Max Duration in Hours
+        Expected Duration in Hours
       #}
       <div class="label-pad">
-        <label class="label-pad" for="duration">Expected Duration (Minutes):</label>
-        <input id="duration" type="number" min="1" max="720" value="{{ duration }}"/>
+        <label class="label-pad" for="duration">Expected Duration (Hours):</label>
+        <input id="duration" type="number" min="0" max="12" step="any" value="{{ duration if duration is not none else '' }}"/>
+        <p class="pure-form-message">Matches events within 1 hour of this duration.</p>
       </div>
       {#
         Events within a Certain time
@@ -80,7 +81,7 @@
         <form class="pure-form pure-form-stacked">
           <span>Other Options:</span>
           <label for="hide-full">
-            <input class="pure-checkbox" id="hide-full" type="checkbox" {% if full %}checked{% endif %} "/> Hide Full Games
+            <input class="pure-checkbox" id="hide-full" type="checkbox" {% if full %}checked{% endif %}/> Hide Full Games
           </label>
           <label for="past">
             <input class="pure-checkbox" id="past" type="checkbox" {% if past %}checked{% endif %}/> Show Past Events
@@ -118,7 +119,7 @@
     {# Show navigation #}
     <div class="pagination">
     {% for p in range(1, pages + 1) %}
-      <button class="pure-button {{ 'pure-button-primary' if p == page}}" id="page-button" onclick="redirectSearch({{ p }})">{{ p }}</button>
+      <button class="pure-button {{ 'pure-button-primary' if p == page}}" onclick="redirectSearch({{ p }})">{{ p }}</button>
     {% endfor %}
     </div>
   </div>

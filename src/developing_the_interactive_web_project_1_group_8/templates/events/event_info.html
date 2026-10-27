@@ -54,7 +54,7 @@
                 <div class="pure-control-group">
 
                 <label for="bgg-games-search">Game</label>
-                {{ autocomplete('search', 'Games...', event.gamename, event.gamename, event.gameid) }}
+                {{ autocomplete('search', 'Games...', event.game_name or '', event.game_name or '', event.gameid) }}
                 </div>
 
                 {# <input id="event-gameid" type="text" value="{{ event.gameid }}" required pattern="^[0-9]+$"
@@ -68,9 +68,9 @@
                 </div>
                 <div class="pure-control-group">
 
-                    <label for="event-expected">Expected event duration (minutes)</label>
+                    <label for="event-expected">Expected event duration (hours)</label>
                     <input id="event-expected" type="number" value="{{ event.expected_duration }}" required
-                        name="expected_duration" class="pure-input-1" min="0" placeholder="Duration..." />
+                        name="expected_duration" class="pure-input-1" min="0" step="any" placeholder="Duration..." />
                 </div>
 
                 <div class="pure-control-group">

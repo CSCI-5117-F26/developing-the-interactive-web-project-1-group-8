@@ -247,8 +247,8 @@ dialog.profile-section {
 }
 
 .pagination {
-    display: flex;
-    justify-content: right;
+  display: flex;
+  justify-content: right;
   .pure-button-primary {
     background-color: var(--color-primary) !important;
   }

@@ -1185,10 +1185,10 @@ def search_events(
                 past,
                 played,
                 friends,
-                page
+                page,
             )
             events = cur.execute(query, params).fetchall()
-    return add_game_info(get_visible_events(events, user_id))
+    return add_game_info(events)
 
 
 def build_query(
@@ -1210,25 +1210,23 @@ def build_query(
     conditions = []
     params = []
     conditions.append("LOWER(e.name) LIKE LOWER(%s)")
-    params.append(f"%{q}%")
+    params.append(f"%{q or ''}%")
 
     # Add conditions for visibility
     visibility_conditions = []
 
-    # Show events that are from users with public hosted
     visibility_conditions.append("e.visibility = 'public'")
 
-    if user_id:
-        # Show friends-visibility events where the host is a friend
-        visibility_conditions.append("e.visibility = 'friends' AND e.hostid IN (SELECT followed FROM friends WHERE follower = %s)")
-        params.append(user_id)
-
-        # Always show events the user is hosting or attending regardless of visibility
-        visibility_conditions.append("e.hostid = %s")
-        params.append(user_id)
-
-        visibility_conditions.append("EXISTS (SELECT 1 FROM event_participation ep2 WHERE ep2.id = e.id AND ep2.user_interested = %s)")
-        params.append(user_id)
+    if user_id is not None:
+        visibility_conditions.append(
+            """(e.visibility = 'friends' AND (e.hostid = %s OR EXISTS (
+                SELECT 1 FROM friend_requests r WHERE r.accepted AND (
+                    (r.requester_id = %s AND r.recipient_id = e.hostid)
+                    OR (r.recipient_id = %s AND r.requester_id = e.hostid)
+                )
+            )))"""
+        )
+        params.extend([user_id, user_id, user_id])
 
     conditions.append("(" + " OR ".join(visibility_conditions) + ")")
 
@@ -1256,8 +1254,8 @@ def build_query(
         conditions.append("e.max_attendees <= %s")
         params.append(max_players)
     if duration is not None:
-        min_duration = duration - 60 if duration - 60 > 0 else 0
-        max_duration = duration + 60
+        min_duration = max(duration - 1, 0)
+        max_duration = duration + 1
         conditions.append("e.expected_duration >= %s")
         conditions.append("e.expected_duration <= %s")
         params.append(min_duration)
@@ -1275,11 +1273,16 @@ def build_query(
             "(SELECT COUNT(*) FROM event_participation ep2 WHERE ep2.id = e.id) < e.max_attendees"
         )
     if not past:
-        conditions.append("e.time >= %s")
-        params.append(datetime.now())
+        conditions.append("e.time > %s")
+        params.append(datetime.now(CENTRAL))
     if user_id and friends:
-        conditions.append("e.hostid IN (SELECT followed FROM friends WHERE follower = %s)")
-        params.append(user_id)
+        conditions.append(
+            """EXISTS (SELECT 1 FROM friend_requests r WHERE r.accepted AND (
+                (r.requester_id = %s AND r.recipient_id = e.hostid)
+                OR (r.recipient_id = %s AND r.requester_id = e.hostid)
+            ))"""
+        )
+        params.extend([user_id, user_id])
 
     print(params)
     cond_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
@@ -1290,8 +1293,9 @@ def build_query(
         FROM events e LEFT JOIN event_participation ep ON ep.id = e.id
         {cond_clause}
         GROUP BY e.id
-        LIMIT 15 OFFSET {15 * (page - 1)}"""
-    return query, [user_id] + params
+        ORDER BY e.time ASC NULLS LAST, e.id ASC
+        LIMIT 15 OFFSET %s"""
+    return query, [user_id] + params + [15 * (page - 1)]
 
 
 # https://bgg-api.readthedocs.io/en/stable/modules.html#boardgamegeek.api.BGGClient.game

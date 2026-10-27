@@ -39,7 +39,7 @@
                     {% elif event.display_name %}{{ event.display_name }}
                     {% else %}Anonymous{% endif %}
                 </div>
-                <div class="event-info">Duration: {% if event.expected_duration is not none %}{{ event.expected_duration }} min{% else %}Not specified{% endif %}</div>
+                <div class="event-info">Duration: {% if event.expected_duration is not none %}{{ '%g' | format(event.expected_duration) }} hour{{ '' if event.expected_duration == 1 else 's' }}{% else %}Not specified{% endif %}</div>
                 <div class="event-info">Players: {{ event.min_attendees }} minimum, {{ event.max_attendees }} maximum</div>
                 <div class="event-info-container">
                     <div class="event-info">

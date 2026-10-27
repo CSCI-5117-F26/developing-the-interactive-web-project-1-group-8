@@ -310,30 +310,33 @@ def search():
     Parameters:
       query (str): The search query.
     """
-    q = request.args.get("q", type=str)
+    q = request.args.get("q", "", type=str)
     game = request.args.get("game", "", type=str)
     category = request.args.get("category", "", type=str)
     category_name = request.args.get("category-name", "", type=str)
     min_players = request.args.get("min", None, type=int)
     max_players = request.args.get("max", None, type=int)
-    duration = request.args.get("duration", None, type=int)
+    duration = request.args.get("duration", None, type=float)
     recency = request.args.get("recency", "", type=str)
-    full = request.args.get("full", False, type=bool)
-    past = request.args.get("past", False, type=bool)
-    played = request.args.get("played", False, type=bool)
-    friends = request.args.get("friends", False, type=bool)
+    full = request.args.get("full", "").lower() in {"true", "1", "on"}
+    past = request.args.get("past", "").lower() in {"true", "1", "on"}
+    played = request.args.get("played", "").lower() in {"true", "1", "on"}
+    friends = request.args.get("friends", "").lower() in {"true", "1", "on"}
     page = request.args.get("page", 1, type=int)
     user_id = session["profile"]["id"] if session.get("profile") else None
-    if min_players and (min_players < 1 or min_players > 15):
+    if min_players is not None and not 1 <= min_players <= 15:
         min_players = None
-    if max_players and (max_players < 1 or max_players > 15):
+    if max_players is not None and not 1 <= max_players <= 15:
         max_players = None
-    if duration and (duration < 0 or duration > 15):
+    if duration is not None and not 0 <= duration <= 12:
         duration = None
     if recency not in ["", "today", "week"]:
         recency = ""
-    if page < 0:
+    if page < 1:
         page = 1
+    if not q:
+        return jsonify({"error": "Search query is required"}), 400
+
     results = db.search_events(
         q,
         user_id,
@@ -350,9 +353,6 @@ def search():
         friends,
         page=page,
     )
-
-    if not q:
-        return jsonify({"error": "Search query is required"}), 400
 
     # search users, events, games ( ? )
     r = results

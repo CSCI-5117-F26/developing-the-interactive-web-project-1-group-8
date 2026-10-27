@@ -131,7 +131,7 @@ def generate_fake_users(num_users=10):
                 "duration": fake.time_delta().days,
                 "max_attendees": fake.random_int(min=1, max=15),
                 "status": random.choice(stati),
-                "duration": random.randint(1, 5) * 60,  # duration in minutes
+                "duration": random.randint(1, 5),  # duration in hours
             }
 
             newEv = db.create_event(
