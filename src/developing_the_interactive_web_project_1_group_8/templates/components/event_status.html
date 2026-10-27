@@ -7,7 +7,7 @@
   <div>Completed</div>
   {% elif event.min_attendees > event.count %}
   <div class="event-status-circle" style="background-color: var(--color-warning);"></div>
-  <div>Pending</div>
+  <div>Needs more players</div>
   {% elif event.count >= event.max_attendees %}
   <div class="event-status-circle" style="background-color: var(--color-success);"></div>
   <div>Full</div>

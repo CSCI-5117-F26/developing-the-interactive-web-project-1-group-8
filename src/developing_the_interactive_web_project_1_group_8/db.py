@@ -120,9 +120,16 @@ def update_auth0_img(img_url, auth0_id):
     data = res.read()
 
 
-def update_profile(id, display_name, bio, profile_pic):
+def update_profile(id, display_name, bio, profile_pic, avatar_changed=False):
     with pool.connection() as conn:
-        return conn.execute(
+        current_user = conn.execute(
+            "SELECT profile_pic FROM users WHERE id = %s FOR UPDATE", (id,)
+        ).fetchone()
+        if current_user is None:
+            return None
+        if not avatar_changed:
+            profile_pic = current_user["profile_pic"]
+        updated_user = conn.execute(
             """
             UPDATE users
             SET display_name = %s, bio = %s, profile_pic = %s,
@@ -132,6 +139,8 @@ def update_profile(id, display_name, bio, profile_pic):
             """,
             (display_name, bio, profile_pic, id),
         ).fetchone()
+        updated_user["previous_avatar"] = current_user["profile_pic"]
+        return updated_user
 
 
 def update_profile_privacy(
@@ -233,6 +242,43 @@ def get_event(id):
             return cur.fetchone()
 
 
+def get_new_events(user_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT e.*,
+                    EXISTS (SELECT 1 FROM event_participation p
+                        WHERE p.id = e.id AND p.user_interested = %s) AS is_attending,
+                    (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count
+                FROM events e
+                WHERE e.time >= NOW() AND e.time < NOW() + INTERVAL '7 days'
+                ORDER BY e.time
+                LIMIT 20
+                """,
+                (user_id,),
+            )
+            events = cur.fetchall()
+    return add_game_info(events)
+
+def get_random_events(user_id, limit=20):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT e.*,
+                    EXISTS (SELECT 1 FROM event_participation p
+                        WHERE p.id = e.id AND p.user_interested = %s) AS is_attending,
+                    (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count
+                FROM events e
+                ORDER BY RANDOM()
+                LIMIT %s
+                """,
+                (user_id, limit),
+            )
+            events = cur.fetchall()
+    return add_game_info(events)
+
 def get_user_events(user_id, viewer_id=None):
     with pool.connection() as conn:
         with conn.cursor() as cur:
@@ -307,6 +353,43 @@ def get_events_in_week(user_id):
             events = cur.fetchall()
     return add_game_info(get_visible_events(events, user_id))
 
+def get_empty_events(user_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT e.*,
+                    (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count,
+                    EXISTS (SELECT 1 FROM event_participation p
+                        WHERE p.id = e.id AND p.user_interested = %s) AS is_attending
+                FROM events e
+                WHERE e.time >= NOW() AND e.time < NOW() + INTERVAL '7 days'
+                    AND NOT EXISTS (SELECT 1 FROM event_participation p
+                        WHERE p.id = e.id)
+                ORDER BY e.time
+                """,
+                (user_id,),
+            )
+            events = cur.fetchall()
+    return add_game_info(events)
+
+def get_events_today(user_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT e.*,
+                    (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count,
+                    EXISTS (SELECT 1 FROM event_participation p
+                        WHERE p.id = e.id AND p.user_interested = %s) AS is_attending
+                FROM events e
+                WHERE e.time >= NOW() AND e.time < NOW() + INTERVAL '1 day'
+                ORDER BY e.time
+                """,
+                (user_id,),
+            )
+            events = cur.fetchall()
+    return add_game_info(events)
 
 def create_event(
     name,
@@ -351,7 +434,15 @@ def create_event(
                     visibility,
                 ),
             )
-            return cur.fetchone()
+            event = cur.fetchone()
+            cur.execute(
+                """
+                INSERT INTO event_participation (id, user_interested, is_host)
+                VALUES (%s, %s, TRUE)
+                """,
+                (event["id"], hostID),
+            )
+            return event
 
 
 def update_event(
@@ -364,7 +455,6 @@ def update_event(
     min_attendees,
     max_attendees,
     description,
-    status,
     visibility,
 ):
     values = (
@@ -376,7 +466,6 @@ def update_event(
         min_attendees,
         max_attendees,
         description,
-        status,
         visibility,
     )
     with pool.connection() as conn:
@@ -385,11 +474,11 @@ def update_event(
                 """
                 UPDATE events SET name = %s, gameID = %s, address = %s, time = %s,
                 expected_duration = %s, min_attendees = %s, max_attendees = %s, description = %s,
-                status = %s, visibility = %s
+                visibility = %s
                 WHERE id = %s AND
                     (name, gameID, address, time, expected_duration,
-                     min_attendees, max_attendees, description, status, visibility)
-                    IS DISTINCT FROM (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                     min_attendees, max_attendees, description, visibility)
+                    IS DISTINCT FROM (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING name
                 """,
                 values + (id,) + values,
@@ -408,8 +497,9 @@ def get_all_event_attendees(event_id):
         with conn.cursor() as cur:
             cur.execute(
                 """
-            SELECT u.id, u.username, u.display_name, u.profile_pic FROM users u, event_participation p
-            WHERE u.id = p.user_interested AND p.id = %s AND NOT p.is_host
+            SELECT u.id, u.username, u.display_name, u.profile_pic, p.is_host FROM users u, event_participation p
+            WHERE u.id = p.user_interested AND p.id = %s
+            ORDER BY p.is_host DESC, u.username
             """,
                 (event_id,),
             )
@@ -1138,8 +1228,10 @@ def search_events(
     duration,
     recency,
     full,
-    pending,
+    past,
     played,
+    friends,
+    page,
 ):
     with pool.connection() as conn:
         with conn.cursor() as cur:
@@ -1164,11 +1256,13 @@ def search_events(
                 duration,
                 recency,
                 full,
-                pending,
+                past,
                 played,
+                friends,
+                page,
             )
             events = cur.execute(query, params).fetchall()
-    return add_game_info(get_visible_events(events, user_id))
+    return add_game_info(events)
 
 
 def build_query(
@@ -1182,13 +1276,33 @@ def build_query(
     duration,
     recency,
     full,
-    pending,
+    past,
     played,
+    friends,
+    page,
 ):
     conditions = []
     params = []
     conditions.append("LOWER(e.name) LIKE LOWER(%s)")
-    params.append(f"%{q}%")
+    params.append(f"%{q or ''}%")
+
+    # Add conditions for visibility
+    visibility_conditions = []
+
+    visibility_conditions.append("e.visibility = 'public'")
+
+    if user_id is not None:
+        visibility_conditions.append(
+            """(e.visibility = 'friends' AND (e.hostid = %s OR EXISTS (
+                SELECT 1 FROM friend_requests r WHERE r.accepted AND (
+                    (r.requester_id = %s AND r.recipient_id = e.hostid)
+                    OR (r.recipient_id = %s AND r.requester_id = e.hostid)
+                )
+            )))"""
+        )
+        params.extend([user_id, user_id, user_id])
+
+    conditions.append("(" + " OR ".join(visibility_conditions) + ")")
 
     # Filter for game id
     if game:
@@ -1214,7 +1328,7 @@ def build_query(
         conditions.append("e.max_attendees <= %s")
         params.append(max_players)
     if duration is not None:
-        min_duration = duration - 1
+        min_duration = max(duration - 1, 0)
         max_duration = duration + 1
         conditions.append("e.expected_duration >= %s")
         conditions.append("e.expected_duration <= %s")
@@ -1232,18 +1346,30 @@ def build_query(
         conditions.append(
             "(SELECT COUNT(*) FROM event_participation ep2 WHERE ep2.id = e.id) < e.max_attendees"
         )
-    if pending:
-        conditions.append("e.status = 'pending'")
+    if not past:
+        conditions.append("e.time > %s")
+        params.append(datetime.now(CENTRAL))
+    if user_id and friends:
+        conditions.append(
+            """EXISTS (SELECT 1 FROM friend_requests r WHERE r.accepted AND (
+                (r.requester_id = %s AND r.recipient_id = e.hostid)
+                OR (r.recipient_id = %s AND r.requester_id = e.hostid)
+            ))"""
+        )
+        params.extend([user_id, user_id])
 
     print(params)
     cond_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
     query = f"""SELECT e.*, (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count,
         EXISTS (SELECT 1 FROM event_participation p
-            WHERE p.id = e.id AND p.user_interested = %s) AS is_attending
+            WHERE p.id = e.id AND p.user_interested = %s) AS is_attending,
+        COUNT(*) OVER() as total_count
         FROM events e LEFT JOIN event_participation ep ON ep.id = e.id
         {cond_clause}
-        GROUP BY e.id"""
-    return query, [user_id] + params
+        GROUP BY e.id
+        ORDER BY e.time ASC NULLS LAST, e.id ASC
+        LIMIT 15 OFFSET %s"""
+    return query, [user_id] + params + [15 * (page - 1)]
 
 
 # https://bgg-api.readthedocs.io/en/stable/modules.html#boardgamegeek.api.BGGClient.game

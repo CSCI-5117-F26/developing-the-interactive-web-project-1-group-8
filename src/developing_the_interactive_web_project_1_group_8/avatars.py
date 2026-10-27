@@ -60,3 +60,8 @@ def download_avatar(object_key):
     finally:
         body.close()
     return image_data
+
+
+def delete_avatar(object_key):
+    client, bucket_name = get_avatar_storage()
+    client.delete_object(Bucket=bucket_name, Key=object_key)

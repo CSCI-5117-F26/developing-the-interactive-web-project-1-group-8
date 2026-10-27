@@ -101,7 +101,9 @@
 
 .event-tile .event-game-name,
 .event-tile .event-date-time,
-.event-tile .event-location {
+.event-tile .event-location,
+.event-tile .event-duration,
+.event-tile .event-players {
   color: var(--color-text-secondary);
   font-size: 0.875rem;
   line-height: 1.4;

@@ -246,6 +246,14 @@ dialog.profile-section {
   }
 }
 
+.pagination {
+  display: flex;
+  justify-content: right;
+  .pure-button-primary {
+    background-color: var(--color-primary) !important;
+  }
+}
+
 .label-pad {
   margin-top: 1em;
 }
@@ -522,7 +530,7 @@ dialog.profile-section {
   display: inline-flex;
   align-items: center;
   gap: 0.35em;
-  font-size: 0.875rem;
+  font-size: inherit;
   line-height: 1.4;
   white-space: nowrap;
 }

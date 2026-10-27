@@ -1,3 +1,4 @@
+import random
 from flask import (
     Flask,
     render_template,
@@ -12,6 +13,7 @@ from flask import (
 import os
 import secrets
 from datetime import timezone
+from math import isfinite
 from urllib.parse import urlencode
 from dotenv import load_dotenv
 from flask_wtf.csrf import CSRFProtect
@@ -21,6 +23,7 @@ import warnings
 from botocore.exceptions import BotoCoreError, ClientError
 from PIL import Image, UnidentifiedImageError
 from psycopg.errors import UniqueViolation
+from psycopg import Error as DatabaseError
 
 from developing_the_interactive_web_project_1_group_8 import db
 from developing_the_interactive_web_project_1_group_8.api import (
@@ -34,6 +37,7 @@ from developing_the_interactive_web_project_1_group_8.avatars import (
     MAX_AVATAR_BYTES,
     prepare_avatar,
     upload_avatar,
+    delete_avatar,
 )
 
 from developing_the_interactive_web_project_1_group_8.event_times import (
@@ -107,7 +111,8 @@ def require_account_setup():
         return
     if (
         request.endpoint == "api.avatar_image"
-        and request.view_args["user_id"] == profile["id"]
+        and profile.get("username")
+        and request.view_args["username"] == profile["username"]
     ):
         return
 
@@ -230,21 +235,34 @@ def is_past(time):
 
 @app.route("/")
 def index():
+    # events = db.get_all_event_info()
+    # print(events[0])
+    # new_events = events.sort(key=lambda e: e["date"]).reverse()[:20]
     """Dashboard page, where users can explore for new events"""
     if "profile" not in session:
-        events = db.get_all_event_info()
+        
+        
+        
         sections = [
-            ("Events in the Next Week", db.get_events_in_week(None)),
+            # ("Events from Popular Games", events),
+            # ("Events in the Next Week", events),
         ]
     else:
         user_id = session["profile"]["id"]
         sections = [
-            ("Hosted Events", db.get_user_events(user_id, user_id)),
+            ("New Events", db.get_new_events(user_id)),
+            ("Some Random Events", db.get_random_events(user_id, limit=20)),
+            
+            # ("Hosted Events", db.get_user_events(user_id, user_id)),
             ("Events Attending", db.get_user_events_attending(user_id, user_id)),
+            ("Events Today", db.get_events_today(user_id)),
+            ("Empty Events", db.get_empty_events(user_id)),
             ("Events in the Next Week", db.get_events_in_week(user_id)),
             ("Events from Users You Follow", db.get_all_friend_events(user_id)),
             ("All Events", db.get_all_event_info(user_id)),
         ]
+        
+        
     return render_template("index.html", sections=sections)
 
 
@@ -781,6 +799,20 @@ def user(username):
     )
 
 
+def delete_unused_avatar(user_id, object_key):
+    if not object_key or not object_key.startswith("avatars/"):
+        return
+    try:
+        current_user = db.get_user_from_id(user_id)
+        if current_user and current_user["profile_pic"] == object_key:
+            return
+        delete_avatar(object_key)
+    except KeyError, BotoCoreError, ClientError, DatabaseError:
+        flash(
+            "An unused avatar file could not be deleted from storage. Please contact the site administrator."
+        )
+
+
 # https://flask.palletsprojects.com/en/stable/patterns/fileuploads/
 @app.route("/account/settings", methods=["GET", "POST"])
 @requires_auth
@@ -800,6 +832,8 @@ def settings():
             "delete_avatar": False,
         }
     errors = []
+    avatar_changed = False
+    uploaded_avatar = None
 
     if request.method == "POST":
         values["delete_avatar"] = request.form.get("delete_avatar") == "1"
@@ -811,6 +845,7 @@ def settings():
             errors.append("Biography must be 200 characters or fewer.")
         if values["delete_avatar"]:
             values["profile_pic"] = ""
+            avatar_changed = True
         elif not errors:
             avatar_file = request.files.get("avatar")
             if avatar_file is not None and avatar_file.filename:
@@ -844,8 +879,11 @@ def settings():
 
                 if not errors:
                     try:
-                        avatar_key = upload_avatar(prepared_image, current_user["id"])
-                        values["profile_pic"] = avatar_key
+                        uploaded_avatar = upload_avatar(
+                            prepared_image, current_user["id"]
+                        )
+                        values["profile_pic"] = uploaded_avatar
+                        avatar_changed = True
                     except KeyError:
                         errors.append(
                             "Avatar storage is not configured yet. Your current avatar is unchanged."
@@ -856,13 +894,23 @@ def settings():
                         )
 
         if not errors:
-            updated_user = db.update_profile(
-                current_user["id"],
-                values["display_name"],
-                values["bio"],
-                values["profile_pic"] or None,
-            )
+            try:
+                updated_user = db.update_profile(
+                    current_user["id"],
+                    values["display_name"],
+                    values["bio"],
+                    values["profile_pic"] or None,
+                    avatar_changed,
+                )
+            except DatabaseError:
+                delete_unused_avatar(current_user["id"], uploaded_avatar)
+                errors.append(
+                    "Your profile could not be saved. Refresh the page and try again."
+                )
+
+        if not errors:
             if updated_user is None:
+                delete_unused_avatar(current_user["id"], uploaded_avatar)
                 session.clear()
                 return redirect(url_for("index"))
 
@@ -874,6 +922,10 @@ def settings():
                 "profile_pic": updated_user["profile_pic"],
                 "setup_complete": updated_user["setup_complete"],
             }
+            if avatar_changed:
+                delete_unused_avatar(
+                    current_user["id"], updated_user["previous_avatar"]
+                )
             flash("Profile saved.")
             return redirect(url_for("settings"))
 
@@ -954,19 +1006,31 @@ def my_events():
 @app.route("/search")
 def search():
     """Search page, where users can search for events"""
-    q = request.args.get("q", type=str)
+    q = request.args.get("q", "", type=str)
     game = request.args.get("game", "", type=str)
     game_name = request.args.get("game-name", "", type=str)
     category = request.args.get("category", "", type=str)
     category_name = request.args.get("category-name", "", type=str)
     min_players = request.args.get("min", None, type=int)
     max_players = request.args.get("max", None, type=int)
-    duration = request.args.get("duration", None, type=int)
+    duration = request.args.get("duration", None, type=float)
     recency = request.args.get("recency", "", type=str)
-    full = request.args.get("full", False, type=bool)
-    pending = request.args.get("pending", False, type=bool)
-    played = request.args.get("played", False, type=bool)
+    full = request.args.get("full", "").lower() in {"true", "1", "on"}
+    past = request.args.get("past", "").lower() in {"true", "1", "on"}
+    played = request.args.get("played", "").lower() in {"true", "1", "on"}
+    friends = request.args.get("friends", "").lower() in {"true", "1", "on"}
+    page = request.args.get("page", 1, type=int)
     user_id = session["profile"]["id"] if session.get("profile") else None
+    if min_players is not None and not 1 <= min_players <= 15:
+        min_players = None
+    if max_players is not None and not 1 <= max_players <= 15:
+        max_players = None
+    if duration is not None and not 0 <= duration <= 12:
+        duration = None
+    if recency not in ["", "today", "week"]:
+        recency = ""
+    if page < 1:
+        page = 1
     results = db.search_events(
         q,
         user_id,
@@ -978,9 +1042,12 @@ def search():
         duration,
         recency,
         full,
-        pending,
+        past,
         played,
+        friends,
+        page,
     )
+    total = results[0]["total_count"] if results else 0
 
     return render_template(
         "search.html",
@@ -994,8 +1061,11 @@ def search():
         duration=duration,
         recency=recency,
         full=full,
-        pending=pending,
+        past=past,
         played=played,
+        friends=friends,
+        page=page,
+        total=total,
         results=results,
     )
 
@@ -1008,13 +1078,11 @@ def event(public_id):
     """
 
     event = db.get_event_by_public_id(public_id)
-    attendees = None
     if event is None:
         abort(404, "This event does not appear to exist.")
     event = db.get_event_info(event["id"], session.get("profile", {}).get("id"))
 
-    if event["hostid"] == session.get("profile", {}).get("id"):
-        attendees = db.get_all_event_attendees(event["id"])
+    attendees = db.get_all_event_attendees(event["id"])
 
     return render_template("events/event.html", event=event, attendees=attendees)
 
@@ -1052,15 +1120,13 @@ def add_event():
         session["profile"]["id"],
         request.form.get("address"),
         event_time,
-        request.form.get("expected_duration"),
+        expected_duration,
         request.form.get("min_attendees"),
         request.form.get("max_attendees"),
         request.form.get("description"),
         "scheduled",
         request.form.get("visibility"),
     )
-
-    db.attend_event(result["id"], session["profile"]["id"], True)
 
     return redirect("/")
 
@@ -1156,7 +1222,7 @@ def update_event(public_id):
         request.form.get("search-value") or request.form.get("gameid"),
         request.form.get("address"),
         event_time,
-        request.form.get("expected_duration"),
+        expected_duration,
         request.form.get("min_attendees"),
         request.form.get("max_attendees"),
         request.form.get("description"),

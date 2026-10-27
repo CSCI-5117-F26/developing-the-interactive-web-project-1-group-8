@@ -8,16 +8,18 @@
 {% endblock %}
 
 {% block content %}
-<section class="event-page page-panel">
+<section class="event-page event-details-page page-panel">
     <!-- <div class="event-container"> -->
-        <div class="event-heading-container profile-section">
-            {% if event.image_url %}
-            <img class="event-image" src="{{ event.image_url }}">
-            {% else %}
-            <div class="event-image event-image-placeholder">No image</div>
-            {% endif %}
+        <div class="event-heading-container profile-section pure-g">
+            <div class="pure-u">
+                {% if event.image_url %}
+                <img class="event-image" src="{{ event.image_url }}">
+                {% else %}
+                <div class="event-image event-image-placeholder">No image</div>
+                {% endif %}
+            </div>
 
-            <div class="event-heading-info-conatiner">
+            <div class="event-heading-info-conatiner pure-u">
                 <h1 class="event-title">{{ event.name }}</h1>
                 <div class="event-info-container">
                     <div class="event-info">
@@ -37,6 +39,8 @@
                     {% elif event.display_name %}{{ event.display_name }}
                     {% else %}Anonymous{% endif %}
                 </div>
+                <div class="event-info">Duration: {% if event.expected_duration is not none %}{{ '%g' | format(event.expected_duration) }} hour{{ '' if event.expected_duration == 1 else 's' }}{% else %}Not specified{% endif %}</div>
+                <div class="event-info">Players: {{ event.min_attendees }} minimum, {{ event.max_attendees }} maximum</div>
                 <div class="event-info-container">
                     <div class="event-info">
                         <div class="event-icon-container">
@@ -54,7 +58,7 @@
                     </div>
                 </div>
             </div>
-            <div class="event-back-button-container">
+            <div class="event-back-button-container pure-u">
                 <a class="pure-button" data-back-link href="{{ url_for('index') }}">
                     <i class="fa fa-arrow-left"></i> <span data-back-label>Back to Dashboard</span>
                 </a>
@@ -70,7 +74,7 @@
             {% for user in attendees %}
             <a class="profile-friend" href="{{ url_for('user', username=user.username) }}" title="{{ user.display_name }}">
             <img class="user-ico" src="{{ avatar_url(user) }}" width="64" height="64">
-            <span>{{ user.display_name }}</span>
+            <span>{% if user.is_host %}(Host) {% endif %}{{ user.display_name }}</span>
             </a>
             {% endfor %}
         </div>

@@ -19,6 +19,7 @@
       </div>
       <div class="event-date-time">{% if event.time %}<time datetime="{{ event.time.isoformat() }}">{{event.time | format_tile_time}}</time>{% else %}N/A{% endif %}</div>
       <div class="event-location" title="{{ event.address }}">{{event.address}}</div>
+      <div class="event-duration">Duration: {% if event.expected_duration is not none %}{{ '%g' | format(event.expected_duration) }} hour{{ '' if event.expected_duration == 1 else 's' }}{% else %}Not specified{% endif %}</div>
     </div>
     <div class="event-attendance">
       {% include "components/event_status.html" %}

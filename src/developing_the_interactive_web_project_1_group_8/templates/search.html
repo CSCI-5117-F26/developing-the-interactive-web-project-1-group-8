@@ -9,6 +9,11 @@
 
 {% from 'components/bgg-search.html' import autocomplete %}
 
+{% set page_size = 15 %}
+{% set pages = (total / page_size) | round(0, 'ceil') | int %}
+
+
+
 {% block content %}
 <div class="pure-g">
   <div class="pure-u-1-4">
@@ -51,11 +56,12 @@
         </div>
       </div>
       {#
-        Min and Max Duration in Hours
+        Expected Duration in Hours
       #}
       <div class="label-pad">
         <label class="label-pad" for="duration">Expected Duration (Hours):</label>
-        <input id="duration" type="number" min="1" max="12" value="{{ duration }}"/>
+        <input id="duration" type="number" min="0" max="12" step="any" value="{{ duration if duration is not none else '' }}"/>
+        <p class="pure-form-message">Matches events within 1 hour of this duration.</p>
       </div>
       {#
         Events within a Certain time
@@ -75,14 +81,19 @@
         <form class="pure-form pure-form-stacked">
           <span>Other Options:</span>
           <label for="hide-full">
-            <input class="pure-checkbox" id="hide-full" type="checkbox" {% if full %}checked{% endif %} "/> Hide Full Games
+            <input class="pure-checkbox" id="hide-full" type="checkbox" {% if full %}checked{% endif %}/> Hide Full Games
           </label>
-          <label for="pending">
-            <input class="pure-checkbox" id="pending" type="checkbox" {% if pending %}checked{% endif %}/> Pending
+          <label for="past">
+            <input class="pure-checkbox" id="past" type="checkbox" {% if past %}checked{% endif %}/> Show Past Events
           </label>
-          <label for="played-before">
-            <input class="pure-checkbox" id="played-before" type="checkbox" {% if played %}checked{% endif %}/> Games You Played
-          </label>
+          {% if session.get('profile') and session.get('profile')['id'] %}
+            <label for="played-before">
+              <input class="pure-checkbox" id="played-before" type="checkbox" {% if played %}checked{% endif %}/> Games You Played
+            </label>
+            <label for="friend-events">
+              <input class="pure-checkbox" id="friend-events" type="checkbox" {% if friends %}checked{% endif %}/> Show Only Friend-Hosted Events
+            </label>
+          {% endif %}
         </form>
       </div>
       {#
@@ -105,6 +116,12 @@
     <p>No results found :(</p>
     <p>Try searching for something else, or <a href="{{ url_for('index') }}">go back to the dashboard</a>.</p>
     {% endif %}
+    {# Show navigation #}
+    <div class="pagination">
+    {% for p in range(1, pages + 1) %}
+      <button class="pure-button {{ 'pure-button-primary' if p == page}}" onclick="redirectSearch({{ p }})">{{ p }}</button>
+    {% endfor %}
+    </div>
   </div>
 </div>
 {% endblock %}
@@ -112,8 +129,9 @@
 {% block scripts %}
 <script src="{{ url_for('static', filename='javascript/slider.js')}}"></script>
 <script>
-  function redirectSearch() {
+  function redirectSearch(page_click) {
     console.log("fire")
+    console.log(page_click)
     var q = searchInput.value.trim();
     var game = document.getElementsByName("search-value")[0]?.value ?? "";
     var gameName = document.getElementsByName("search-key")[0]?.value ?? "";
@@ -125,8 +143,9 @@
     var duration = document.getElementById("duration")?.value ?? "";
     var recency = document.getElementById("recency")?.value ?? "";
     var full = document.getElementById("hide-full")?.checked ?? "";
-    var pending = document.getElementById("pending")?.checked ?? "";
+    var past = document.getElementById("past")?.checked ?? "";
     var played = document.getElementById("played-before")?.checked ?? "";
+    var friends = document.getElementById("friend-events")?.checked ?? "";
 
     const params = new URLSearchParams({ q });
     if (gameName && game) params.set("game", game);
@@ -138,8 +157,10 @@
     if (duration) params.set("duration", duration);
     if (recency) params.set("recency", recency);
     if (full) params.set("full", full);
-    if (pending) params.set("pending", pending);
+    if (past) params.set("past", past);
     if (played) params.set("played", played);
+    if (friends) params.set("friends", friends);
+    if (page_click) params.set("page", page_click);
     const apply = document.getElementById("apply-filters");
     
     const searchQuery = document.getElementById("search").value.trim();
