@@ -77,8 +77,17 @@
   height: 5rem;
 }
 
+.event-tile .event-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-bottom: 0.35em;
+}
+
 .event-tile .event-name {
-  margin: 0 0 0.35em;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
   font-size: 1.1rem;
 }
 
@@ -134,4 +143,16 @@
   align-items: stretch;
   padding: 0 0 0.75rem;
   background-color: transparent;
+}
+
+.event-tile .event-visibility {
+  flex-shrink: 0;
+  padding: 0.15em 0.5em;
+  border: 0.0625rem solid var(--color-border);
+  border-radius: 0.35em;
+  background-color: var(--color-background-outset);
+  color: var(--color-text-primary);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  white-space: nowrap;
 }

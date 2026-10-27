@@ -75,6 +75,8 @@ CREATE TABLE events (
     max_attendees INT NOT NULL,
     description VARCHAR(4095) NOT NULL,
     status VARCHAR(255) NOT NULL,
+    visibility TEXT NOT NULL DEFAULT 'public'
+        CHECK (visibility IN ('public', 'friends', 'private')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     min_attendees INT NOT NULL DEFAULT 1
 );

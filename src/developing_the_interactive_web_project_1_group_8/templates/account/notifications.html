@@ -29,7 +29,7 @@
     </p>
     <div class="settings-actions">
       {% if notification.url %}
-      <a class="pure-button" href="{{ notification.url }}">{{ 'View request' if notification.kind == 'friend_request' else 'View event' }}</a>
+      <a class="pure-button" href="{{ notification.url }}">{% if notification.kind == 'friend_request' %}View request{% elif notification.kind == 'friend_accepted' %}View profile{% else %}View event{% endif %}</a>
       {% endif %}
       {% if not notification.is_read %}
       <form method="post" action="{{ url_for('notifications', page=page) }}">
