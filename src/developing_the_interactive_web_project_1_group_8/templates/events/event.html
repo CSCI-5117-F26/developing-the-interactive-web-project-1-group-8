@@ -24,6 +24,9 @@
                     </div>
                     {% include "components/event_status.html" %}
                 </div>
+                <div class="event-info">
+                    Visibility: {{ 'Public' if event.visibility == 'public' else 'Friends only' if event.visibility == 'friends' else 'Private' }}
+                </div>
                 {% if event.game_categories %}
                 <div class="event-info">Categories: {{ event.game_categories | join(', ') }}</div>
                 {% endif %}

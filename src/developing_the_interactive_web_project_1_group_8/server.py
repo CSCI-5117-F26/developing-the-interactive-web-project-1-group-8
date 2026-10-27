@@ -1013,6 +1013,12 @@ def create_event():
 def add_event():
     print(request.form)
     print(session["profile"]["id"])
+    visibility = request.form.get("visibility")
+    if visibility not in ("public", "friends", "private"):
+        return render_template(
+            "error.html",
+            message="Choose Public, Friends only, or Private for event visibility.",
+        ), 400
     try:
         event_time = parse_utc_time(request.form.get("time"))
     except ValueError:
@@ -1030,6 +1036,7 @@ def add_event():
         request.form.get("max_attendees"),
         request.form.get("description"),
         "scheduled",
+        visibility,
     )
 
     db.attend_event(result["id"], session["profile"]["id"], True)
@@ -1096,7 +1103,7 @@ def update_event(public_id):
     if event is None:
         abort(404, "This event does not appear to exist.")
     event_id = event["id"]
-    check_event = db.get_event_info(event_id)
+    check_event = db.get_event_info(event_id, session["profile"]["id"])
     if check_event is None:
         abort(404, "This event does not appear to exist.")
 
@@ -1109,6 +1116,12 @@ def update_event(public_id):
             "Cannot adjust an event's max attendees lower than the number of participants.",
         )
 
+    visibility = request.form.get("visibility")
+    if visibility not in ("public", "friends", "private"):
+        return render_template(
+            "error.html",
+            message="Choose Public, Friends only, or Private for event visibility.",
+        ), 400
     try:
         event_time = parse_utc_time(request.form.get("time"), check_event["time"])
     except ValueError:
@@ -1127,6 +1140,7 @@ def update_event(public_id):
         request.form.get("max_attendees"),
         request.form.get("description"),
         "scheduled",
+        visibility,
     )
 
     return redirect("/")

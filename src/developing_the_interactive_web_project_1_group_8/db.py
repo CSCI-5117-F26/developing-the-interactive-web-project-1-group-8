@@ -196,7 +196,7 @@ def get_all_event_info(user_id=None):
                 (user_id,),
             )
             events = cur.fetchall()
-    return add_game_info(events)
+    return add_game_info(get_visible_events(events, user_id))
 
 
 def get_all_user_event_info(id):
@@ -248,7 +248,7 @@ def get_user_events(user_id, viewer_id=None):
                 (viewer_id, user_id),
             )
             events = cur.fetchall()
-    return add_game_info(events)
+    return add_game_info(get_visible_events(events, viewer_id, user_id))
 
 
 def get_user_events_attending(user_id, viewer_id=None):
@@ -267,7 +267,7 @@ def get_user_events_attending(user_id, viewer_id=None):
                 (viewer_id, user_id),
             )
             events = cur.fetchall()
-    return add_game_info(events)
+    return add_game_info(get_visible_events(events, viewer_id, user_id))
 
 
 def get_all_friend_events(id):
@@ -286,7 +286,7 @@ def get_all_friend_events(id):
                 (id, id),
             )
             events = cur.fetchall()
-    return add_game_info(events)
+    return add_game_info(get_visible_events(events, id))
 
 
 def get_events_in_week(user_id):
@@ -305,7 +305,7 @@ def get_events_in_week(user_id):
                 (user_id,),
             )
             events = cur.fetchall()
-    return add_game_info(events)
+    return add_game_info(get_visible_events(events, user_id))
 
 
 def create_event(
@@ -319,6 +319,7 @@ def create_event(
     max_attendees,
     description,
     status,
+    visibility,
 ):
     # https://docs.python.org/3/library/secrets.html#secrets.token_urlsafe
     public_id = secrets.token_urlsafe(32)
@@ -329,8 +330,8 @@ def create_event(
             cur.execute(
                 """
                 INSERT INTO events (name, gameID, hostID, address, time, expected_duration,
-                min_attendees, max_attendees, description, status, game_categories, public_id)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                min_attendees, max_attendees, description, status, game_categories, public_id, visibility)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING *
                 """,
                 (
@@ -346,6 +347,7 @@ def create_event(
                     status,
                     categories,
                     public_id,
+                    visibility,
                 ),
             )
             return cur.fetchone()
@@ -362,6 +364,7 @@ def update_event(
     max_attendees,
     description,
     status,
+    visibility,
 ):
     values = (
         name,
@@ -373,6 +376,7 @@ def update_event(
         max_attendees,
         description,
         status,
+        visibility,
     )
     with pool.connection() as conn:
         with conn.cursor() as cur:
@@ -380,11 +384,11 @@ def update_event(
                 """
                 UPDATE events SET name = %s, gameID = %s, address = %s, time = %s,
                 expected_duration = %s, min_attendees = %s, max_attendees = %s, description = %s,
-                status = %s
+                status = %s, visibility = %s
                 WHERE id = %s AND
                     (name, gameID, address, time, expected_duration,
-                     min_attendees, max_attendees, description, status)
-                    IS DISTINCT FROM (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                     min_attendees, max_attendees, description, status, visibility)
+                    IS DISTINCT FROM (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING name
                 """,
                 values + (id,) + values,
@@ -1142,7 +1146,7 @@ def search_events(
                 played,
             )
             events = cur.execute(query, params).fetchall()
-    return add_game_info(events)
+    return add_game_info(get_visible_events(events, user_id))
 
 
 def build_query(
@@ -1252,3 +1256,20 @@ def get_event_by_public_id(public_id):
     if event is not None:
         event["is_completed"] = is_event_completed(event)
     return event
+
+
+def get_visible_events(events, viewer_id, profile_owner_id=None):
+    if viewer_id is not None and viewer_id == profile_owner_id:
+        return events
+    friend_ids = set()
+    if viewer_id is not None:
+        friend_ids = {friend["id"] for friend in get_friends(viewer_id)}
+    visible = []
+    for event in events:
+        if event["visibility"] == "public":
+            visible.append(event)
+        elif event["visibility"] == "friends" and (
+            event["hostid"] == viewer_id or event["hostid"] in friend_ids
+        ):
+            visible.append(event)
+    return visible

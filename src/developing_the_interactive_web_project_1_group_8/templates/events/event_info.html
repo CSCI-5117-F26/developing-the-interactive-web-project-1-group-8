@@ -112,6 +112,16 @@
             {% endif %}
             ></div> -->
                 <div class="pure-control-group">
+                    <label for="event-visibility">Visibility</label>
+                    <select class="pure-input-1" id="event-visibility" name="visibility" required>
+                        {% set visibility = event.visibility if event else 'public' %}
+                        <option value="public"{% if visibility == 'public' %} selected{% endif %}>Public</option>
+                        <option value="friends"{% if visibility == 'friends' %} selected{% endif %}>Friends only</option>
+                        <option value="private"{% if visibility == 'private' %} selected{% endif %}>Private</option>
+                    </select>
+                    <p class="pure-form-message">Public events can appear in search, feeds and profiles. Friends-only events are shown to the host's friends. Private events appear only in your own hosted or attending lists. Anyone with the event link can view an event and sign in to join.</p>
+                </div>
+                <div class="pure-control-group">
                     <label for="event-time">Event Time (CT)</label>
                     <input class="pure-input-1" id="event-time" type="datetime-local" name="time" value="{{ event.time | format_event_input if event else '' }}">
                     <p class="pure-form-message">Enter the event time in Central Time (CT).</p>
