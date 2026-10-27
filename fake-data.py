@@ -86,12 +86,14 @@ def generate_fake_users(num_users=10):
                     pass
             
             game_words = game.name.split()
-            game_words.extend(["Game","Stuff","Event","Fun","Party","Activity","Night","Day"])
+            
+            # I ASKED AI TO GENERATE A BUNCH OF STUFF
+            game_words.extend(["Game","Stuff","Event","Fun","Party","Activity","Night","Day", "Play", "Enjoy","Friend","Social","Gaming","Board","Tabletop", "Hangout", "UMN", "Time","Yippee", "Exciting","Thrilling","Enthusiastic", "Boring"])
             game_words.extend(game.categories)
             game_words.extend(game.mechanics)
 
             ev = {
-                "name": fake.sentence(nb_words=4, ext_word_list=game_words),
+                "name": fake.sentence(nb_words=3, ext_word_list=game_words),
                 "gameID": gameid,
                 "description": fake.text(max_nb_chars=200),
                 "date": fake.date_this_year(),
