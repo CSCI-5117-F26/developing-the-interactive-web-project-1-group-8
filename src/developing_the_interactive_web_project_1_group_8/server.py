@@ -1,3 +1,4 @@
+import random
 from flask import (
     Flask,
     render_template,
@@ -230,21 +231,34 @@ def is_past(time):
 
 @app.route("/")
 def index():
+    # events = db.get_all_event_info()
+    # print(events[0])
+    # new_events = events.sort(key=lambda e: e["date"]).reverse()[:20]
     """Dashboard page, where users can explore for new events"""
     if "profile" not in session:
-        events = db.get_all_event_info()
+        
+        
+        
         sections = [
-            ("Events in the Next Week", db.get_events_in_week(None)),
+            # ("Events from Popular Games", events),
+            # ("Events in the Next Week", events),
         ]
     else:
         user_id = session["profile"]["id"]
         sections = [
-            ("Hosted Events", db.get_user_events(user_id, user_id)),
+            ("New Events", db.get_new_events(user_id)),
+            ("Some Random Events", db.get_random_events(user_id, limit=20)),
+            
+            # ("Hosted Events", db.get_user_events(user_id, user_id)),
             ("Events Attending", db.get_user_events_attending(user_id, user_id)),
+            ("Events Today", db.get_events_today(user_id)),
+            ("Empty Events", db.get_empty_events(user_id)),
             ("Events in the Next Week", db.get_events_in_week(user_id)),
             ("Events from Users You Follow", db.get_all_friend_events(user_id)),
             ("All Events", db.get_all_event_info(user_id)),
         ]
+        
+        
     return render_template("index.html", sections=sections)
 
 

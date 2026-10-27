@@ -242,6 +242,43 @@ def get_event(id):
             return cur.fetchone()
 
 
+def get_new_events(user_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT e.*,
+                    EXISTS (SELECT 1 FROM event_participation p
+                        WHERE p.id = e.id AND p.user_interested = %s) AS is_attending,
+                    (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count
+                FROM events e
+                WHERE e.time >= NOW() AND e.time < NOW() + INTERVAL '7 days'
+                ORDER BY e.time
+                LIMIT 20
+                """,
+                (user_id,),
+            )
+            events = cur.fetchall()
+    return add_game_info(events)
+
+def get_random_events(user_id, limit=20):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT e.*,
+                    EXISTS (SELECT 1 FROM event_participation p
+                        WHERE p.id = e.id AND p.user_interested = %s) AS is_attending,
+                    (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count
+                FROM events e
+                ORDER BY RANDOM()
+                LIMIT %s
+                """,
+                (user_id, limit),
+            )
+            events = cur.fetchall()
+    return add_game_info(events)
+
 def get_user_events(user_id, viewer_id=None):
     with pool.connection() as conn:
         with conn.cursor() as cur:
@@ -316,6 +353,43 @@ def get_events_in_week(user_id):
             events = cur.fetchall()
     return add_game_info(get_visible_events(events, user_id))
 
+def get_empty_events(user_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT e.*,
+                    (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count,
+                    EXISTS (SELECT 1 FROM event_participation p
+                        WHERE p.id = e.id AND p.user_interested = %s) AS is_attending
+                FROM events e
+                WHERE e.time >= NOW() AND e.time < NOW() + INTERVAL '7 days'
+                    AND NOT EXISTS (SELECT 1 FROM event_participation p
+                        WHERE p.id = e.id)
+                ORDER BY e.time
+                """,
+                (user_id,),
+            )
+            events = cur.fetchall()
+    return add_game_info(events)
+
+def get_events_today(user_id):
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT e.*,
+                    (SELECT COUNT(*) FROM event_participation p WHERE p.id = e.id) AS count,
+                    EXISTS (SELECT 1 FROM event_participation p
+                        WHERE p.id = e.id AND p.user_interested = %s) AS is_attending
+                FROM events e
+                WHERE e.time >= NOW() AND e.time < NOW() + INTERVAL '1 day'
+                ORDER BY e.time
+                """,
+                (user_id,),
+            )
+            events = cur.fetchall()
+    return add_game_info(events)
 
 def create_event(
     name,
