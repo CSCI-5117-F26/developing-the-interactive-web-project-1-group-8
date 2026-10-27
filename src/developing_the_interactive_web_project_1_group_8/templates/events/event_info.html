@@ -49,13 +49,13 @@
                 <div class="pure-control-group">
 
                 <label for="event-name">Event Name</label>
-                <input id="event-name" type="text" value="{{ event.name }}" required pattern="^[a-zA-Z 0-9,.!'/]+$"
+                <input id="event-name" type="text" value="{{ event.name }}" required pattern="^[a-zA-Z 0-9,.!']+$"
                     name="name" class="pure-input-1" placeholder="Event Name..." />
                 </div>
                 <div class="pure-control-group">
 
                 <label for="bgg-games-search">Game</label>
-                {{ autocomplete('search', 'Games...', event.gamename, event.gamename, event.gameid) }}
+                {{ autocomplete('search', 'Games...', event.game_name, event.game_name, event.gameid) }}
                 </div>
 
                 {# <input id="event-gameid" type="text" value="{{ event.gameid }}" required pattern="^[0-9]+$"
@@ -78,7 +78,7 @@
                     <label for="event-min">Minimum number of players</label>
                     <input id="event-min" type="number"
                         value="{% if event %}{{ event.min_attendees }}{% else %}2{% endif %}" required
-                        name="min_attendees" class="pure-u-1-5" min="2" placeholder="Min Players..." />
+                        name="min_attendees" class="pure-input-1-5" min="2" placeholder="Min Players..." />
                 </div>
 
                 <div class="pure-control-group">

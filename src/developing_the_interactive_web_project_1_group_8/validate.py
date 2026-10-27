@@ -34,6 +34,9 @@ def validate_form(form):
         errors["bgg-game-search"] = "Must enter a valid game"
     elif not game_exists(gameid):
         errors["bgg-game-search"] = "Must enter a valid game"
+    else:
+        error_event["game_name"] = form.get("search-key")
+        error_event["gameid"] = form.get("search-value")
 
     address = form.get("address")
     pattern_match = re.fullmatch(pattern, address)
