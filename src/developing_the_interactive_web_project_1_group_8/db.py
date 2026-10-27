@@ -319,10 +319,11 @@ def create_event(
     max_attendees,
     description,
     status,
-    visibility,
+    visibility="public",
+    public_id=None,
 ):
     # https://docs.python.org/3/library/secrets.html#secrets.token_urlsafe
-    public_id = secrets.token_urlsafe(32)
+    public_id = secrets.token_urlsafe(32) if public_id is None else public_id
     with pool.connection() as conn:
         with conn.cursor() as cur:
             categories = bgg.game(game_id=gameID).categories
@@ -448,7 +449,7 @@ def delete_event(id):
         return True
 
 
-def attend_event(event_id, user_id, is_host):
+def attend_event(event_id, user_id, is_host=False):
     with pool.connection() as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT * FROM events WHERE id = %s FOR UPDATE", (event_id,))

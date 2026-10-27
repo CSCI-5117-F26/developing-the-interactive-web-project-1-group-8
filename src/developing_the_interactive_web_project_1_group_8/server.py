@@ -1186,6 +1186,14 @@ def restore_event(public_id):
     return redirect("/")
 
 
+import datetime
+
+
+@app.context_processor
+def inject_today_date():
+    return {"now": datetime.datetime.now(CENTRAL)}
+
+
 # ---------- Error Handlers ----------
 @app.errorhandler(404)
 def page_not_found(e):

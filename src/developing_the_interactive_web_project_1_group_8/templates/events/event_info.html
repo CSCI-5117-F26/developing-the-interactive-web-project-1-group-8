@@ -123,7 +123,7 @@
                 </div>
                 <div class="pure-control-group">
                     <label for="event-time">Event Time (CT)</label>
-                    <input class="pure-input-1" id="event-time" type="datetime-local" name="time" value="{{ event.time | format_event_input if event else '' }}">
+                    <input class="pure-input-1" id="event-time" type="datetime-local" name="time"{% if not event %} min="{{ now | format_event_input }}"{% endif %} value="{{ event.time | format_event_input if event else '' }}">
                     <p class="pure-form-message">Enter the event time in Central Time (CT).</p>
                 </div>
                 <div class="settings-actions">
