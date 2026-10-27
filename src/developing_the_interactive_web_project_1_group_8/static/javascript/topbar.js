@@ -13,7 +13,9 @@ searchInput.addEventListener("input", async function (event) {
     clearTimeout(delayTimer);
   }
 
-  a = document.createElement("DIV");
+  if (!query.trim()) return;
+  currentFocus = -1;
+  var a = document.createElement("DIV");
   a.setAttribute("id", this.id + "autocomplete-list");
   a.setAttribute("class", "autocomplete-items");
   a.style.width = searchInput.offsetWidth + "px";
@@ -59,12 +61,13 @@ searchInput.addEventListener("input", async function (event) {
       .then((data) => {
         console.log("fire");
         console.log(data);
-        if (!data.length) return;
+        if (!a.isConnected || searchInput.value !== query || !data.length)
+          return;
 
         /*for each item in the array...*/
-        for (i = 0; i < data.length; i++) {
+        for (var i = 0; i < data.length; i++) {
           /*create a DIV element for each matching element:*/
-          b = document.createElement("DIV");
+          var b = document.createElement("DIV");
 
           /*make the matching letters bold:*/
           const name = data[i].name;
@@ -138,8 +141,8 @@ searchInput.addEventListener("keydown", function (e) {
     addActive(x);
   } else if (e.keyCode == 13) {
     /*If the ENTER key is pressed, prevent the form from being submitted,*/
-    e.preventDefault();
     if (currentFocus > -1) {
+      e.preventDefault();
       /*and simulate a click on the "active" item:*/
       if (x) x[currentFocus].click();
     }
@@ -156,7 +159,7 @@ function closeAllLists(elmnt) {
   /*close all autocomplete lists in the document,
   except the one passed as an argument:*/
   var x = document.getElementsByClassName("autocomplete-items");
-  for (var i = 0; i < x.length; i++) {
+  for (var i = x.length - 1; i >= 0; i--) {
     if (elmnt != x[i] && elmnt != searchInput) {
       x[i].parentNode.removeChild(x[i]);
     }

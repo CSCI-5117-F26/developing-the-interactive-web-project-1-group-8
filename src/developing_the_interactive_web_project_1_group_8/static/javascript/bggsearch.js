@@ -16,120 +16,118 @@ function autocomplete(str, uri) {
     return;
   }
   /*execute a function when someone writes in the text field:*/
-  searchElement.addEventListener(
-    "input",
-    async function (e) {
-      var a,
-        b,
-        i,
-        val = this.value;
-      /*close any already open lists of autocompleted values*/
-      closeAllLists();
-      if (!val) {
-        return false;
-      }
-      currentFocus = -1;
+  searchElement.addEventListener("input", async function (e) {
+    var a,
+      b,
+      i,
+      val = this.value;
+    /*close any already open lists of autocompleted values*/
+    closeAllLists();
+    searchElement.parentNode.querySelector(`input[name='${str}-key']`).value =
+      "";
+    searchElement.parentNode.querySelector(`input[name='${str}-value']`).value =
+      "";
+    currentFocus = -1;
 
-      if (delayTimer) {
-        clearTimeout(delayTimer);
-      }
+    if (delayTimer) {
+      clearTimeout(delayTimer);
+    }
+    if (!val.trim()) {
+      return false;
+    }
 
-      /*create a DIV element that will contain the items (values):*/
-      a = document.createElement("DIV");
-      a.setAttribute("id", this.id + "autocomplete-list");
-      a.setAttribute("class", "autocomplete-items");
-      /*append the DIV element as a child of the autocomplete container:*/
-      this.parentNode.parentNode.appendChild(a);
+    /*create a DIV element that will contain the items (values):*/
+    a = document.createElement("DIV");
+    a.setAttribute("id", this.id + "autocomplete-list");
+    a.setAttribute("class", "autocomplete-items");
+    /*append the DIV element as a child of the autocomplete container:*/
+    this.parentNode.parentNode.appendChild(a);
 
-      delayTimer = setTimeout(async function () {
-        if (val.trim() === "") return; // Don't make an API call for empty queries
-
-        var data;
-
-        if (typeof uri === "string") {
-          // Make an API call to the search endpoint with the query
-          data = await fetch(`${uri}?q=${encodeURIComponent(val)}`).then(
-            (response) => response.json(),
-          );
-        } else if (typeof uri === "object") {
-          // Filter the provided object for matching values
-          data = Object.entries(uri)
-            .filter(([key, value]) =>
-              key.toLowerCase().includes(val.toLowerCase()),
-            )
-            .map(([key, value]) => ({ name: key, id: value }));
-        } else {
-          console.error("Invalid URI type. Must be a string or an object.");
-          return;
-        }
-
-        console.log("Search results:", data);
-
-        /*for each item in the array...*/
-        for (i = 0; i < data.length; i++) {
-          /*create a DIV element for each matching element:*/
-          b = document.createElement("DIV");
-
-          /*make the matching letters bold:*/
-          const name = data[i].name;
-          let start = 0,
-            matchIndex;
-          while (
-            (matchIndex = name
-              .toLowerCase()
-              .indexOf(val.toLowerCase(), start)) !== -1
-          ) {
-            b.append(name.slice(start, matchIndex));
-            const strong = document.createElement("strong");
-            strong.textContent = name.slice(
-              matchIndex,
-              matchIndex + val.length,
-            );
-            b.appendChild(strong);
-            start = matchIndex + val.length;
-          }
-          b.append(name.slice(start));
-
-          /*insert a input field that will hold the current array item's value:*/
-          for (const [field, value] of [
-            ["name", name],
-            ["id", data[i].id],
-          ]) {
-            const hidden = document.createElement("input");
-            hidden.type = "hidden";
-            hidden.name = field;
-            hidden.value = value;
-            b.appendChild(hidden);
-          }
-
-          /*execute a function when someone clicks on the item value (DIV element):*/
-          b.addEventListener("click", function (e) {
-            /*insert the value for the autocomplete text field:*/
-            searchElement.setAttribute(
-              "value",
-              this.getElementsByTagName("input")[0].value,
-            );
-            searchElement.value = this.getElementsByTagName("input")[0].value;
-
-            /*insert the value for the hidden input field:*/
-            searchElement.parentNode.querySelector(
-              `input[name='${str}-value']`,
-            ).value = this.getElementsByTagName("input")[1].value;
-            searchElement.parentNode.querySelector(
-              `input[name='${str}-key']`,
-            ).value = this.getElementsByTagName("input")[0].value;
-            /*close the list of autocompleted values,
-          (or any other open lists of autocompleted values:*/
-            closeAllLists();
-          });
-          a.appendChild(b);
-          // }
-        }
-      });
+    delayTimer = setTimeout(async function () {
       delayTimer = null;
-    },
-    500,
-  ); // Delay of 500 milliseconds
+      if (val.trim() === "") return; // Don't make an API call for empty queries
+
+      var data;
+
+      if (typeof uri === "string") {
+        // Make an API call to the search endpoint with the query
+        data = await fetch(`${uri}?q=${encodeURIComponent(val)}`)
+          .then((response) => response.json())
+          .catch(() => []);
+      } else if (typeof uri === "object") {
+        // Filter the provided object for matching values
+        data = Object.entries(uri)
+          .filter(([key, value]) =>
+            key.toLowerCase().includes(val.toLowerCase()),
+          )
+          .map(([key, value]) => ({ name: key, id: value }));
+      } else {
+        console.error("Invalid URI type. Must be a string or an object.");
+        return;
+      }
+
+      if (!a.isConnected || searchElement.value !== val) return;
+      console.log("Search results:", data);
+
+      /*for each item in the array...*/
+      for (i = 0; i < data.length; i++) {
+        /*create a DIV element for each matching element:*/
+        b = document.createElement("DIV");
+
+        /*make the matching letters bold:*/
+        const name = data[i].name;
+        let start = 0,
+          matchIndex;
+        while (
+          (matchIndex = name
+            .toLowerCase()
+            .indexOf(val.toLowerCase(), start)) !== -1
+        ) {
+          b.append(name.slice(start, matchIndex));
+          const strong = document.createElement("strong");
+          strong.textContent = name.slice(matchIndex, matchIndex + val.length);
+          b.appendChild(strong);
+          start = matchIndex + val.length;
+        }
+        b.append(name.slice(start));
+
+        /*insert a input field that will hold the current array item's value:*/
+        for (const [field, value] of [
+          ["name", name],
+          ["id", data[i].id],
+        ]) {
+          const hidden = document.createElement("input");
+          hidden.type = "hidden";
+          hidden.name = field;
+          hidden.value = value;
+          b.appendChild(hidden);
+        }
+
+        /*execute a function when someone clicks on the item value (DIV element):*/
+        b.addEventListener("click", function (e) {
+          /*insert the value for the autocomplete text field:*/
+          searchElement.setAttribute(
+            "value",
+            this.getElementsByTagName("input")[0].value,
+          );
+          searchElement.value = this.getElementsByTagName("input")[0].value;
+
+          /*insert the value for the hidden input field:*/
+          searchElement.parentNode.querySelector(
+            `input[name='${str}-value']`,
+          ).value = this.getElementsByTagName("input")[1].value;
+          searchElement.parentNode.querySelector(
+            `input[name='${str}-key']`,
+          ).value = this.getElementsByTagName("input")[0].value;
+          /*close the list of autocompleted values,
+          (or any other open lists of autocompleted values:*/
+          closeAllLists();
+        });
+        a.appendChild(b);
+        // }
+      }
+    }, 500);
+  }); // Delay of 500 milliseconds
 
   /*execute a function presses a key on the keyboard:*/
   searchElement.addEventListener("keydown", function (e) {
@@ -149,9 +147,9 @@ function autocomplete(str, uri) {
       /*and and make the current item more visible:*/
       addActive(x);
     } else if (e.keyCode == 13) {
-      /*If the ENTER key is pressed, prevent the form from being submitted,*/
-      e.preventDefault();
+      /*Only prevent submission when selecting a highlighted suggestion.*/
       if (x && x.length && currentFocus > -1) {
+        e.preventDefault();
         /*and simulate a click on the "active" item:*/
         if (x) x[currentFocus].click();
       }
@@ -178,7 +176,7 @@ function autocomplete(str, uri) {
     /*close all autocomplete lists in the document,
   except the one passed as an argument:*/
     var x = document.getElementsByClassName("autocomplete-items");
-    for (var i = 0; i < x.length; i++) {
+    for (var i = x.length - 1; i >= 0; i--) {
       if (elmnt != x[i] && elmnt != searchElement) {
         x[i].parentNode.removeChild(x[i]);
       }

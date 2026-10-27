@@ -37,7 +37,7 @@ def validate_form(form, current_event=None):
     )
 
     address = form.get("address") or ""
-    pattern_match = re.fullmatch(pattern, address)
+    pattern_match = re.fullmatch(r"^[a-zA-Z 0-9,.!'\-]+$", address)
 
     if not address:
         errors["address"] = "Event Address is required"
@@ -45,7 +45,7 @@ def validate_form(form, current_event=None):
         errors["address"] = "Address must be 254 characters or fewer"
     elif pattern_match is None:
         errors["address"] = (
-            "Address can only consist of alphanumeric characters and symbols ,.!'"
+            "Address can only consist of alphanumeric characters and symbols ,.!'-"
         )
 
     try:

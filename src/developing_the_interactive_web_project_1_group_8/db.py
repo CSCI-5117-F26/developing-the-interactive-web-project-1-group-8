@@ -1360,8 +1360,8 @@ def build_query(
         conditions.append("e.max_attendees <= %s")
         params.append(max_players)
     if duration is not None:
-        min_duration = max(duration - 1, 0)
-        max_duration = duration + 1
+        min_duration = max(duration - 0.5, 0)
+        max_duration = duration + 0.5
         conditions.append("e.expected_duration >= %s")
         conditions.append("e.expected_duration <= %s")
         params.append(min_duration)
