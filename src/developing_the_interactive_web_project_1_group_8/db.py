@@ -351,7 +351,15 @@ def create_event(
                     visibility,
                 ),
             )
-            return cur.fetchone()
+            event = cur.fetchone()
+            cur.execute(
+                """
+                INSERT INTO event_participation (id, user_interested, is_host)
+                VALUES (%s, %s, TRUE)
+                """,
+                (event["id"], hostID),
+            )
+            return event
 
 
 def update_event(
@@ -364,7 +372,6 @@ def update_event(
     min_attendees,
     max_attendees,
     description,
-    status,
     visibility,
 ):
     values = (
@@ -376,7 +383,6 @@ def update_event(
         min_attendees,
         max_attendees,
         description,
-        status,
         visibility,
     )
     with pool.connection() as conn:
@@ -385,11 +391,11 @@ def update_event(
                 """
                 UPDATE events SET name = %s, gameID = %s, address = %s, time = %s,
                 expected_duration = %s, min_attendees = %s, max_attendees = %s, description = %s,
-                status = %s, visibility = %s
+                visibility = %s
                 WHERE id = %s AND
                     (name, gameID, address, time, expected_duration,
-                     min_attendees, max_attendees, description, status, visibility)
-                    IS DISTINCT FROM (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                     min_attendees, max_attendees, description, visibility)
+                    IS DISTINCT FROM (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING name
                 """,
                 values + (id,) + values,
@@ -408,8 +414,9 @@ def get_all_event_attendees(event_id):
         with conn.cursor() as cur:
             cur.execute(
                 """
-            SELECT u.id, u.username, u.display_name, u.profile_pic FROM users u, event_participation p
-            WHERE u.id = p.user_interested AND p.id = %s AND NOT p.is_host
+            SELECT u.id, u.username, u.display_name, u.profile_pic, p.is_host FROM users u, event_participation p
+            WHERE u.id = p.user_interested AND p.id = %s
+            ORDER BY p.is_host DESC, u.username
             """,
                 (event_id,),
             )

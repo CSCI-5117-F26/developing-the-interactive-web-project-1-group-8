@@ -1004,13 +1004,11 @@ def event(public_id):
     """
 
     event = db.get_event_by_public_id(public_id)
-    attendees = None
     if event is None:
         abort(404, "This event does not appear to exist.")
     event = db.get_event_info(event["id"], session.get("profile", {}).get("id"))
 
-    if event["hostid"] == session.get("profile", {}).get("id"):
-        attendees = db.get_all_event_attendees(event["id"])
+    attendees = db.get_all_event_attendees(event["id"])
 
     return render_template("events/event.html", event=event, attendees=attendees)
 
@@ -1040,7 +1038,7 @@ def add_event():
         return render_template(
             "error.html", message="Choose a valid event time in Central Time (CT)."
         ), 400
-    result = db.create_event(
+    db.create_event(
         request.form.get("name"),
         request.form.get("search-value") or request.form.get("gameid"),
         session["profile"]["id"],
@@ -1053,8 +1051,6 @@ def add_event():
         "scheduled",
         visibility,
     )
-
-    db.attend_event(result["id"], session["profile"]["id"], True)
 
     return redirect("/")
 
@@ -1155,7 +1151,6 @@ def update_event(public_id):
         request.form.get("min_attendees"),
         request.form.get("max_attendees"),
         request.form.get("description"),
-        "scheduled",
         visibility,
     )
 
