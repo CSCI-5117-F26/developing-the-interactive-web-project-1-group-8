@@ -1030,7 +1030,7 @@ def create_event():
 @app.post("/add-event")
 @requires_auth
 def add_event():
-    print(request.form)
+    # print(request.form)
     # print(db.game_exists(request.form.get("search-value") or request.form.get("gameid")))
     # print(session["profile"]["id"])
     errors, error_event = validate_form(request.form)
@@ -1107,8 +1107,8 @@ def edit_event(public_id):
         abort(404, "This event does not appear to exist.")
     event_id = edited_event["id"]
     
-    print(session["profile"])
-    print(edited_event)
+    # print(session["profile"])
+    # print(edited_event)
     if session["profile"]["id"] == edited_event["hostid"]:
         db.add_game_info([edited_event])
         return render_template("events/event_info.html", event=edited_event, mode="edit")
